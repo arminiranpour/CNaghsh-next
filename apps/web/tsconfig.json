@@ -5,10 +5,10 @@
     "baseUrl": ".",
     "paths": {
       "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"]
-    },
-    "module": "ESNext",
-    "moduleResolution": "NodeNext"
+      "@/lib/*": ["./lib/*"],
+      "@acme/ui": ["../../packages/ui/src/index.ts"],
+      "@acme/ui/*": ["../../packages/ui/src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",

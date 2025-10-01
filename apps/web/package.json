@@ -32,6 +32,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",
     "eslint-config-next": "15.0.0-canary.87",

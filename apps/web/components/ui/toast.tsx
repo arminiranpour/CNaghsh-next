@@ -69,13 +69,14 @@ Toast.displayName = ToastPrimitives.Root.displayName;
 const ToastAction = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Action>,
   ToastPrimitiveActionProps
->(({ className, ...props }, ref) => (
+>(({ className, altText, ...props }, ref) => (
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
       "inline-flex h-8 items-center justify-center rounded-md border border-input bg-transparent px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
       className
     )}
+    altText={altText}
     {...props}
   />
 ));

@@ -69,7 +69,11 @@
 }
 
 body {
-  @apply bg-background text-foreground font-sans antialiased;
+    background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Vazirmatn", var(--font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .prose {
@@ -77,5 +81,6 @@ body {
 }
 
 .prose :where(p):not(:where([class~="not-prose"] *)) {
-  @apply leading-8 text-base;
+  font-size: 1rem;
+  line-height: 2rem;
 }

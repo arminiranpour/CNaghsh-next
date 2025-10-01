@@ -1,10 +1,10 @@
-import type { NextConfig } from "next";
+const config = {
 
-const config: NextConfig = {
   reactStrictMode: true,
   experimental: {
     typedRoutes: true
   }
-};
+} satisfies import("next").NextConfig;
+
 
 export default config;
