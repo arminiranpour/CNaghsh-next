@@ -1,0 +1,18 @@
+{
+  "name": "cnaghsh-next",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "dev:infra:down": "docker compose -f infra/docker-compose.dev.yml down -v",
+    "db:reset": "pnpm --filter @app/web prisma migrate reset --force && pnpm --filter @app/web prisma generate",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.6",
+    "typescript": "^5.5.4"
+  }
+}

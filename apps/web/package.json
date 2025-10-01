@@ -1,0 +1,43 @@
+{
+  "name": "@app/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "prisma": "prisma",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@acme/ui": "workspace:*",
+    "@prisma/client": "^5.15.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@tailwindcss/typography": "^0.5.12",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.446.0",
+    "next": "15.0.0-canary.87",
+    "next-themes": "^0.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwind-merge": "^2.4.0",
+    "tailwindcss-animate": "^1.0.7",
+    "tailwindcss-rtl": "^0.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "15.0.0-canary.87",
+    "postcss": "^8.4.38",
+    "prisma": "^5.15.0",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.4"
+  }
+}
