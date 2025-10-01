@@ -8,7 +8,8 @@
       "@/lib/*": ["./lib/*"],
       "@acme/ui": ["../../packages/ui/src/index.ts"],
       "@acme/ui/*": ["../../packages/ui/src/*"]
-    }
+    },
+    "types": ["node", "react", "react-dom"]
   },
   "include": [
     "next-env.d.ts",
