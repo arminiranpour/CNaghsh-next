@@ -9,6 +9,7 @@
       "@acme/ui": ["../../packages/ui/src/index.ts"],
       "@acme/ui/*": ["../../packages/ui/src/*"]
     },
+    "typeRoots": ["./types", "../../node_modules/@types"],
     "types": ["node", "react", "react-dom"]
   },
   "include": [
