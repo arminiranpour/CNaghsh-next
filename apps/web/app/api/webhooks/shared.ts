@@ -1,4 +1,3 @@
-import { CheckoutStatus, InvoiceStatus, PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { applyEntitlements } from "@/lib/billing/entitlements";
@@ -6,6 +5,8 @@ import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
 import { verifySignature } from "@/lib/billing/verifySignature";
 import { prisma } from "@/lib/db";
+import { CheckoutStatus, InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
+
 
 type WebhookResponse = NextResponse<{ error: string } | { ok: true; status: "PAID" | "FAILED" }>;
 

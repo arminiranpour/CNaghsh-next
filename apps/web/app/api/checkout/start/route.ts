@@ -1,9 +1,10 @@
-import { CheckoutStatus, Provider } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
 import { prisma } from "@/lib/db";
+import { CheckoutStatus, Provider } from "@/lib/prismaEnums";
+
 
 const isProviderName = (value: string): value is ProviderName => {
   return value === "zarinpal" || value === "idpay" || value === "nextpay";
