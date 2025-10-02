@@ -24,8 +24,8 @@
     "lucide-react": "^0.446.0",
     "next": "15.0.0-canary.87",
     "next-themes": "^0.3.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-rtl": "^0.9.0"

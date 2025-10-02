@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --watch --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --watch --format cjs,esm",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
