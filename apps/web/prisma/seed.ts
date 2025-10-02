@@ -1,7 +1,21 @@
-import { PrismaClient, ProductType, PlanCycle } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient() as PrismaClient & {
+  product: any;
+  plan: any;
+  price: any;
+};
 
+const ProductType = {
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  JOB_POST: 'JOB_POST',
+} as const;
+
+const PlanCycle = {
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  YEARLY: 'YEARLY',
+} as const;
 async function main() {
   const subscriptionProductId = 'product_subscription_default';
   const subscriptionPlanId = 'plan_subscription_monthly_default';

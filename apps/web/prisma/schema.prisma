@@ -49,18 +49,22 @@ enum EntitlementKey {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id               String            @id @default(cuid())
+  email            String            @unique
+  createdAt        DateTime          @default(now())
+  checkoutSessions CheckoutSession[]
+  payments         Payment[]
+  invoices         Invoice[]
+  entitlements     UserEntitlement[]
 }
 
 model Product {
-  id        String    @id @default(cuid())
+  id        String      @id @default(cuid())
   type      ProductType
   name      String
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   plans     Plan[]
   prices    Price[]
 }
@@ -81,16 +85,16 @@ model Plan {
 }
 
 model Price {
-  id        String    @id @default(cuid())
-  currency  String    @default("IRR")
+  id        String            @id @default(cuid())
+  currency  String            @default("IRR")
   amount    Int
-  active    Boolean   @default(true)
+  active    Boolean           @default(true)
   planId    String?
   productId String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  plan      Plan?      @relation(fields: [planId], references: [id], onDelete: Restrict)
-  product   Product?   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  plan      Plan?             @relation(fields: [planId], references: [id], onDelete: Restrict)
+  product   Product?          @relation(fields: [productId], references: [id], onDelete: Restrict)
   sessions  CheckoutSession[]
 
   @@index([planId, active])
@@ -98,36 +102,36 @@ model Price {
 }
 
 model CheckoutSession {
-  id                      String          @id @default(cuid())
+  id                      String         @id @default(cuid())
   userId                  String
   provider                Provider
   priceId                 String
-  status                  CheckoutStatus  @default(STARTED)
+  status                  CheckoutStatus @default(STARTED)
   redirectUrl             String
   returnUrl               String
   providerInitPayload     Json
   providerCallbackPayload Json?
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  user                    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price                   Price           @relation(fields: [priceId], references: [id], onDelete: Restrict)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  price                   Price          @relation(fields: [priceId], references: [id], onDelete: Restrict)
   payments                Payment[]
 
   @@index([userId, status])
 }
 
 model Payment {
-  id                String         @id @default(cuid())
+  id                String          @id @default(cuid())
   userId            String
   checkoutSessionId String
   provider          Provider
   providerRef       String
   amount            Int
-  currency          String         @default("IRR")
+  currency          String          @default("IRR")
   status            PaymentStatus
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   session           CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
   invoice           Invoice?
 
@@ -150,14 +154,14 @@ model Invoice {
 }
 
 model UserEntitlement {
-  id               String          @id @default(cuid())
+  id               String         @id @default(cuid())
   userId           String
   key              EntitlementKey
   expiresAt        DateTime?
   remainingCredits Int?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
 }
