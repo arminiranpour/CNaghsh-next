@@ -170,7 +170,7 @@ export function SandboxRedirectContent({
       if (returnUrl) {
         window.location.href = returnUrl;
       } else {
-        router.push(`/checkout/${sessionId}`);
+        router.push(`/checkout/${sessionId}` as `/checkout/${string}`);
       }
     } catch (error) {
       const message =

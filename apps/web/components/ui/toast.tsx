@@ -48,13 +48,13 @@ type ToastPrimitiveActionProps = React.ComponentPropsWithoutRef<
   typeof ToastPrimitives.Action
 >;
 
-type ToastProps = ToastPrimitiveRootProps;
+type ToastProps = ToastPrimitiveRootProps & VariantProps<typeof toastVariants>;
 
 type ToastActionElement = React.ReactElement<ToastPrimitiveActionProps>;
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  ToastProps & VariantProps<typeof toastVariants>
+  ToastProps
 >(({ className, variant, ...props }, ref) => {
   return (
     <ToastPrimitives.Root
