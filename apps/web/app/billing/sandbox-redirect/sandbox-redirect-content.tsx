@@ -172,7 +172,8 @@ export function SandboxRedirectContent({
         window.location.href = returnUrl;
       } else {
         router.push(`/checkout/${sessionId}` as Route);
-    } catch (error) {
+          }
+        } catch (error) {
       const message =
         error instanceof Error ? error.message : "ارسال وب‌هوک با خطا مواجه شد";
       toast({
