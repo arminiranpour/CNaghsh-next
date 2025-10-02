@@ -17,6 +17,8 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement;
 };
 
+type Toast = Omit<ToasterToast, "id">;
+
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
   UPDATE_TOAST: "UPDATE_TOAST",
@@ -150,10 +152,10 @@ export function useToast() {
 
   return {
     ...state,
-    toast: ({ ...props }: ToastProps) => {
+    toast: ({ ...props }: Toast) => {
       const id = genId();
 
-      const update = (props: ToasterToast) =>
+      const update = (props: Partial<ToasterToast>) =>
         dispatch({
           type: actionTypes.UPDATE_TOAST,
           toast: { ...props, id }
