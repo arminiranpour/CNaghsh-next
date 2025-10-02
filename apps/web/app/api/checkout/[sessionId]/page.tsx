@@ -109,7 +109,9 @@ export default async function CheckoutStatusPage({
                 اگر پس از چند ثانیه به‌صورت خودکار هدایت نشدید، از لینک زیر استفاده کنید.
               </p>
               <Button asChild>
-                <Link href={session.redirectUrl}>رفتن به درگاه</Link>
+                <a href={session.redirectUrl} rel="noopener noreferrer">
+                  رفتن به درگاه
+                </a>
               </Button>
             </div>
           )}

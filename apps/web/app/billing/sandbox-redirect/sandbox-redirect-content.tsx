@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -170,8 +171,7 @@ export function SandboxRedirectContent({
       if (returnUrl) {
         window.location.href = returnUrl;
       } else {
-        router.push(`/checkout/${sessionId}` as `/checkout/${string}`);
-      }
+        router.push(`/checkout/${sessionId}` as Route);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "ارسال وب‌هوک با خطا مواجه شد";

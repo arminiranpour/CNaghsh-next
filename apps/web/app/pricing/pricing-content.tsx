@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -201,7 +202,7 @@ export function PricingContent({
         title: "در حال انتقال",
         description: "به درگاه انتخابی منتقل می‌شوید...",
       });
-      router.push(`/checkout/${data.sessionId}`);
+      router.push(`/checkout/${data.sessionId}` as Route);
       window.location.href = data.redirectUrl;
     } catch (error) {
       const message =
