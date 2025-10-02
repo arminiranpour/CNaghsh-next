@@ -1,6 +1,7 @@
-import { EntitlementKey, PaymentStatus, PlanCycle, ProductType } from "@prisma/client";
+import { PaymentStatus, PlanCycle, ProductType, type EntitlementKey } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { CAN_PUBLISH_PROFILE, JOB_POST_CREDIT } from "./entitlementKeys";
 
 type ApplyEntitlementsArgs = {
   userId: string;
@@ -25,7 +26,7 @@ type SubscriptionResult = {
   wasApplied: true;
   intent: "subscription";
   entitlement: {
-    key: EntitlementKey.CAN_PUBLISH_PROFILE;
+    key: typeof CAN_PUBLISH_PROFILE;
     expiresAt: Date | null;
   };
 };
@@ -35,7 +36,7 @@ type JobCreditResult = {
   wasApplied: true;
   intent: "job_post";
   entitlement: {
-    key: EntitlementKey.JOB_POST_CREDIT;
+    key: typeof JOB_POST_CREDIT;
     remainingCredits: number;
   };
 };
@@ -108,7 +109,7 @@ export const applyEntitlements = async ({
     const cycle = price.plan.cycle;
     const months = cycleToMonths[cycle];
 
-    const key = EntitlementKey.CAN_PUBLISH_PROFILE;
+    const key: EntitlementKey = CAN_PUBLISH_PROFILE;
 
     const result = await prisma.$transaction(async (tx) => {
       const existing = await tx.userEntitlement.findUnique({
@@ -167,7 +168,7 @@ export const applyEntitlements = async ({
   }
 
   if (price.productId && price.product?.type === ProductType.JOB_POST) {
-    const key = EntitlementKey.JOB_POST_CREDIT;
+    const key: EntitlementKey = JOB_POST_CREDIT;
 
     const result = await prisma.$transaction(async (tx) => {
       const existing = await tx.userEntitlement.findUnique({

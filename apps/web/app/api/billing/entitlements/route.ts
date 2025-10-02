@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { EntitlementKey } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { CAN_PUBLISH_PROFILE, JOB_POST_CREDIT } from "@/lib/billing/entitlementKeys";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     where: {
       userId,
       key: {
-        in: [EntitlementKey.CAN_PUBLISH_PROFILE, EntitlementKey.JOB_POST_CREDIT],
+        in: [CAN_PUBLISH_PROFILE, JOB_POST_CREDIT],
       },
     },
     select: {
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const canPublish = entitlements.find((item) => item.key === EntitlementKey.CAN_PUBLISH_PROFILE);
-  const jobCredit = entitlements.find((item) => item.key === EntitlementKey.JOB_POST_CREDIT);
+  const canPublish = entitlements.find((item) => item.key === CAN_PUBLISH_PROFILE);
+  const jobCredit = entitlements.find((item) => item.key === JOB_POST_CREDIT);
 
   return NextResponse.json({
     userId,
