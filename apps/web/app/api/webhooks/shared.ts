@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import type { Prisma } from "@prisma/client";
+
 import { applyEntitlements } from "@/lib/billing/entitlements";
 import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
@@ -27,6 +29,7 @@ export const handleWebhook = async (
   if (!payload || typeof payload !== "object") {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
+  const providerPayload = payload as Prisma.InputJsonValue;
   const payloadData = payload as Record<string, unknown>;
   const sessionId = payloadData.sessionId;
   if (typeof sessionId !== "string" || !sessionId) {
@@ -102,7 +105,7 @@ export const handleWebhook = async (
         where: { id: session.id },
         data: {
           status: CheckoutStatus.SUCCESS,
-          providerCallbackPayload: payloadData,
+          providerCallbackPayload: providerPayload,
         },
       });
       return {
@@ -123,7 +126,7 @@ export const handleWebhook = async (
     where: { id: session.id },
     data: {
       status: CheckoutStatus.FAILED,
-      providerCallbackPayload: payloadData,
+      providerCallbackPayload: providerPayload,
     },
   });
   return NextResponse.json({ ok: true, status: "FAILED" });
