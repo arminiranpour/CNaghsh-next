@@ -10,17 +10,15 @@ export default function HomePage() {
           بازارگاه استعدادهای نمایشی
         </span>
         <h1 className="max-w-3xl text-balance text-4xl font-bold leading-relaxed sm:text-5xl">
-          کشف استعدادها و مدیریت فراخوان‌ها در یک پلتفرم سریع و مدرن
+          کشف فرصت‌ها و مدیریت پروفایل حرفه‌ای در یک پلتفرم سریع و مدرن
         </h1>
         <p className="max-w-2xl text-balance text-muted-foreground">
           این نسخه‌ی اولیه تنها اسکلت‌بندی صفحات عمومی است تا در اسپرینت‌های بعدی بتوانیم عملکردها و جریان‌های اصلی محصول را پیاده‌سازی کنیم.
+          همه کاربران با یک حساب می‌توانند هم رزومه ارسال کنند و هم فراخوان منتشر نمایند.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <Button asChild size="lg">
-            <Link href="/talent/123">ثبت‌نام استعداد</Link>
-          </Button>
-          <Button asChild variant="secondary" size="lg">
-            <Link href="/castings">ثبت‌نام کارفرما</Link>
+            <Link href="/users/123">شروع کاربری</Link>
           </Button>
         </div>
       </div>

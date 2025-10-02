@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface TalentPageProps {
+interface UserPageProps {
   params: {
     id: string;
   };
 }
 
-export function generateMetadata({ params }: TalentPageProps): Metadata {
+export function generateMetadata({ params }: UserPageProps): Metadata {
   return {
-    title: `پروفایل استعداد ${params.id}`
+    title: `پروفایل کاربر ${params.id}`
   };
 }
 
-export default function TalentPage({ params }: TalentPageProps) {
+export default function UserPage({ params }: UserPageProps) {
   return (
     <section className="container space-y-8 py-16">
       <Card>
@@ -24,8 +24,8 @@ export default function TalentPage({ params }: TalentPageProps) {
               {params.id.substring(0, 2).toUpperCase()}
             </div>
             <div className="space-y-1">
-              <CardTitle>نام استعداد</CardTitle>
-              <CardDescription>شهر محل زندگی • مهارت‌ها به زودی</CardDescription>
+              <CardTitle>نام کاربر</CardTitle>
+              <CardDescription>یک حساب برای مدیریت رزومه و فراخوان‌های شغلی</CardDescription>
             </div>
           </div>
           <div className="text-sm text-muted-foreground">
@@ -34,15 +34,15 @@ export default function TalentPage({ params }: TalentPageProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           <section className="space-y-2">
-            <h2 className="text-lg font-semibold">درباره استعداد</h2>
+            <h2 className="text-lg font-semibold">درباره کاربر</h2>
             <p className="text-sm leading-7 text-muted-foreground">
-              این بخش به صورت نمونه متن برای معرفی استعداد است. در مراحل بعدی اطلاعات کامل شامل سوابق، مهارت‌ها و رسانه‌ها نمایش داده خواهد شد.
+              این بخش نمونه‌ای برای معرفی کاربر است. در مراحل بعدی اطلاعات کامل شامل سوابق، مهارت‌ها و رسانه‌ها برای رزومه و فراخوان‌ها نمایش داده خواهد شد.
             </p>
           </section>
           <section className="space-y-2">
-            <h2 className="text-lg font-semibold">مهارت‌های برجسته</h2>
+            <h2 className="text-lg font-semibold">فعالیت‌های اخیر</h2>
             <p className="text-sm text-muted-foreground">
-              هنوز مهارتی ثبت نشده است. لطفاً بعد از پیاده‌سازی فرم‌ها، مهارت‌ها در اینجا نمایش داده می‌شوند.
+              هنوز هیچ رزومه یا فراخوانی ثبت نشده است. لطفاً پس از پیاده‌سازی فرم‌ها، فعالیت‌های کاربر در اینجا نمایش داده می‌شوند.
             </p>
           </section>
         </CardContent>

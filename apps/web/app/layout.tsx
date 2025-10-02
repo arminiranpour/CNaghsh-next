@@ -10,12 +10,12 @@ import { Toaster } from "@/components/ui/toaster";
 const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },
-  { href: "/talent/123", label: "استعدادها" }
+  { href: "/users/123", label: "کاربران" }
 ];
 
 export const metadata: Metadata = {
   title: "بازار فراخوان بازیگری",
-  description: "اسکلت اولیه بازارگاه فراخوان‌ها و استعدادها"
+  description: "اسکلت اولیه بازارگاه فراخوان‌ها و کاربران چندمنظوره"
 };
 
 export default function RootLayout({
