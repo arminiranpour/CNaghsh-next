@@ -1,5 +1,6 @@
 import { EntitlementKey, InvoiceStatus } from "@prisma/client";
 
+import type { Route } from "next";
 import Link from "next/link";
 
 import { SandboxUserIdPrompt } from "@/components/sandbox-user-id";
@@ -72,7 +73,7 @@ export default async function BillingPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SandboxUserIdPrompt redirectPath="/dashboard/billing" />
+            <SandboxUserIdPrompt redirectPath={"/dashboard/billing" as Route} />
           </CardContent>
         </Card>
       </div>
