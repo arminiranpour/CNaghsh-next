@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 export function SandboxUserIdPrompt({
   redirectPath,
 }: {
-  redirectPath: string;
+  redirectPath: Route;
 }) {
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -30,8 +31,8 @@ export function SandboxUserIdPrompt({
 
     window.localStorage.setItem("sandboxUserId", trimmed);
     const searchParams = new URLSearchParams({ userId: trimmed });
-    router.replace(`${redirectPath}?${searchParams.toString()}`);
-    router.refresh();
+    const target = `${redirectPath}?${searchParams.toString()}` as Route;
+    router.replace(target);    router.refresh();
   };
 
   return (

@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import type { Route } from "next";
 import Link from "next/link";
 
-const dashboardNav = [{ href: "/dashboard/billing", label: "صورتحساب" }];
-
+const dashboardNav = [{ href: "/dashboard/billing", label: "صورتحساب" }] satisfies Array<{
+  href: Route;
+  label: string;
+}>;
 export default function DashboardLayout({
   children,
 }: {
