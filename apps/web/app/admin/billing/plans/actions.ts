@@ -32,6 +32,16 @@ const sanitizeName = (value: string) => value.trim();
 
 const isJsonValue = (value: Prisma.JsonValue) => value !== undefined;
 
+const normalizeLimits = (
+  value: Prisma.JsonValue
+): Prisma.JsonNullValueInput | Prisma.InputJsonValue => {
+  if (value === null) {
+    return Prisma.JsonNull;
+  }
+
+  return value as Prisma.InputJsonValue;
+};
+
 export async function createPlan(values: PlanInput): Promise<ActionResult> {
   try {
     const name = sanitizeName(values.name);
@@ -64,7 +74,7 @@ export async function createPlan(values: PlanInput): Promise<ActionResult> {
         productId: values.productId,
         name,
         cycle: values.cycle,
-        limits: values.limits,
+        limits: normalizeLimits(values.limits),
         active: values.active,
       },
     });
@@ -119,7 +129,7 @@ export async function updatePlan(
         productId: values.productId,
         name,
         cycle: values.cycle,
-        limits: values.limits,
+        limits: normalizeLimits(values.limits),
         active: values.active,
       },
     });

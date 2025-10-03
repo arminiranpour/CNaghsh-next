@@ -25,10 +25,14 @@ type PriceFormState = {
   active: boolean;
 };
 
+type PriceFormInitialValues = Partial<Omit<PriceFormState, "amount">> & {
+  amount?: number | string;
+};
+
 type PriceFormProps = {
   plans: Array<{ id: string; name: string; productName?: string }>;
   products: Array<{ id: string; name: string }>;
-  initialValues?: Partial<PriceFormState> & { amount?: number };
+  initialValues?: PriceFormInitialValues;
   action: PriceAction | ((values: Parameters<PriceAction>[0]) => ReturnType<PriceAction>);
   submitLabel: string;
 };

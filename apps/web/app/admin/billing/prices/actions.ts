@@ -33,8 +33,11 @@ const validateLinking = async (
   const hasProduct = Boolean(productId);
 
   if ((hasPlan && hasProduct) || (!hasPlan && !hasProduct)) {
-    return { error: "باید یک مقصد قیمت انتخاب شود (پلن یا محصول)" };
-  }
+    return {
+      error: "باید یک مقصد قیمت انتخاب شود (پلن یا محصول)",
+      planId: null,
+      productId: null,
+    };  }
 
   if (hasPlan && planId) {
     const plan = await prisma.plan.findUnique({
@@ -43,7 +46,7 @@ const validateLinking = async (
     });
 
     if (!plan || plan.product?.type !== ProductType.SUBSCRIPTION) {
-      return { error: "مقدار نامعتبر" };
+      return { error: "مقدار نامعتبر", planId: null, productId: null };
     }
 
     return { success: true, planId, productId: null };
@@ -53,13 +56,13 @@ const validateLinking = async (
     const product = await prisma.product.findUnique({ where: { id: productId } });
 
     if (!product || product.type !== ProductType.JOB_POST) {
-      return { error: "مقدار نامعتبر" };
+      return { error: "مقدار نامعتبر", planId: null, productId: null };
     }
 
     return { success: true, planId: null, productId };
   }
 
-  return { error: "مقدار نامعتبر" };
+  return { error: "مقدار نامعتبر", planId: null, productId: null };
 };
 
 export async function createPrice(values: PriceInput): Promise<ActionResult> {
