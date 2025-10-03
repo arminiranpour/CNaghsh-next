@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 
 import { applyEntitlements } from "@/lib/billing/entitlements";
-import { providers } from "@/lib/billing/providers";
-import { ProviderName } from "@/lib/billing/providers/types";
 import { verifySignature } from "@/lib/billing/verifySignature";
 import { prisma } from "@/lib/db";
 import { CheckoutStatus, InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+
+type ProviderName = "zarinpal" | "idpay" | "nextpay";
 
 type WebhookResponse = NextResponse<{ error: string } | { ok: true; status: "PAID" | "FAILED" }>;
 
@@ -17,117 +18,139 @@ export const handleWebhook = async (
   providerName: ProviderName,
 ): Promise<WebhookResponse> => {
   const signature = request.headers.get("x-webhook-signature");
+
   if (!verifySignature(signature)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401, headers: NO_STORE_HEADERS });
   }
   let payload: unknown;
   try {
     payload = await request.json();
   } catch (error) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
   }
   if (!payload || typeof payload !== "object") {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
   }
-  const providerPayload = payload as Prisma.InputJsonValue;
-  const payloadData = payload as Record<string, unknown>;
-  const sessionId = payloadData.sessionId;
-  if (typeof sessionId !== "string" || !sessionId) {
-    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+
+  const data = payload as Record<string, unknown>;
+  const sessionId = data.sessionId;
+  const providerRef = data.providerRef;
+  const status = data.status;
+
+  if (
+    typeof sessionId !== "string" ||
+    !sessionId ||
+    typeof providerRef !== "string" ||
+    !providerRef ||
+    (status !== "OK" && status !== "FAILED")
+  ) {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
   }
-  const adapter = providers[providerName];
-  const parsed = adapter.parseWebhook(payloadData);
-  if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.reason }, { status: 400 });
-  }
-  const session = await prisma.checkoutSession.findUnique({ where: { id: sessionId } });
+
+  const session = await prisma.checkoutSession.findUnique({
+    where: { id: sessionId },
+    include: {
+      price: {
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+        },
+      },
+      payments: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: {
+          invoice: true,
+        },
+      },
+    },
+  });
   if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: NO_STORE_HEADERS });
   }
   if (session.provider !== providerName) {
-    return NextResponse.json({ error: "Provider mismatch" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid provider" }, { status: 400, headers: NO_STORE_HEADERS });
   }
-  if (parsed.paid) {
-    const price = await prisma.price.findUnique({ where: { id: session.priceId } });
-    if (!price) {
-      return NextResponse.json({ error: "Price not found" }, { status: 404 });
-    }
-    const result = await prisma.$transaction(async (tx) => {
-      const existingPayment = await tx.payment.findUnique({
-        where: {
-          provider_providerRef: {
-            provider: session.provider,
-            providerRef: parsed.providerRef,
-          },
-        },
-      });
-      const payment = await tx.payment.upsert({
-        where: {
-          provider_providerRef: {
-            provider: session.provider,
-            providerRef: parsed.providerRef,
-          },
-        },
-        create: {
-          userId: session.userId,
-          checkoutSessionId: session.id,
-          provider: session.provider,
-          providerRef: parsed.providerRef,
-          amount: price.amount,
-          currency: "IRR",
+
+  const payment = session.payments[0];
+
+  if (!payment || !payment.invoice) {
+    return NextResponse.json({ error: "Not found" }, { status: 404, headers: NO_STORE_HEADERS });
+  }
+
+  if (payment.status === PaymentStatus.PAID) {
+    return NextResponse.json({ ok: true, status: "PAID" }, { headers: NO_STORE_HEADERS });
+  }
+
+  if (payment.status === PaymentStatus.FAILED) {
+    return NextResponse.json({ ok: true, status: "FAILED" }, { headers: NO_STORE_HEADERS });
+  }
+
+  const payloadJson = payload as Prisma.InputJsonValue;
+
+  if (status === "OK") {
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
           status: PaymentStatus.PAID,
-        },
-        update: {
-          userId: session.userId,
-          checkoutSessionId: session.id,
-          amount: price.amount,
-          currency: "IRR",
-          status: PaymentStatus.PAID,
+          providerRef,
+          amount: session.price.amount,
+          currency: session.price.currency,
         },
       });
-      await tx.invoice.upsert({
-        where: { paymentId: payment.id },
-        create: {
-          paymentId: payment.id,
-          userId: session.userId,
-          total: price.amount,
-          currency: "IRR",
+
+      await tx.invoice.update({
+        where: { id: payment.invoice!.id },
+        data: {
           status: InvoiceStatus.PAID,
-        },
-        update: {
-          userId: session.userId,
-          total: price.amount,
-          currency: "IRR",
-          status: InvoiceStatus.PAID,
+          total: session.price.amount,
+          currency: session.price.currency,
         },
       });
+
       await tx.checkoutSession.update({
         where: { id: session.id },
         data: {
           status: CheckoutStatus.SUCCESS,
-          providerCallbackPayload: providerPayload,
+          providerCallbackPayload: payloadJson,
         },
       });
-      return {
-        payment,
-        shouldApply: !existingPayment || existingPayment.status !== PaymentStatus.PAID,
-      };
     });
-    if (result.shouldApply) {
-      await applyEntitlements({
-        userId: session.userId,
-        priceId: session.priceId,
-        paymentId: result.payment.id,
-      });
-    }
-    return NextResponse.json({ ok: true, status: "PAID" });
+
+    await applyEntitlements({
+      userId: session.userId,
+      priceId: session.price.id,
+      paymentId: payment.id,
+    });
+
+    return NextResponse.json({ ok: true, status: "PAID" }, { headers: NO_STORE_HEADERS });
   }
-  await prisma.checkoutSession.update({
-    where: { id: session.id },
-    data: {
-      status: CheckoutStatus.FAILED,
-      providerCallbackPayload: providerPayload,
-    },
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: PaymentStatus.FAILED,
+        providerRef,
+      },
+    });
+
+    await tx.invoice.update({
+      where: { id: payment.invoice!.id },
+      data: {
+        status: InvoiceStatus.VOID,
+      },
+    });
+
+    await tx.checkoutSession.update({
+      where: { id: session.id },
+      data: {
+        status: CheckoutStatus.FAILED,
+        providerCallbackPayload: payloadJson,
+      },
+    });
   });
-  return NextResponse.json({ ok: true, status: "FAILED" });
+  return NextResponse.json({ ok: true, status: "FAILED" }, { headers: NO_STORE_HEADERS });
 };
