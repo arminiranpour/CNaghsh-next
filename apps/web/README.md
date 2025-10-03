@@ -98,3 +98,11 @@ The sandbox page mirrors the provider return flow. Query parameters (`session`, 
 - «پرداخت ناموفق» submits `{ status: "FAILED" }`.
 
 If `WEBHOOK_SHARED_SECRET` is configured, add the signature in the inline field (persisted in `localStorage` as `sandboxWebhookSignature`) to include the `X-Webhook-Signature` header. After each webhook, the page returns to `returnUrl` if present, otherwise it navigates to `/checkout/<sessionId>` for verification.
+
+### `/dashboard/billing`
+
+The dashboard billing screen lives behind the sandbox dashboard shell.
+
+- Visit `/dashboard/billing?userId=<USER_ID>` to preload a sandbox user. If no ID is present you can paste one into the inline tester prompt (stored in `localStorage` as `sandboxUserId`).
+- The page summarizes active entitlements (وضعیت انتشار پروفایل + تاریخ انقضا، اعتبار آگهی شغلی + تعداد باقی‌مانده)، فهرست ۱۰ فاکتور اخیر همراه وضعیت و شناسه پرداخت، و دو دکمه برای رفتن به `/pricing` با همان `userId`.
+- سریع‌ترین مسیر تست: ابتدا `/dashboard/billing?userId=<id>` را باز کنید تا وضعیت اولیه (غیرفعال / بدون فاکتور) را ببینید. سپس از `/pricing` اشتراک بخرید و وبهوک موفق بزنید؛ پس از رفرش، انتشار پروفایل فعال و فاکتور «PAID» نمایش داده می‌شود. یک خرید تکی آگهی انجام دهید تا اعتبار شغلی +۱ شود و فاکتور جدید اضافه گردد.
