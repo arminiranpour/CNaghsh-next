@@ -18,7 +18,7 @@
     "db:seed": "prisma db seed"
   },
   "dependencies": {
-    "@acme/ui": "workspace:*",
+    "@acme/ui": "file:../../packages/ui",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-select": "^2.2.6",
