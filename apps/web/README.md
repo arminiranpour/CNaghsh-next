@@ -20,6 +20,65 @@ PUBLIC_BASE_URL="http://localhost:3000"
 
 Dynamic API handlers (checkout, webhooks, billing) respond with `Cache-Control: no-store`. The pricing API at `/api/pricing` advertises `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` for shared caching.
 
+## Seed & Manual Testing
+
+### Required commands
+
+All commands assume `pnpm` at the repo root:
+
+```bash
+# Apply migrations and refresh the Prisma client
+pnpm --filter @app/web prisma migrate dev
+pnpm --filter @app/web prisma generate
+
+# Seed billing defaults (idempotent)
+pnpm --filter @app/web db:seed
+
+# Start the web app
+pnpm --filter @app/web dev
+
+# Create a sandbox user and capture the USER_ID (prints only the id)
+pnpm --filter @app/web user:create [optional-email@example.com]
+```
+
+### Manual test plan
+
+Pre-flight checklist:
+
+1. `.env.local` contains `DATABASE_URL` and `PUBLIC_BASE_URL` (plus `WEBHOOK_SHARED_SECRET` if you want signature checks).
+2. The dev server is running (`pnpm --filter @app/web dev`).
+3. Run the seed. Confirm the console output lists both product bundles.
+4. Create a user with `pnpm --filter @app/web user:create` and note the returned `USER_ID`.
+
+#### 1. Pricing sanity
+
+1. `curl http://localhost:3000/api/pricing` should return:
+   - One subscription plan with `name="ماهانه"`, `cycle="MONTHLY"`, `amount=5000000`, `currency="IRR"`, and formatted `displayAmount="۵٬۰۰۰٬۰۰۰"` from `formatRials`.
+   - One job post entry with `amount=1500000` and `currency="IRR"`.
+2. Visit `http://localhost:3000/pricing?userId=<USER_ID>` and confirm the UI shows the same ریال values using Persian digits.
+
+#### 2. Subscription flow (success + idempotency)
+
+1. POST to `/api/checkout/start` with `{ "userId": "<USER_ID>", "provider": "zarinpal", "priceId": "<SUB_PRICE_ID>" }`. Expect `sessionId` and `redirectUrl`.
+2. Simulate success: POST to `/api/webhooks/zarinpal` with `{ "sessionId": "<SESSION_ID>", "providerRef": "sandbox-zarinpal", "status": "OK" }` (add signature header only if `WEBHOOK_SHARED_SECRET` is set).
+3. `curl "http://localhost:3000/api/billing/invoices?userId=<USER_ID>&limit=1"` → latest invoice status is `PAID`, payment status is `PAID`.
+4. `curl "http://localhost:3000/api/billing/entitlements?userId=<USER_ID>"` → `can_publish_profile.status === "active"` and `expiresAt` is ~1 month in the future.
+5. Re-send the exact same webhook payload. Expect no new invoices/payments and no double extension of the entitlement.
+
+#### 3. Job post flow (success + idempotency)
+
+1. Start another checkout with the job post price. Expect `sessionId` + `redirectUrl`.
+2. Send the success webhook for that session.
+3. Query `/api/billing/entitlements?userId=<USER_ID>` → `job_post_credit.remainingCredits` increases by 1.
+4. Re-send the webhook payload. The credit count must remain unchanged.
+
+#### 4. Dashboard & Admin UI validation
+
+1. `http://localhost:3000/dashboard/billing?userId=<USER_ID>` shows the active subscription entitlement, the job post credit tally, and latest invoices.
+2. `http://localhost:3000/admin/billing/products` lists «اشتراک» and «ثبت آگهی شغلی» with active toggles.
+3. `http://localhost:3000/admin/billing/plans` shows the single «ماهانه» plan. Toggling `active` hides/shows it on `/pricing` after refresh.
+4. `http://localhost:3000/admin/billing/prices` shows both prices. Deactivating/reactivating them should immediately affect `/pricing` results.
+
 ## Start checkout
 ```
 curl -X POST http://localhost:3000/api/checkout/start \
