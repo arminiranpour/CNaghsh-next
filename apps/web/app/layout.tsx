@@ -12,7 +12,7 @@ const navigation = [
   {
     href: {
       pathname: "/users/[id]",
-      query: { id: "123" },
+      query: { id: "123" }
     },
     label: "کاربران",
   },
