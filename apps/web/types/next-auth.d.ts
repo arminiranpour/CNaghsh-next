@@ -1,154 +1,137 @@
-import type { ReactNode } from "react";
-
 declare module "next-auth" {
-  export type Session = {
-    user?: {
-      id?: string;
-      email?: string | null;
-      name?: string | null;
-    } | null;
-    expires?: string;
-    [key: string]: unknown;
-  } | null;
+  import type { JWT } from "next-auth/jwt";
+  import type { AdapterUser } from "next-auth/adapters";
 
-  export type User = {
+  export interface User {
     id: string;
     email?: string | null;
-    name?: string | null;
-    emailVerified?: Date | null;
-    image?: string | null;
+    role?: string | null;
     [key: string]: unknown;
-  };
+  }
 
-  export type AdapterUser = User & {
-    emailVerified?: Date | null;
-  };
-
-  export type JWT = {
-    sub?: string | null;
-    email?: string | null;
-    name?: string | null;
-    picture?: string | null;
+  export interface Session {
+    user?: User & {
+      id?: string;
+      email?: string | null;
+      role?: string | null;
+    };
+    expires?: string;
     [key: string]: unknown;
-  };
+  }
 
-  export type NextAuthConfig = {
-    providers?: unknown[];
-    callbacks?: Record<string, (...args: any[]) => unknown>;
-    session?: Record<string, unknown>;
-    pages?: Record<string, string>;
-    [key: string]: unknown;
-  };
+  export interface NextAuthConfig {
+    trustHost?: boolean;
+    secret?: string;
+    session?: {
+      strategy?: string;
+    };
+    pages?: {
+      signIn?: string;
+      [key: string]: string | undefined;
+    };
+    providers?: Array<unknown>;
+    callbacks?: {
+      jwt?: (context: { token: JWT; user?: AdapterUser | User | null }) =>
+        | Promise<JWT>
+        | JWT;
+      session?: (context: {
+        session: Session;
+        token: JWT;
+        user?: AdapterUser | User | null;
+      }) => Promise<Session> | Session;
+    };
+  }
 
-  export default function NextAuth(config: NextAuthConfig): {
-    (req: Request): Promise<Response>;
-    GET?: (req: Request) => Promise<Response>;
-    POST?: (req: Request) => Promise<Response>;
-  };
+  export type NextAuthOptions = NextAuthConfig;
 
-  export function getServerSession(
-    ...args: any[]
-  ): Promise<Session>;
+  export default function NextAuth(
+    config: NextAuthConfig
+  ): {
+    GET: (request: Request) => Promise<Response> | Response;
+    POST: (request: Request) => Promise<Response> | Response;
+  } & ((request: Request) => Promise<Response> | Response);
 }
 
 declare module "next-auth/react" {
-  import type { NextAuthConfig, Session } from "next-auth";
+  import type { Session } from "next-auth";
 
-  export type SignInResponse = {
-    error?: string;
+  export interface SignInResponse {
+    error?: string | null;
+    ok?: boolean;
     status?: number;
-    ok: boolean;
     url?: string | null;
+      }
+
+  export type SignInOptions = Record<string, unknown> & {
+    callbackUrl?: string;
+    redirect?: boolean;
+    email?: string;
+    password?: string;
   };
 
   export function signIn(
-    provider?: string,
-    options?: Record<string, unknown>,
+    provider: string,
+    options?: SignInOptions,
     authorizationParams?: Record<string, unknown>
   ): Promise<SignInResponse | undefined>;
 
-  export function signOut(
-    options?: Record<string, unknown>
-  ): Promise<void>;
+  export function signOut(options?: { callbackUrl?: string }): Promise<void>;
 
-  export function useSession(): {
-    data: Session;
-    status: "loading" | "authenticated" | "unauthenticated";
-  };
 
-  export function getCsrfToken(): Promise<string | undefined>;
+  export function useSession(): { data: Session | null; status: "loading" | "authenticated" | "unauthenticated" };
 
-  export function getProviders(): Promise<Record<string, unknown> | null>;
-
-  export function SessionProvider(props: {
-    children: ReactNode;
-    session?: Session;
-    basePath?: string;
-    refetchInterval?: number;
-    refetchOnWindowFocus?: boolean;
-  }): JSX.Element;
 }
 
 declare module "next-auth/providers/credentials" {
   import type { NextAuthConfig } from "next-auth";
 
   export type CredentialsConfig = {
-    authorize?: (
-      credentials: Record<string, string> | undefined,
-      request: Request
-    ) => Promise<Record<string, unknown> | null>;
-    credentials?: Record<
-      string,
-      {
-        label?: string;
-        type?: string;
-        placeholder?: string;
-      }
-    >;
-  } & Record<string, unknown>;
+    name?: string;
+    credentials?: Record<string, { label?: string; type?: string }>;
+    authorize?: (credentials: Record<string, unknown>) =>
+      | Record<string, unknown>
+      | null
+      | Promise<Record<string, unknown> | null>;
+  };
 
-  export default function CredentialsProvider(
-    config: CredentialsConfig
-  ): NextAuthConfig["providers"] extends Array<infer T> ? T : never;
+  export default function Credentials(
+    options: CredentialsConfig
+  ): NextAuthConfig["providers"] extends Array<infer Provider>
+    ? Provider
+    : unknown;
 }
 
 declare module "next-auth/adapters" {
-  import type { AdapterUser } from "next-auth";
-
-  export type Adapter = {
-    createUser: (user: AdapterUser) => Promise<AdapterUser>;
-    getUser: (id: string) => Promise<AdapterUser | null>;
-    getUserByEmail: (email: string) => Promise<AdapterUser | null>;
-    getUserByAccount: (
-      account: Record<string, unknown>
-    ) => Promise<AdapterUser | null>;
-    updateUser: (user: Partial<AdapterUser>) => Promise<AdapterUser>;
-    deleteUser?: (userId: string) => Promise<void>;
-  } & Record<string, unknown>;
-
-  export type AdapterUser = import("next-auth").AdapterUser;
+  export interface AdapterUser {
+    id: string;
+    email?: string | null;
+    emailVerified?: Date | null;
+    name?: string | null;
+    image?: string | null;
+    [key: string]: unknown;
+  }
 }
 
 declare module "next-auth/jwt" {
-  import type { JWT } from "next-auth";
-
-  export type JWTOptions = {
-    maxAge?: number;
+  export interface JWT {
+    id?: string | number;
+    email?: string | null;
+    role?: string | null;
+    name?: string | null;
+    picture?: string | null;
+    [key: string]: unknown;
+  }
+  export interface GetTokenParams {
+    req: Request & { cookies?: Record<string, string> };
     secret?: string;
-  } & Record<string, unknown>;
+  }
 
-  export function getToken(
-    params: {
-      req: Request;
-      secret?: string;
-      secureCookie?: boolean;
-    }
-  ): Promise<JWT | null>;
+  export function getToken(params: GetTokenParams): Promise<JWT | null>;
 }
 
 declare module "bcrypt" {
-  export function hash(data: string | Buffer, saltOrRounds: number): Promise<string>;
-  export function compare(data: string | Buffer, encrypted: string): Promise<boolean>;
+  export function hash(data: string, saltOrRounds: string | number): Promise<string>;
+  export function compare(data: string, encrypted: string): Promise<boolean>;
   export function genSalt(rounds?: number): Promise<string>;
   export default {
     hash,
