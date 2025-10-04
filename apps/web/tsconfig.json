@@ -1,40 +1,29 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": true,
+    "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@acme/ui": [
-        "../../packages/ui/src/index.ts"
-      ],
-      "@acme/ui/*": [
-        "../../packages/ui/src/*"
-      ]
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@acme/ui": ["../../packages/ui/src/index.ts"],
+      "@acme/ui/*": ["../../packages/ui/src/*"]
     },
-    "types": [
-      "node",
-      "react",
-      "react-dom"
-    ]
+    "types": ["node", "react", "react-dom"]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
     "types/**/*.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "scripts/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
