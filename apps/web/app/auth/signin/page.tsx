@@ -106,7 +106,10 @@ export default function SignInPage() {
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
         حساب ندارید؟ {" "}
-        <Link href="/auth/signup" className="text-primary hover:underline">
+        <Link
+          href={{ pathname: "/auth/signup" }}
+          className="text-primary hover:underline"
+        >
           همین حالا ثبت‌نام کنید
         </Link>
       </p>

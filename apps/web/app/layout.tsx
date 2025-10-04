@@ -4,13 +4,19 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { Header } from "@/components/site/header";
+import { Header, type NavigationItem } from "@/components/site/header";
 
 const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },
-  { href: "/users/123", label: "کاربران" }
-];
+  {
+    href: {
+      pathname: "/users/[id]",
+      query: { id: "123" },
+    },
+    label: "کاربران",
+  },
+] satisfies NavigationItem[];
 
 export const metadata: Metadata = {
   title: "بازار فراخوان بازیگری",

@@ -1,7 +1,9 @@
 import bcrypt from "bcrypt";
 import Credentials from "next-auth/providers/credentials";
 import type { PrismaClient } from "@prisma/client";
-import type { NextAuthConfig } from "next-auth";
+import type { NextAuthConfig, Session, User } from "next-auth";
+import type { AdapterUser } from "next-auth/adapters";
+import type { JWT } from "next-auth/jwt";
 
 import { createInMemoryRateLimiter } from "./rate-limit";
 
@@ -10,6 +12,21 @@ const signinLimiter = createInMemoryRateLimiter({
   windowMs: 60_000,
   namespace: "signin",
 });
+
+type CredentialsInput = {
+  email?: string;
+  password?: string;
+};
+
+type JwtContext = {
+  token: JWT;
+  user?: AdapterUser | (User & { role: "USER" | "ADMIN" }) | null;
+};
+
+type SessionContext = {
+  session: Session;
+  token: JWT;
+};
 
 export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
   return {
@@ -28,7 +45,7 @@ export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
           email: { label: "Email", type: "text" },
           password: { label: "Password", type: "password" },
         },
-        async authorize(credentials) {
+        async authorize(credentials: CredentialsInput | undefined) {
           const email = credentials?.email?.toLowerCase().trim();
           const password = credentials?.password;
 
@@ -76,21 +93,23 @@ export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
             id: user.id,
             email: user.email,
             role: user.role,
-          };
+          } satisfies User;
         },
       }),
     ],
     callbacks: {
-      async jwt({ token, user }) {
+      async jwt({ token, user }: JwtContext) {
         if (user) {
           token.id = user.id;
           token.email = user.email;
-          token.role = user.role;
+          if ("role" in user && user.role) {
+            token.role = user.role;
+          }
         }
 
         return token;
       },
-      async session({ session, token }) {
+      async session({ session, token }: SessionContext) {
         if (session.user) {
           session.user.id = (token.id ?? session.user.id ?? "") as string;
           session.user.email = (token.email ?? session.user.email ?? "") as string;

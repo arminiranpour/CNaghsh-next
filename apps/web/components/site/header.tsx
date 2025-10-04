@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { LinkProps } from "next/link";
 import { getServerSession } from "next-auth";
 
 import { getAuthConfig } from "@/lib/auth/config";
@@ -6,8 +7,8 @@ import { prisma } from "@/lib/prisma";
 
 import { UserMenu } from "./user-menu";
 
-type NavigationItem = {
-  href: string;
+export type NavigationItem = {
+  href: LinkProps["href"];
   label: string;
 };
 
@@ -17,14 +18,21 @@ export async function Header({ navigation }: { navigation: NavigationItem[] }) {
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-semibold text-foreground">
+        <Link
+          href={{ pathname: "/" }}
+          className="text-lg font-semibold text-foreground"
+        >
           صحنه
         </Link>
         <div className="flex items-center gap-6">
           <nav className="flex items-center gap-6 text-sm font-medium">
             {navigation.map((item) => (
               <Link
-                key={item.href}
+                key={
+                  typeof item.href === "string"
+                    ? item.href
+                    : item.href.pathname ?? JSON.stringify(item.href)
+                }
                 href={item.href}
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
@@ -37,13 +45,13 @@ export async function Header({ navigation }: { navigation: NavigationItem[] }) {
           ) : (
             <div className="flex items-center gap-3 text-sm">
               <Link
-                href="/auth/signin"
+                href={{ pathname: "/auth/signin" }}
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 ورود
               </Link>
               <Link
-                href="/auth/signup"
+                href={{ pathname: "/auth/signup" }}
                 className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 ثبت‌نام

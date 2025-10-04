@@ -75,7 +75,7 @@ export function UserMenu({ email }: UserMenuProps) {
           </div>
           <nav className="flex flex-col py-1 text-sm">
             <Link
-              href="/dashboard"
+              href={{ pathname: "/dashboard" }}
               className="px-4 py-2 text-right transition-colors hover:bg-muted"
               onClick={() => setOpen(false)}
             >
