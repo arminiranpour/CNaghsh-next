@@ -41,7 +41,7 @@ export async function Header({ navigation }: { navigation: NavigationItem[] }) {
             ))}
           </nav>
           {session?.user ? (
-            <UserMenu email={session.user.email} />
+            <UserMenu email={session.user.email ?? ""} />
           ) : (
             <div className="flex items-center gap-3 text-sm">
               <Link
