@@ -1,22 +1,150 @@
-import type { DefaultSession, DefaultUser } from "next-auth";
-import type { JWT as DefaultJWT } from "next-auth/jwt";
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
+declare module "next-auth/jwt" {
+  export type Role = "USER" | "ADMIN";
 
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user?: DefaultSession["user"] & {
-      id?: string;
-      role?: "USER" | "ADMIN";
-    };
+  export interface JWT {
+    [key: string]: unknown;
+    sub?: string;
+    id?: string | number | null;
+    email?: string | null;
+    name?: string | null;
+    picture?: string | null;
+    role?: Role;
   }
 
-  interface User extends DefaultUser {
-    role?: "USER" | "ADMIN";
+  export type GetTokenParams = {
+    req: unknown;
+    secret?: string;
+    raw?: boolean;
+  };
+
+  export function getToken(params: GetTokenParams): Promise<JWT | null>;
+}
+
+declare module "next-auth/adapters" {
+  import type { Role } from "next-auth/jwt";
+
+  export interface AdapterUser {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    emailVerified?: Date | null;
+    image?: string | null;
+    role?: Role;
+    [key: string]: unknown;
   }
 }
 
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
-    id?: string | number;
-    role?: "USER" | "ADMIN";
+declare module "next-auth/react" {
+  import type { Session } from "next-auth";
+
+  export type SignInOptions = Record<string, unknown> & {
+    callbackUrl?: string;
+    redirect?: boolean;
+  };
+
+  export type SignInResponse = {
+    error?: string;
+    status?: number;
+    ok?: boolean;
+    url?: string | null;
+  };
+
+  export function signIn(
+    provider?: string,
+    options?: SignInOptions,
+    authorizationParams?: Record<string, string>
+  ): Promise<SignInResponse | undefined>;
+
+  export function signOut(options?: { callbackUrl?: string; redirect?: boolean }): Promise<void>;
+
+  export function useSession(): {
+    data: Session | null;
+    status: "loading" | "authenticated" | "unauthenticated";
+  };
+}
+
+declare module "next-auth/providers/credentials" {
+  import type { AdapterUser } from "next-auth/adapters";
+  import type { Session, User } from "next-auth";
+
+  export type Awaitable<T> = T | Promise<T>;
+
+  export type CredentialInput = {
+    label?: string;
+    type?: string;
+    placeholder?: string;
+  };
+
+  export interface CredentialsConfig {
+    id?: string;
+    name?: string;
+    credentials?: Record<string, CredentialInput>;
+    authorize?: (
+      credentials: Record<string, unknown> | undefined,
+      request?: unknown
+    ) => Awaitable<User | AdapterUser | null>;
   }
+
+  const Credentials: (config: CredentialsConfig) => unknown;
+  export default Credentials;
+}
+
+declare module "bcrypt" {
+  export function compare(data: string | Buffer, encrypted: string): Promise<boolean>;
+  export function hash(data: string | Buffer, saltOrRounds: string | number): Promise<string>;
+  export function genSalt(rounds?: number): Promise<string>;
+
+  const bcrypt: {
+    compare: typeof compare;
+    hash: typeof hash;
+    genSalt: typeof genSalt;
+  };
+
+  export default bcrypt;
+}
+
+declare module "next-auth" {
+  import type { AdapterUser } from "next-auth/adapters";
+  import type { JWT, Role } from "next-auth/jwt";
+
+  export type Awaitable<T> = T | Promise<T>;
+
+  export interface SessionUser {
+    id?: string;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    role?: Role;
+    [key: string]: unknown;
+  }
+
+  export interface Session {
+    user?: SessionUser | null;
+    expires: string;
+    [key: string]: unknown;
+  }
+
+  export interface User extends SessionUser {}
+
+  export interface NextAuthOptions {
+    secret?: string;
+    trustHost?: boolean;
+    session?: {
+      strategy?: "jwt" | "database";
+      maxAge?: number;
+      updateAge?: number;
+    };
+    pages?: Record<string, string>;
+    providers: Array<unknown>;
+    callbacks?: {
+      jwt?: (params: { token: JWT; user?: AdapterUser | User | null }) => Awaitable<JWT>;
+      session?: (params: { session: Session; token: JWT }) => Awaitable<Session>;
+      [key: string]: ((...args: any[]) => Awaitable<unknown>) | undefined;
+    };
+    [key: string]: unknown;
+  }
+
+  const NextAuth: (options: NextAuthOptions) => unknown;
+  export default NextAuth;
 }
