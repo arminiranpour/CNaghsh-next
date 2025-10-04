@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import Credentials from "next-auth/providers/credentials";
 import type { PrismaClient } from "@prisma/client";
-import type { NextAuthConfig, Session, User } from "next-auth";
+import type { NextAuthOptions, Session, User } from "next-auth";
 import type { AdapterUser } from "next-auth/adapters";
 import type { JWT } from "next-auth/jwt";
 
@@ -28,7 +28,7 @@ type SessionContext = {
   token: JWT;
 };
 
-export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
+export function getAuthConfig(prisma: PrismaClient): NextAuthOptions {
   return {
     trustHost: true,
     secret: process.env.NEXTAUTH_SECRET,
@@ -120,5 +120,5 @@ export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
         return session;
       },
     },
-  } satisfies NextAuthConfig;
+  } satisfies NextAuthOptions;
 }
