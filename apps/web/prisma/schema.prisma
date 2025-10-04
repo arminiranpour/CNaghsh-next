@@ -1,10 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id               String            @id @default(cuid())
+  email            String            @unique
+  createdAt        DateTime          @default(now())
+  checkoutSessions CheckoutSession[]
+  invoices         Invoice[]
+  payments         Payment[]
+  entitlements     UserEntitlement[]
+}
+
+model Product {
+  id        String      @id @default(cuid())
+  type      ProductType
+  name      String
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  plans     Plan[]
+  prices    Price[]
+}
+
+model Plan {
+  id        String    @id @default(cuid())
+  productId String
+  name      String
+  cycle     PlanCycle
+  limits    Json
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   Product   @relation(fields: [productId], references: [id])
+  prices    Price[]
+
+  @@index([productId, active])
+}
+
+model Price {
+  id        String            @id @default(cuid())
+  currency  String            @default("IRR")
+  amount    Int
+  active    Boolean           @default(true)
+  planId    String?
+  productId String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  sessions  CheckoutSession[]
+  plan      Plan?             @relation(fields: [planId], references: [id], onDelete: Restrict)
+  product   Product?          @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([planId, active])
+  @@index([productId, active])
+}
+
+model CheckoutSession {
+  id                      String         @id @default(cuid())
+  userId                  String
+  provider                Provider
+  priceId                 String
+  status                  CheckoutStatus @default(STARTED)
+  redirectUrl             String
+  returnUrl               String
+  providerInitPayload     Json
+  providerCallbackPayload Json?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  price                   Price          @relation(fields: [priceId], references: [id])
+  user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments                Payment[]
+
+  @@index([userId, status])
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  userId            String
+  checkoutSessionId String
+  provider          Provider
+  providerRef       String
+  amount            Int
+  currency          String          @default("IRR")
+  status            PaymentStatus
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  invoice           Invoice?
+  session           CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerRef])
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  userId    String
+  paymentId String        @unique
+  total     Int
+  currency  String        @default("IRR")
+  status    InvoiceStatus
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  payment   Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserEntitlement {
+  id               String         @id @default(cuid())
+  userId           String
+  key              EntitlementKey
+  expiresAt        DateTime?
+  remainingCredits Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
 }
 
 enum ProductType {
@@ -46,122 +164,4 @@ enum InvoiceStatus {
 enum EntitlementKey {
   CAN_PUBLISH_PROFILE
   JOB_POST_CREDIT
-}
-
-model User {
-  id               String            @id @default(cuid())
-  email            String            @unique
-  createdAt        DateTime          @default(now())
-  checkoutSessions CheckoutSession[]
-  payments         Payment[]
-  invoices         Invoice[]
-  entitlements     UserEntitlement[]
-}
-
-model Product {
-  id        String      @id @default(cuid())
-  type      ProductType
-  name      String
-  active    Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  plans     Plan[]
-  prices    Price[]
-}
-
-model Plan {
-  id        String    @id @default(cuid())
-  productId String
-  name      String
-  cycle     PlanCycle
-  limits    Json
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
-  prices    Price[]
-
-  @@index([productId, active])
-}
-
-model Price {
-  id        String            @id @default(cuid())
-  currency  String            @default("IRR")
-  amount    Int
-  active    Boolean           @default(true)
-  planId    String?
-  productId String?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  plan      Plan?             @relation(fields: [planId], references: [id], onDelete: Restrict)
-  product   Product?          @relation(fields: [productId], references: [id], onDelete: Restrict)
-  sessions  CheckoutSession[]
-
-  @@index([planId, active])
-  @@index([productId, active])
-}
-
-model CheckoutSession {
-  id                      String         @id @default(cuid())
-  userId                  String
-  provider                Provider
-  priceId                 String
-  status                  CheckoutStatus @default(STARTED)
-  redirectUrl             String
-  returnUrl               String
-  providerInitPayload     Json
-  providerCallbackPayload Json?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
-  user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price                   Price          @relation(fields: [priceId], references: [id], onDelete: Restrict)
-  payments                Payment[]
-
-  @@index([userId, status])
-}
-
-model Payment {
-  id                String          @id @default(cuid())
-  userId            String
-  checkoutSessionId String
-  provider          Provider
-  providerRef       String
-  amount            Int
-  currency          String          @default("IRR")
-  status            PaymentStatus
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session           CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
-  invoice           Invoice?
-
-  @@unique([provider, providerRef])
-}
-
-model Invoice {
-  id        String        @id @default(cuid())
-  userId    String
-  paymentId String        @unique
-  total     Int
-  currency  String        @default("IRR")
-  status    InvoiceStatus
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment   Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model UserEntitlement {
-  id               String         @id @default(cuid())
-  userId           String
-  key              EntitlementKey
-  expiresAt        DateTime?
-  remainingCredits Int?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, key])
 }
