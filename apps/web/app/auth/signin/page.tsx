@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -61,7 +62,7 @@ export default function SignInPage() {
     }
 
     if (result?.url) {
-      router.push(result.url);
+      router.push(result.url as Route);
       router.refresh();
     }
   }

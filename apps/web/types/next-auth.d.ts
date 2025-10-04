@@ -44,6 +44,13 @@ declare module "next-auth" {
 
   export type NextAuthOptions = NextAuthConfig;
 
+  export function getServerSession(
+    ...args:
+      | []
+      | [config: NextAuthConfig]
+      | [request: Request, response: Response, config: NextAuthConfig]
+  ): Promise<Session | null>;
+
   export default function NextAuth(
     config: NextAuthConfig
   ): {
@@ -113,6 +120,8 @@ declare module "next-auth/adapters" {
 }
 
 declare module "next-auth/jwt" {
+  import type { NextRequest } from "next/server";
+
   export interface JWT {
     id?: string | number;
     email?: string | null;
@@ -122,7 +131,7 @@ declare module "next-auth/jwt" {
     [key: string]: unknown;
   }
   export interface GetTokenParams {
-    req: Request & { cookies?: Record<string, string> };
+    req: NextRequest | (Request & { cookies?: Record<string, string> });
     secret?: string;
   }
 

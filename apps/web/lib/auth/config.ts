@@ -102,7 +102,7 @@ export function getAuthConfig(prisma: PrismaClient): NextAuthConfig {
         if (user) {
           token.id = user.id;
           token.email = user.email;
-          if ("role" in user && user.role) {
+          if ("role" in user && typeof user.role === "string") {
             token.role = user.role;
           }
         }

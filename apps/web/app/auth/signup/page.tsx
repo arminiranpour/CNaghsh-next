@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -69,7 +70,7 @@ export default function SignUpPage() {
       }
 
       setIsSubmitting(false);
-      router.push(signInResult?.url ?? "/dashboard");
+      router.push((signInResult?.url ?? "/dashboard") as Route);
       router.refresh();
     } catch (err) {
       setError("خطا در برقراری ارتباط با سرور. لطفاً بعداً تلاش کنید.");
