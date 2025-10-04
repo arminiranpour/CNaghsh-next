@@ -17,7 +17,9 @@ type CredentialsInput = {
   password?: string;
 };
 
-type JwtContext = Parameters<NonNullable<NextAuthOptions["callbacks"]>["jwt"]>[0];
+type JwtContext = Parameters<
+  NonNullable<NonNullable<NextAuthOptions["callbacks"]>["jwt"]>
+>[0];
 
 type SessionContext = {
   session: Session;

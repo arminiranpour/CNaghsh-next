@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 
 import { getAuthConfig } from "@/lib/auth/config";
 import { prisma } from "@/lib/prisma";
