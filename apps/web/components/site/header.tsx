@@ -59,7 +59,7 @@ function resolveNavigationHref(
     consumedKeys.add(paramName);
   }
 
-  const searchParams = new URLSearchParams();
+  const remainingQuery: Record<string, string | string[]> = {};
 
   for (const [key, rawValue] of Object.entries(queryFromHref)) {
     if (consumedKeys.has(key) || rawValue === undefined) {
@@ -67,23 +67,29 @@ function resolveNavigationHref(
     }
 
     const values = Array.isArray(rawValue) ? rawValue : [rawValue];
-    for (const value of values) {
-      if (value !== undefined) {
-        searchParams.append(key, String(value));
-      }
+    const normalizedValues = values
+      .map((value) => (value !== undefined ? String(value) : undefined))
+      .filter((value): value is string => value !== undefined);
+
+    if (normalizedValues.length === 0) {
+      continue;
     }
+    remainingQuery[key] =
+      normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
   }
 
   const hash =
     "hash" in href && typeof href.hash === "string" && href.hash.length > 0
       ? href.hash.startsWith("#")
-        ? href.hash
-        : `#${href.hash}`
-      : "";
+        ? href.hash.slice(1)
+        : href.hash
+      : undefined;
 
-  const queryString = searchParams.toString();
-
-  return `${resolvedPathname}${queryString ? `?${queryString}` : ""}${hash}`;
+  return {
+    pathname: resolvedPathname,
+    ...(Object.keys(remainingQuery).length > 0 ? { query: remainingQuery } : {}),
+    ...(hash ? { hash } : {}),
+  } satisfies ComponentProps<typeof Link>["href"];
 }
 
 export type NavigationItem = {
