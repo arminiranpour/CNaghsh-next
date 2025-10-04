@@ -10,8 +10,11 @@ const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },
   {
-    href: "/users/123",
-    label: "کاربران",
+    href: {
+      pathname: "/users/[id]",
+      params: { id: "123" },
+    },
+      label: "کاربران",
   },
 ] satisfies NavigationItem[];
 
