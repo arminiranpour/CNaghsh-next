@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LinkProps } from "next/link";
+import type { ComponentProps } from "react";
 import { getServerSession } from "next-auth";
 
 import { getAuthConfig } from "@/lib/auth/config";
@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { UserMenu } from "./user-menu";
 
 export type NavigationItem = {
-  href: LinkProps["href"];
+  href: ComponentProps<typeof Link>["href"];
   label: string;
 };
 
