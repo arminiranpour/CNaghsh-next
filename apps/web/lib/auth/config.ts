@@ -2,7 +2,6 @@ import bcrypt from "bcrypt";
 import Credentials from "next-auth/providers/credentials";
 import type { PrismaClient } from "@prisma/client";
 import type { NextAuthOptions, Session, User } from "next-auth";
-import type { AdapterUser } from "next-auth/adapters";
 import type { JWT } from "next-auth/jwt";
 
 import { createInMemoryRateLimiter } from "./rate-limit";
@@ -18,10 +17,7 @@ type CredentialsInput = {
   password?: string;
 };
 
-type JwtContext = {
-  token: JWT;
-  user?: AdapterUser | (User & { role: "USER" | "ADMIN" }) | null;
-};
+type JwtContext = Parameters<NonNullable<NextAuthOptions["callbacks"]>["jwt"]>[0];
 
 type SessionContext = {
   session: Session;
