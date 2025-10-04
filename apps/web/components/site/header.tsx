@@ -1,0 +1,57 @@
+import Link from "next/link";
+import { getServerSession } from "next-auth";
+
+import { getAuthConfig } from "@/lib/auth/config";
+import { prisma } from "@/lib/prisma";
+
+import { UserMenu } from "./user-menu";
+
+type NavigationItem = {
+  href: string;
+  label: string;
+};
+
+export async function Header({ navigation }: { navigation: NavigationItem[] }) {
+  const session = await getServerSession(getAuthConfig(prisma));
+
+  return (
+    <header className="border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="container flex h-16 items-center justify-between gap-4">
+        <Link href="/" className="text-lg font-semibold text-foreground">
+          صحنه
+        </Link>
+        <div className="flex items-center gap-6">
+          <nav className="flex items-center gap-6 text-sm font-medium">
+            {navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          {session?.user ? (
+            <UserMenu email={session.user.email} />
+          ) : (
+            <div className="flex items-center gap-3 text-sm">
+              <Link
+                href="/auth/signin"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                ورود
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                ثبت‌نام
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
