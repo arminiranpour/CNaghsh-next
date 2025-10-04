@@ -1,42 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
 import { prisma } from "@/lib/db";
+import { badRequest, ok, safeJson, serverError } from "@/lib/http";
+import { sanitizeReturnUrl } from "@/lib/url";
 import { CheckoutStatus, Provider } from "@/lib/prismaEnums";
-
 
 const isProviderName = (value: string): value is ProviderName => {
   return value === "zarinpal" || value === "idpay" || value === "nextpay";
 };
 
 export async function POST(request: NextRequest) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const parsed = await safeJson<unknown>(request);
+  if (!parsed.ok) {
+    return badRequest("Invalid JSON");
   }
+
+  const body = parsed.data;
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    return badRequest("Invalid JSON");
   }
+
   const { userId, provider, priceId, returnUrl } = body as Record<string, unknown>;
-  if (typeof userId !== "string" || !userId) {
-    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+
+  if (typeof userId !== "string" || userId.trim().length === 0) {
+    return badRequest("Invalid JSON");
   }
   if (typeof provider !== "string" || !isProviderName(provider)) {
-    return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
+    return badRequest("Invalid JSON");
   }
-  if (typeof priceId !== "string" || !priceId) {
-    return NextResponse.json({ error: "Missing priceId" }, { status: 400 });
+
+  if (typeof priceId !== "string" || priceId.trim().length === 0) {
+    return badRequest("Invalid JSON");
   }
   const adapter = providers[provider];
+    if (!adapter) {
+    return badRequest("Invalid JSON");
+  }
+
   const price = await prisma.price.findFirst({
     where: { id: priceId, active: true },
   });
+
   if (!price) {
-    return NextResponse.json({ error: "Price not found" }, { status: 404 });
+    return badRequest("Price not found");
   }
+
   const session = await prisma.checkoutSession.create({
     data: {
       userId,
@@ -48,11 +58,12 @@ export async function POST(request: NextRequest) {
       providerInitPayload: {},
     },
   });
-  const baseUrl = process.env.PUBLIC_BASE_URL;
-  if (!baseUrl) {
-    return NextResponse.json({ error: "Missing PUBLIC_BASE_URL" }, { status: 500 });
-  }
-  const resolvedReturnUrl = typeof returnUrl === "string" && returnUrl ? returnUrl : `${baseUrl}/checkout/${session.id}/success`;
+  const fallbackPath = `/checkout/${session.id}/success`;
+  const resolvedReturnUrl = sanitizeReturnUrl(
+    typeof returnUrl === "string" ? returnUrl : undefined,
+    fallbackPath,
+  );
+
   let startResult;
   try {
     startResult = adapter.start({
@@ -62,14 +73,22 @@ export async function POST(request: NextRequest) {
       returnUrl: resolvedReturnUrl,
     });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to start checkout" }, { status: 500 });
+    return serverError("Failed to start checkout");
   }
-  await prisma.checkoutSession.update({
-    where: { id: session.id },
-    data: {
-      redirectUrl: startResult.redirectUrl,
-      returnUrl: resolvedReturnUrl,
-    },
+  try {
+    await prisma.checkoutSession.update({
+      where: { id: session.id },
+      data: {
+        redirectUrl: startResult.redirectUrl,
+        returnUrl: resolvedReturnUrl,
+      },
+    });
+  } catch (error) {
+    return serverError("Failed to persist checkout session");
+  }
+
+  return ok({
+    sessionId: session.id,
+    redirectUrl: startResult.redirectUrl,
   });
-  return NextResponse.json({ sessionId: session.id, redirectUrl: startResult.redirectUrl });
 }

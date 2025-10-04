@@ -1,5 +1,7 @@
 import "server-only";
 
+import { buildAbsoluteUrl } from "@/lib/url";
+
 import type {
   CheckoutSessionError,
   CheckoutSessionResponse,
@@ -7,12 +9,11 @@ import type {
 } from "./types";
 
 const buildUrl = (sessionId: string) => {
-  const baseUrl = process.env.PUBLIC_BASE_URL;
-  if (!baseUrl) {
+  try {
+    return buildAbsoluteUrl(`/api/checkout/${sessionId}`);
+  } catch (error) {
     return null;
   }
-
-  return `${baseUrl}/api/checkout/${sessionId}`;
 };
 
 export async function fetchCheckoutSession(

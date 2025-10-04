@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { notFound, ok } from "@/lib/http";
 
 type Params = {
   params: {
@@ -8,7 +9,7 @@ type Params = {
   };
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, { params }: Params) {
   const { sessionId } = params;
   const session = await prisma.checkoutSession.findUnique({
     where: { id: sessionId },
@@ -18,8 +19,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       redirectUrl: true,
     },
   });
+
   if (!session) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return notFound("Session not found");
   }
-  return NextResponse.json(session);
+  return ok(session);
 }

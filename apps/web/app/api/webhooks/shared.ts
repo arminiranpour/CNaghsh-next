@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import type { Prisma } from "@prisma/client";
 
@@ -7,51 +7,56 @@ import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
 import { verifySignature } from "@/lib/billing/verifySignature";
 import { prisma } from "@/lib/db";
+import { badRequest, notFound, ok, safeJson, unauthorized } from "@/lib/http";
 import { CheckoutStatus, InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
-
-
-type WebhookResponse = NextResponse<{ error: string } | { ok: true; status: "PAID" | "FAILED" }>;
 
 export const handleWebhook = async (
   request: NextRequest,
   providerName: ProviderName,
-): Promise<WebhookResponse> => {
+) => {
   const signature = request.headers.get("x-webhook-signature");
   if (!verifySignature(signature)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    return unauthorized("Invalid signature");
   }
-  let payload: unknown;
-  try {
-    payload = await request.json();
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+
+  const parsedJson = await safeJson<unknown>(request);
+  if (!parsedJson.ok) {
+    return badRequest("Invalid JSON");
   }
+  const payload = parsedJson.data;
+
   if (!payload || typeof payload !== "object") {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    return badRequest("Invalid payload");
   }
+
   const providerPayload = payload as Prisma.InputJsonValue;
   const payloadData = payload as Record<string, unknown>;
   const sessionId = payloadData.sessionId;
-  if (typeof sessionId !== "string" || !sessionId) {
-    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    return badRequest("Missing sessionId"); 
   }
   const adapter = providers[providerName];
   const parsed = adapter.parseWebhook(payloadData);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.reason }, { status: 400 });
+    return badRequest(parsed.reason);
   }
+
   const session = await prisma.checkoutSession.findUnique({ where: { id: sessionId } });
   if (!session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    return notFound("Session not found");
   }
+
   if (session.provider !== providerName) {
-    return NextResponse.json({ error: "Provider mismatch" }, { status: 400 });
+    return badRequest("Provider mismatch");
   }
+
   if (parsed.paid) {
     const price = await prisma.price.findUnique({ where: { id: session.priceId } });
     if (!price) {
-      return NextResponse.json({ error: "Price not found" }, { status: 404 });
+      return badRequest("Price not found");
     }
+
     const result = await prisma.$transaction(async (tx) => {
       const existingPayment = await tx.payment.findUnique({
         where: {
@@ -61,6 +66,7 @@ export const handleWebhook = async (
           },
         },
       });
+
       const payment = await tx.payment.upsert({
         where: {
           provider_providerRef: {
@@ -85,6 +91,7 @@ export const handleWebhook = async (
           status: PaymentStatus.PAID,
         },
       });
+
       await tx.invoice.upsert({
         where: { paymentId: payment.id },
         create: {
@@ -101,6 +108,7 @@ export const handleWebhook = async (
           status: InvoiceStatus.PAID,
         },
       });
+
       await tx.checkoutSession.update({
         where: { id: session.id },
         data: {
@@ -108,11 +116,13 @@ export const handleWebhook = async (
           providerCallbackPayload: providerPayload,
         },
       });
+
       return {
         payment,
         shouldApply: !existingPayment || existingPayment.status !== PaymentStatus.PAID,
       };
     });
+
     if (result.shouldApply) {
       await applyEntitlements({
         userId: session.userId,
@@ -120,8 +130,9 @@ export const handleWebhook = async (
         paymentId: result.payment.id,
       });
     }
-    return NextResponse.json({ ok: true, status: "PAID" });
+    return ok({ ok: true, status: "PAID" as const });
   }
+
   await prisma.checkoutSession.update({
     where: { id: session.id },
     data: {
@@ -129,5 +140,6 @@ export const handleWebhook = async (
       providerCallbackPayload: providerPayload,
     },
   });
-  return NextResponse.json({ ok: true, status: "FAILED" });
+
+  return ok({ ok: true, status: "FAILED" as const });
 };

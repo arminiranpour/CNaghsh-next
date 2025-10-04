@@ -1,5 +1,25 @@
 # Billing Sandbox
 
+## Environment variables
+
+The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populate `apps/web/.env.local` (or export in your shell):
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string used by Prisma. |
+| `PUBLIC_BASE_URL` | ✅ | Absolute origin without a trailing slash (e.g. `http://localhost:3000`). |
+| `WEBHOOK_SHARED_SECRET` | ❌ | Optional sandbox secret; omit locally to bypass signature checks. |
+
+Example:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
+PUBLIC_BASE_URL="http://localhost:3000"
+# WEBHOOK_SHARED_SECRET="dev_secret"
+```
+
+Dynamic API handlers (checkout, webhooks, billing) respond with `Cache-Control: no-store`. The pricing API at `/api/pricing` advertises `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` for shared caching.
+
 ## Start checkout
 ```
 curl -X POST http://localhost:3000/api/checkout/start \

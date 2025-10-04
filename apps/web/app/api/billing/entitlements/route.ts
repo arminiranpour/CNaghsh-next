@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-import { prisma } from "@/lib/db";
 import { CAN_PUBLISH_PROFILE, JOB_POST_CREDIT } from "@/lib/billing/entitlementKeys";
+import { prisma } from "@/lib/db";
+import { badRequest, getQuery, ok } from "@/lib/http";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get("userId");
+  const userId = getQuery(request, "userId");
 
   if (!userId) {
-    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    return badRequest("Missing userId");
   }
 
   const entitlements = await prisma.userEntitlement.findMany({
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const canPublish = entitlements.find((item) => item.key === CAN_PUBLISH_PROFILE);
   const jobCredit = entitlements.find((item) => item.key === JOB_POST_CREDIT);
 
-  return NextResponse.json({
+  return ok({
     userId,
     can_publish_profile: canPublish
       ? {
