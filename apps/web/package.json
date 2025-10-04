@@ -26,10 +26,12 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toast": "^1.2.1",
     "@tailwindcss/typography": "^0.5.12",
+    "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.446.0",
     "next": "15.0.0-canary.87",
+    "next-auth": "^4.24.7",
     "next-themes": "^0.3.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
@@ -38,6 +40,7 @@
     "tailwindcss-rtl": "^0.9.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
