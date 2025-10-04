@@ -26,10 +26,29 @@ type SessionContext = {
   token: JWT;
 };
 
+const DEFAULT_DEV_SECRET = "development-next-auth-secret";
+
+function resolveNextAuthSecret() {
+  const secretFromEnv = process.env.NEXTAUTH_SECRET;
+
+  if (secretFromEnv && secretFromEnv.trim().length > 0) {
+    return secretFromEnv;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    return DEFAULT_DEV_SECRET;
+  }
+
+  throw new Error(
+    "NEXTAUTH_SECRET is required when running in production environments.",
+  );
+}
+
 export function getAuthConfig(prisma: PrismaClient): NextAuthOptions {
+  const secret = resolveNextAuthSecret();
   return {
     trustHost: true,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret,
     session: {
       strategy: "jwt",
     },
