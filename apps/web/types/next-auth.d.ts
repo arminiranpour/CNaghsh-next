@@ -146,5 +146,8 @@ declare module "next-auth" {
   }
 
   const NextAuth: (options: NextAuthOptions) => unknown;
+    export function getServerSession(
+    options?: NextAuthOptions
+  ): Promise<Session | null>;
   export default NextAuth;
 }
