@@ -56,8 +56,19 @@ const envSchema = z
       return;
     }
 
-    if (data.NODE_ENV === "production" && base.protocol !== "https:") {
-      ctx.addIssue({
+    const hostname = base.hostname.toLowerCase();
+    const isLocalHostname =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname.endsWith(".local");
+
+    if (
+      data.NODE_ENV === "production" &&
+      base.protocol !== "https:" &&
+      !isLocalHostname
+    ) {      ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["PUBLIC_BASE_URL"],
         message: "PUBLIC_BASE_URL must use https in production",
