@@ -12,9 +12,9 @@ const navigation = [
   {
     href: {
       pathname: "/users/[id]",
-      params: { id: "123" },
+      query: { id: "123" },
     },
-      label: "کاربران",
+    label: "کاربران",
   },
 ] satisfies NavigationItem[];
 
