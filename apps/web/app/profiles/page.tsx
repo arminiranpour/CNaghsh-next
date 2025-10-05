@@ -154,7 +154,7 @@ export default async function ProfilesDirectory({ searchParams }: { searchParams
             return (
               <Link
                 key={profile.id}
-                href={`/profiles/${profile.id}`}
+                href={{ pathname: "/profiles/[id]", query: { id: profile.id } }}
                 className="group rounded-md border border-border bg-background shadow-sm transition hover:border-primary"
               >
                 <Card className="border-none">
