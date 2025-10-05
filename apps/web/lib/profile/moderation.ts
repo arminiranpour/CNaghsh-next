@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Prisma, type ModerationStatus, type ProfileVisibility } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
@@ -311,8 +311,8 @@ export async function unhideProfile(
 }
 
 export type ModerationListFilters = {
-  status?: Prisma.ModerationStatus | "ALL";
-  visibility?: Prisma.ProfileVisibility | "ALL";
+  status?: ModerationStatus | "ALL";
+  visibility?: ProfileVisibility | "ALL";
   hasAvatar?: boolean;
   cityId?: string;
   skill?: string;

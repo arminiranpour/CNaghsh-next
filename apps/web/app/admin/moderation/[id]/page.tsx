@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { getModerationDetail } from "@/lib/profile/moderation";
-import { SKILLS } from "@/lib/profile/skills";
+import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 import { ModerationActions } from "../_components/moderation-actions";
 
@@ -48,7 +48,14 @@ const EVENT_LABELS: EventLabelMap = {
   SYSTEM_AUTO_UNPUBLISH: "عدم نمایش سیستمی",
 };
 
-const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
+const SKILL_LABELS = new Map<SkillKey, string>(
+  SKILLS.map((skill) => [skill.key, skill.label] as const),
+);
+const SKILL_KEYS = new Set<string>(SKILLS.map((skill) => skill.key));
+
+function isSkillKey(value: unknown): value is SkillKey {
+  return typeof value === "string" && SKILL_KEYS.has(value);
+}
 
 function getDisplayName(
   stageName?: string | null,
@@ -110,7 +117,7 @@ export default async function ModerationDetailPage({
   const cityName = profile.cityId ? cityMap.get(profile.cityId) ?? profile.cityId : "نامشخص";
   const skills = Array.isArray(profile.skills)
     ? (profile.skills as unknown[])
-        .filter((skill): skill is string => typeof skill === "string")
+        .filter(isSkillKey)
         .map((key) => ({ key, label: SKILL_LABELS.get(key) ?? key }))
     : [];
   const gallery = normalizeGallery(profile.gallery);
