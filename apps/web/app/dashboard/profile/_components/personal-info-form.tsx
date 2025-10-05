@@ -207,12 +207,12 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
             onChange={updateValue("phone")}
             inputMode="numeric"
             dir="ltr"
-            pattern="0\\d{9}"
-            maxLength={10}
-            minLength={10}
+            pattern="0\\d{10}"
+            maxLength={11}
+            minLength={11}
             required
             disabled={isPending}
-            placeholder="0XXXXXXXXX"
+            placeholder="0XXXXXXXXXX"
           />
           <CardDescription className="text-xs text-muted-foreground">
             این شماره به صورت عمومی نمایش داده نمی‌شود.

@@ -9,7 +9,7 @@ export const personalInfoSchema = z.object({
   age: z.coerce.number().int().min(5, "سن معتبر نیست.").max(120, "سن معتبر نیست."),
   phone: z
     .string()
-    .regex(/^0\d{9}$/, "شماره تلفن باید با 0 شروع شده و 10 رقم باشد."),
+    .regex(/^0\d{10}$/, "شماره تلفن باید با 0 شروع شده و 11 رقم باشد."),
   address: z.string().trim().max(1000).optional().or(z.literal("")),
   cityId: z
     .string()
