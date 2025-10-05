@@ -207,9 +207,6 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
             onChange={updateValue("phone")}
             inputMode="numeric"
             dir="ltr"
-            pattern="0\\d{10}"
-            maxLength={11}
-            minLength={11}
             required
             disabled={isPending}
             placeholder="0XXXXXXXXXX"
