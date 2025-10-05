@@ -45,6 +45,8 @@ model Profile {
   publishedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+
+  @@index([visibility])
 }
 
 model Product {
@@ -153,6 +155,7 @@ model UserEntitlement {
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
+  @@index([userId, key, expiresAt])
 }
 
 enum ProductType {

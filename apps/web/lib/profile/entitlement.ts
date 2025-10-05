@@ -1,26 +1,6 @@
-import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
-import { prisma } from "@/lib/prisma";
+import { getPublishability } from "@/lib/profile/enforcement";
 
 export async function canPublishProfile(userId: string): Promise<boolean> {
-  const entitlement = await prisma.userEntitlement.findUnique({
-    where: {
-      userId_key: {
-        userId,
-        key: CAN_PUBLISH_PROFILE,
-      },
-    },
-    select: {
-      expiresAt: true,
-    },
-  });
-
-  if (!entitlement) {
-    return false;
-  }
-
-  if (!entitlement.expiresAt) {
-    return true;
-  }
-
-  return entitlement.expiresAt > new Date();
+  const result = await getPublishability(userId);
+  return result.canPublish;
 }

@@ -35,6 +35,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // TODO: /profiles/* remains read-only and relies on server-side enforcement guards.
   return NextResponse.next();
 }
 

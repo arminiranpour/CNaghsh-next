@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
+import { enforceUserProfileVisibility } from "@/lib/profile/enforcement";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 import type { Metadata } from "next";
@@ -104,6 +105,12 @@ export default async function PublicProfilePage({ params }: Props) {
   });
 
   if (!profile || profile.visibility !== "PUBLIC") {
+    notFound();
+  }
+
+  const enforcementResult = await enforceUserProfileVisibility(profile.userId);
+
+  if (enforcementResult === "auto_unpublished") {
     notFound();
   }
 

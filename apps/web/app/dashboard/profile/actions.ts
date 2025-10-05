@@ -5,7 +5,10 @@ import { z } from "zod";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { canPublishProfile } from "@/lib/profile/entitlement";
+import {
+  enforceUserProfileVisibility,
+  getPublishability,
+} from "@/lib/profile/enforcement";
 import { personalInfoSchema, skillsSchema } from "@/lib/profile/validation";
 import { deleteByUrl, saveImageFromFormData } from "@/lib/media/storage";
 
@@ -180,6 +183,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
     });
 
     await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
 
     return {
       ok: true,
@@ -219,6 +223,7 @@ export async function updateSkills(formData: FormData): Promise<SkillsActionResu
     });
 
     await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
 
     return { ok: true };
   } catch (error) {
@@ -346,9 +351,9 @@ export async function publishProfile(): Promise<PublishActionResult> {
       return { ok: false, error: NO_PROFILE_ERROR };
     }
 
-    const entitlement = await canPublishProfile(userId);
+    const publishability = await getPublishability(userId);
 
-    if (!entitlement) {
+    if (!publishability.canPublish) {
       return { ok: false, error: PUBLISH_ENTITLEMENT_ERROR };
     }
 

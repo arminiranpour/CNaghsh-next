@@ -16,7 +16,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name sprint1_billing_entitlements",
     "db:seed": "prisma db seed",
-    "user:create": "tsx scripts/new-user.ts"
+    "user:create": "tsx scripts/new-user.ts",
+    "enforce:profiles": "tsx scripts/enforce-publishability.ts"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
