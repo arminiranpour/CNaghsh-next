@@ -19,6 +19,33 @@ const DASHBOARD_PROFILE_PATHS = [
   "/profiles",
 ];
 
+const DIGIT_MAP: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+function normalizeDigits(value: string): string {
+  return value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
+}
+
 type PersonalInfoActionResult = {
   ok: boolean;
   fieldErrors?: Partial<Record<keyof z.infer<typeof personalInfoSchema>, string>>;
@@ -90,7 +117,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       lastName: (formData.get("lastName") ?? "").toString().trim(),
       stageName: (formData.get("stageName") ?? "").toString().trim(),
       age: formData.get("age") ?? "",
-      phone: (formData.get("phone") ?? "").toString().trim(),
+      phone: normalizeDigits((formData.get("phone") ?? "").toString().trim()),
       address: (formData.get("address") ?? "").toString().trim(),
       cityId: (formData.get("cityId") ?? "").toString().trim(),
       avatarUrl: typeof rawAvatarUrl === "string" ? rawAvatarUrl.trim() : "",
@@ -330,7 +357,7 @@ export async function publishProfile(): Promise<PublishActionResult> {
       lastName: profile.lastName ?? "",
       stageName: profile.stageName ?? "",
       age: profile.age ?? "",
-      phone: profile.phone ?? "",
+      phone: normalizeDigits(profile.phone ?? ""),
       address: profile.address ?? "",
       cityId: profile.cityId ?? "",
       avatarUrl: profile.avatarUrl ?? "",
