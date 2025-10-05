@@ -18,6 +18,33 @@ model User {
   invoices         Invoice[]
   payments         Payment[]
   entitlements     UserEntitlement[]
+  profile          Profile?
+}
+
+model Profile {
+  id          String             @id @default(cuid())
+  userId      String             @unique
+  user        User               @relation(fields: [userId], references: [id])
+
+  firstName   String?
+  lastName    String?
+  stageName   String?
+  age         Int?
+  phone       String?
+  address     String?
+  cityId      String?
+
+  avatarUrl   String?
+  bio         String?
+  gallery     Json?
+
+  skills      Json?
+  socialLinks Json?
+
+  visibility  ProfileVisibility  @default(PRIVATE)
+  publishedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 }
 
 model Product {
@@ -156,6 +183,11 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 enum Role {
