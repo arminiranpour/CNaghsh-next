@@ -30,7 +30,7 @@ const VISIBILITY_OPTIONS = [
 ] as const;
 
 const AVATAR_OPTIONS = [
-  { value: "", label: "همه" },
+  { value: "ALL", label: "همه" },
   { value: "with", label: "دارای تصویر" },
   { value: "without", label: "بدون تصویر" },
 ] as const;
@@ -87,6 +87,13 @@ export default async function ModerationPage({
   const queryParam = getParam(searchParams, "q");
   const pageParam = Number.parseInt(getParam(searchParams, "page") ?? "1", 10);
 
+  const normalizedAvatarParam =
+    hasAvatarParam === "with" || hasAvatarParam === "without"
+      ? hasAvatarParam
+      : "ALL";
+  const normalizedCityParam = cityParam?.trim() ? cityParam.trim() : "ALL";
+  const normalizedSkillParam = skillParam?.trim() ? skillParam.trim() : "ALL";
+
   const filters = {
     status:
       statusParam === "PENDING" || statusParam === "APPROVED" || statusParam === "REJECTED"
@@ -97,13 +104,13 @@ export default async function ModerationPage({
         ? visibilityParam
         : undefined,
     hasAvatar:
-      hasAvatarParam === "with"
+      normalizedAvatarParam === "with"
         ? true
-        : hasAvatarParam === "without"
+        : normalizedAvatarParam === "without"
           ? false
           : undefined,
-    cityId: cityParam && cityParam.trim() ? cityParam.trim() : undefined,
-    skill: skillParam && skillParam.trim() ? skillParam.trim() : undefined,
+    cityId: normalizedCityParam !== "ALL" ? normalizedCityParam : undefined,
+    skill: normalizedSkillParam !== "ALL" ? normalizedSkillParam : undefined,
     from: parseDateParam(fromParam),
     to: parseDateParam(toParam),
     q: queryParam?.trim() ? queryParam.trim() : undefined,
@@ -192,7 +199,7 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="avatar">تصویر پروفایل</Label>
-            <Select defaultValue={hasAvatarParam ?? ""} name="avatar">
+            <Select defaultValue={normalizedAvatarParam} name="avatar">
               <SelectTrigger id="avatar">
                 <SelectValue placeholder="تصویر" />
               </SelectTrigger>
@@ -208,12 +215,12 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="city">شهر</Label>
-            <Select defaultValue={cityParam ?? ""} name="city">
+            <Select defaultValue={normalizedCityParam} name="city">
               <SelectTrigger id="city">
                 <SelectValue placeholder="همه شهرها" />
               </SelectTrigger>
               <SelectContent align="end" className="max-h-64">
-                <SelectItem value="">همه شهرها</SelectItem>
+                <SelectItem value="ALL">همه شهرها</SelectItem>
                 {cities.map((city) => (
                   <SelectItem key={city.id} value={city.id}>
                     {city.name}
@@ -225,12 +232,12 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="skill">مهارت</Label>
-            <Select defaultValue={skillParam ?? ""} name="skill">
+            <Select defaultValue={normalizedSkillParam} name="skill">
               <SelectTrigger id="skill">
                 <SelectValue placeholder="همه مهارت‌ها" />
               </SelectTrigger>
               <SelectContent align="end" className="max-h-64">
-                <SelectItem value="">همه مهارت‌ها</SelectItem>
+                <SelectItem value="ALL">همه مهارت‌ها</SelectItem>
                 {skillOptions.map((skill) => (
                   <SelectItem key={skill.key} value={skill.key}>
                     {skill.label}
