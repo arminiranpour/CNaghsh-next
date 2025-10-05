@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { SessionUser } from "next-auth";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import {
@@ -26,16 +27,23 @@ const optionalNoteSchema = z
   .string({ invalid_type_error: "متن وارد شده معتبر نیست." })
   .trim()
   .max(2000, "حداکثر ۲۰۰۰ کاراکتر مجاز است.")
-  .transform((value) => (value.length ? value : undefined));
+  .transform((value: string) => (value.length ? value : undefined));
 
-async function ensureAdmin() {
+type AdminSessionUser = SessionUser & { id: string; role: "ADMIN" };
+
+async function ensureAdmin(): Promise<AdminSessionUser> {
   const session = await getServerAuthSession();
+  const user = session?.user;
 
-  if (!session?.user?.id || session.user.role !== "ADMIN") {
+  if (!user || user.role !== "ADMIN" || typeof user.id !== "string" || user.id.length === 0) {
     throw new Error(AUTH_ERROR);
   }
 
-  return session.user;
+  return {
+    ...user,
+    id: user.id,
+    role: "ADMIN",
+  };
 }
 
 function getErrorMessage(error: unknown): string {

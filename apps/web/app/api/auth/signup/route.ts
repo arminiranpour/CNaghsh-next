@@ -80,14 +80,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { message: "این ایمیل قبلاً ثبت شده است." },
-        { status: 409 }
-      );
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        return NextResponse.json(
+          { message: "این ایمیل قبلاً ثبت شده است." },
+          { status: 409 }
+        );
+      }
     }
 
     console.error("Signup failed", error);

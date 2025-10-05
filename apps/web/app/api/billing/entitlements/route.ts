@@ -25,8 +25,18 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const canPublish = entitlements.find((item) => item.key === CAN_PUBLISH_PROFILE);
-  const jobCredit = entitlements.find((item) => item.key === JOB_POST_CREDIT);
+  type EntitlementResult = (typeof entitlements)[number];
+
+  let canPublish: EntitlementResult | undefined;
+  let jobCredit: EntitlementResult | undefined;
+
+  for (const entitlement of entitlements) {
+    if (entitlement.key === CAN_PUBLISH_PROFILE) {
+      canPublish = entitlement;
+    } else if (entitlement.key === JOB_POST_CREDIT) {
+      jobCredit = entitlement;
+    }
+  }
 
   return ok({
     userId,
