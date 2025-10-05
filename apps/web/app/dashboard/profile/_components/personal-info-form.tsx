@@ -251,7 +251,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
             </SelectTrigger>
             <SelectContent>
               {cities.length === 0 ? (
-                <SelectItem disabled value="">
+                <SelectItem disabled value="no_cities">
                   به‌زودی لیست شهرها تکمیل می‌شود
                 </SelectItem>
               ) : null}
