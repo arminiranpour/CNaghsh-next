@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,10 +162,13 @@ export default async function ProfilesDirectory({ searchParams }: { searchParams
                   <CardHeader className="flex flex-row items-center gap-4">
                     {profile.avatarUrl ? (
                       <div className="h-16 w-16 overflow-hidden rounded-full border border-border/60">
-                        <img
+                        <Image
                           src={profile.avatarUrl}
                           alt={displayName}
+                          width={64}
+                          height={64}
                           className="h-full w-full object-cover"
+                          sizes="64px"
                         />
                       </div>
                     ) : null}

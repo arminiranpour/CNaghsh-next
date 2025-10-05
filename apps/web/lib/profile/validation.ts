@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { SKILL_KEYS } from "./skills";
+import { SKILL_KEYS, type SkillKey } from "./skills";
 
 const AVATAR_URL_ERROR = "لطفاً تصویر پروفایل معتبر انتخاب کنید.";
 
@@ -44,11 +44,11 @@ export const personalInfoSchema = z.object({
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
+const SKILL_KEY_VALUES = SKILL_KEYS as [SkillKey, ...SkillKey[]];
+
 export const skillsSchema = z.object({
-  skills: z
-    .array(z.enum(SKILL_KEYS as unknown as [any, ...any[]]))
-    .optional()
-    .default([]),
+  skills: z.array(z.enum(SKILL_KEY_VALUES)).optional().default([]),
+
 });
 
 export function validateReadyToPublish(input: unknown) {
