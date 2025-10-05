@@ -3,6 +3,7 @@ import { PlanCycle, ProductType } from "@prisma/client";
 import type { Metadata } from "next";
 
 import { prisma } from "@/lib/prisma";
+import { getServerAuthSession } from "@/lib/auth/session";
 import { formatRials } from "@/lib/money";
 import { PricingContent } from "./pricing-content";
 
@@ -67,6 +68,8 @@ export default async function PricingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
+  const session = await getServerAuthSession();
+  const sessionUserId = session?.user?.id ?? null;
   const plans = await prisma.plan.findMany({
     where: {
       active: true,
@@ -134,8 +137,9 @@ export default async function PricingPage({
     formatted: formatRials(price.amount),
   }));
 
-  const initialUserId = getInitialUserId(searchParams?.userId);
-
+  const initialUserId =
+    getInitialUserId(searchParams?.userId) ?? sessionUserId;
+    
   return (
     <div className="container space-y-10 py-12">
       <div className="space-y-3 text-center">
