@@ -83,6 +83,15 @@ export async function enforceUserProfileVisibility(
       },
     });
 
+    await prisma.moderationEvent.create({
+      data: {
+        profileId: profile.id,
+        actorId: null,
+        action: "SYSTEM_AUTO_UNPUBLISH",
+        reason: publishability.reason ?? "PUBLISHABILITY_REVOKED",
+      },
+    });
+
     await revalidateProfilePaths(profile.id);
 
     console.info("[enforcement] auto_unpublished", {
