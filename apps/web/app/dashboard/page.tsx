@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/card";
 import { getServerAuthSession } from "@/lib/auth/session";
 
+import type { Route } from "next";
+
 const quickLinks = [
   { href: "/dashboard/profile", label: "پروفایل", description: "اطلاعات فردی و حرفه‌ای" },
   { href: "/dashboard/billing", label: "صورتحساب", description: "اشتراک‌ها و پرداخت‌ها" },
   { href: "/dashboard/settings", label: "تنظیمات", description: "نام و رمز عبور" },
-];
+] satisfies Array<{ href: Route; label: string; description: string }>;
 
 export default async function DashboardPage() {
   const session = await getServerAuthSession();
