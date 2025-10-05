@@ -9,6 +9,10 @@ import {
   enforceUserProfileVisibility,
   getPublishability,
 } from "@/lib/profile/enforcement";
+import {
+  MODERATION_PROFILE_SELECT,
+  maybeMarkPendingOnCriticalEdit,
+} from "@/lib/profile/moderation";
 import { personalInfoSchema, skillsSchema } from "@/lib/profile/validation";
 import { deleteByUrl, saveImageFromFormData } from "@/lib/media/storage";
 
@@ -151,6 +155,11 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
 
     const data = parsed.data;
 
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
     const result = await prisma.profile.upsert({
       where: { userId },
       create: {
@@ -176,11 +185,10 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
         avatarUrl: data.avatarUrl,
         bio: data.bio?.trim() ? data.bio.trim() : null,
       },
-      select: {
-        id: true,
-        avatarUrl: true,
-      },
+      select: MODERATION_PROFILE_SELECT,
     });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
 
     await revalidateProfilePaths(result.id);
     await enforceUserProfileVisibility(userId);
@@ -210,6 +218,11 @@ export async function updateSkills(formData: FormData): Promise<SkillsActionResu
       return { ok: false, error: "لیست مهارت‌ها معتبر نیست." };
     }
 
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
     const result = await prisma.profile.upsert({
       where: { userId },
       create: {
@@ -219,8 +232,10 @@ export async function updateSkills(formData: FormData): Promise<SkillsActionResu
       update: {
         skills: parsed.data.skills,
       },
-      select: { id: true },
+      select: MODERATION_PROFILE_SELECT,
     });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
 
     await revalidateProfilePaths(result.id);
     await enforceUserProfileVisibility(userId);
@@ -249,13 +264,13 @@ export async function uploadImage(formData: FormData): Promise<GalleryActionResu
     uploadForm.set("file", file);
     const { url } = await saveImageFromFormData(uploadForm, userId);
 
-    const profile = await prisma.profile.findUnique({
+    const previousProfile = await prisma.profile.findUnique({
       where: { userId },
-      select: { id: true, gallery: true },
+      select: MODERATION_PROFILE_SELECT,
     });
 
-    const currentGallery = Array.isArray(profile?.gallery)
-      ? (profile?.gallery as Array<{ url: string }>)
+    const currentGallery = Array.isArray(previousProfile?.gallery)
+      ? (previousProfile?.gallery as Array<{ url: string }>)
       : [];
 
     const nextGallery = [...currentGallery, { url }];
@@ -269,8 +284,10 @@ export async function uploadImage(formData: FormData): Promise<GalleryActionResu
       update: {
         gallery: nextGallery,
       },
-      select: { id: true },
+      select: MODERATION_PROFILE_SELECT,
     });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
 
     await revalidateProfilePaths(result.id);
 
@@ -296,7 +313,7 @@ export async function deleteImage(formData: FormData): Promise<GalleryActionResu
 
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      select: { id: true, gallery: true },
+      select: MODERATION_PROFILE_SELECT,
     });
 
     if (!profile) {
@@ -309,13 +326,15 @@ export async function deleteImage(formData: FormData): Promise<GalleryActionResu
 
     const nextGallery = currentGallery.filter((item) => item.url !== url);
 
-    await prisma.profile.update({
+    const updated = await prisma.profile.update({
       where: { userId },
       data: { gallery: nextGallery },
+      select: MODERATION_PROFILE_SELECT,
     });
 
     await deleteByUrl(url, userId);
-    await revalidateProfilePaths(profile.id);
+    await maybeMarkPendingOnCriticalEdit({ old: profile, next: updated });
+    await revalidateProfilePaths(updated.id);
 
     return { ok: true };
   } catch (error) {
@@ -344,6 +363,10 @@ export async function publishProfile(): Promise<PublishActionResult> {
         cityId: true,
         avatarUrl: true,
         bio: true,
+        moderationStatus: true,
+        moderationNotes: true,
+        moderatedBy: true,
+        moderatedAt: true,
       },
     });
 
@@ -378,11 +401,24 @@ export async function publishProfile(): Promise<PublishActionResult> {
       };
     }
 
+    const shouldResetModeration =
+      !profile.moderationStatus || profile.moderationStatus === "REJECTED";
+
     await prisma.profile.update({
       where: { userId },
       data: {
         visibility: "PUBLIC",
         publishedAt: new Date(),
+        moderationStatus: shouldResetModeration
+          ? "PENDING"
+          : profile.moderationStatus,
+        ...(shouldResetModeration
+          ? {
+              moderatedBy: null,
+              moderatedAt: null,
+              moderationNotes: null,
+            }
+          : {}),
       },
     });
 

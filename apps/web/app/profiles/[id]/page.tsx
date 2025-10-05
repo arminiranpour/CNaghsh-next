@@ -72,6 +72,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     where: { id: params.id },
     select: {
       visibility: true,
+      moderationStatus: true,
       stageName: true,
       firstName: true,
       lastName: true,
@@ -80,7 +81,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
   });
 
-  if (!profile || profile.visibility !== "PUBLIC") {
+  if (
+    !profile ||
+    profile.visibility !== "PUBLIC" ||
+    profile.moderationStatus !== "APPROVED"
+  ) {
     return {};
   }
 
@@ -104,7 +109,11 @@ export default async function PublicProfilePage({ params }: Props) {
     where: { id: params.id },
   });
 
-  if (!profile || profile.visibility !== "PUBLIC") {
+  if (
+    !profile ||
+    profile.visibility !== "PUBLIC" ||
+    profile.moderationStatus !== "APPROVED"
+  ) {
     notFound();
   }
 

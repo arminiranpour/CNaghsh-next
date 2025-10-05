@@ -19,6 +19,8 @@ model User {
   payments         Payment[]
   entitlements     UserEntitlement[]
   profile          Profile?
+  moderatedProfiles Profile[]        @relation("ProfileModerators")
+  moderationEvents  ModerationEvent[] @relation("ModerationActor")
 }
 
 model Profile {
@@ -45,8 +47,29 @@ model Profile {
   publishedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
+  moderationStatus ModerationStatus @default(PENDING)
+  moderationNotes  String?
+  moderatedBy      String?
+  moderatedAt      DateTime?
+  moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
+  moderationEvents ModerationEvent[]
 
   @@index([visibility])
+  @@index([moderationStatus])
+  @@index([updatedAt])
+}
+
+model ModerationEvent {
+  id        String            @id @default(cuid())
+  profileId String
+  profile   Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?             @relation("ModerationActor", fields: [actorId], references: [id])
+  action    ModerationAction
+  reason    String?
+  createdAt DateTime          @default(now())
+
+  @@index([profileId, createdAt])
 }
 
 model Product {
@@ -196,6 +219,21 @@ enum ProfileVisibility {
 enum Role {
   USER
   ADMIN
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ModerationAction {
+  APPROVE
+  REJECT
+  REVERT_TO_PENDING
+  HIDE
+  UNHIDE
+  SYSTEM_AUTO_UNPUBLISH
 }
 
 enum InvoiceStatus {
