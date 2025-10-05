@@ -94,6 +94,7 @@ declare module "next-auth/providers/credentials" {
 declare module "next-auth" {
   import type { AdapterUser } from "next-auth/adapters";
   import type { JWT, Role } from "next-auth/jwt";
+  import type { NextRequest } from "next/server";
 
   export type Awaitable<T> = T | Promise<T>;
 
@@ -132,7 +133,12 @@ declare module "next-auth" {
     [key: string]: unknown;
   }
 
-  const NextAuth: (options: NextAuthOptions) => unknown;
+  export type NextAuthRouteHandler = (
+    request: NextRequest,
+    context?: { params: Record<string, string | string[]> }
+  ) => Awaitable<Response>;
+
+  const NextAuth: (options: NextAuthOptions) => NextAuthRouteHandler;
     export function getServerSession(
     options?: NextAuthOptions
   ): Promise<Session | null>;
