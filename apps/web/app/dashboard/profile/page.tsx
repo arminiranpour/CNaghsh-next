@@ -5,6 +5,7 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import { getCities } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
 import { canPublishProfile } from "@/lib/profile/entitlement";
+import { enforceUserProfileVisibility } from "@/lib/profile/enforcement";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { validateReadyToPublish } from "@/lib/profile/validation";
 
@@ -68,13 +69,25 @@ export default async function DashboardProfilePage() {
 
   const userId = session.user.id;
 
-  const [profile, cities, entitlementActive] = await Promise.all([
+  const [initialProfile, cities, entitlementActive] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
     }),
     getCities(),
     canPublishProfile(userId),
   ]);
+
+    let profile = initialProfile;
+
+  if (profile?.visibility === "PUBLIC" && !entitlementActive) {
+    const enforcementResult = await enforceUserProfileVisibility(userId);
+
+    if (enforcementResult === "auto_unpublished") {
+      profile = await prisma.profile.findUnique({
+        where: { userId },
+      });
+    }
+  }
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
 
