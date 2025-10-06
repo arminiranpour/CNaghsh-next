@@ -15,12 +15,12 @@ import {
   hasJobCredit,
 } from "@/lib/entitlements/jobs";
 
-const mockPrisma = {
+const mockPrisma = vi.hoisted(() => ({
   userEntitlement: {
     findFirst: vi.fn(),
     findMany: vi.fn(),
   },
-};
+}));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
@@ -213,8 +213,15 @@ function createTransaction(
         ? [...filtered].sort((a, b) => {
             for (const order of orderClauses) {
               if (order.expiresAt) {
-                const { sort, nulls } = order.expiresAt;
-                const aExp = a.expiresAt;
+                const expiresAtOrder = order.expiresAt;
+                const sort =
+                  typeof expiresAtOrder === "string"
+                    ? expiresAtOrder
+                    : expiresAtOrder.sort;
+                const nulls =
+                  typeof expiresAtOrder === "object" && "nulls" in expiresAtOrder
+                    ? expiresAtOrder.nulls
+                    : undefined;                const aExp = a.expiresAt;
                 const bExp = b.expiresAt;
 
                 if (aExp === null && bExp === null) {
@@ -229,8 +236,10 @@ function createTransaction(
                   return nulls === "last" ? -1 : 1;
                 }
 
+                const sortOrder = sort ?? "asc";
+
                 if (aExp.getTime() !== bExp.getTime()) {
-                  return sort === "asc"
+                  return sortOrder === "asc"
                     ? aExp.getTime() - bExp.getTime()
                     : bExp.getTime() - aExp.getTime();
                 }
