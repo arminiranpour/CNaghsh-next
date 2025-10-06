@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JobStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -63,10 +64,7 @@ export default async function DashboardJobsPage({
   const pageNumber = Number.parseInt(pageParam ?? "1", 10);
   const currentPage = Number.isNaN(pageNumber) || pageNumber < 1 ? 1 : pageNumber;
 
-  type JobFindManyArgs = Parameters<typeof prisma.job.findMany>[0];
-  type JobWhere = JobFindManyArgs extends { where?: infer W } ? W : never;
-
-  const whereClause: JobWhere = {
+  const whereClause: Prisma.JobWhereInput = {
     userId,
     ...(statusFilter?.status ? { status: statusFilter.status } : {}),
   };

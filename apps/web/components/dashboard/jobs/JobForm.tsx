@@ -32,6 +32,7 @@ const SUCCESS_MESSAGES = {
 } as const;
 
 const GENERIC_ERROR_MESSAGE = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+const EMPTY_SELECT_VALUE = "__EMPTY__";
 
 type JobFormProps = {
   mode: "create" | "edit";
@@ -80,7 +81,8 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
     };
 
   const handleSelectChange = (field: "cityId" | "payType") => (value: string) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+    const nextValue = value === EMPTY_SELECT_VALUE ? "" : value;
+    setValues((prev) => ({ ...prev, [field]: nextValue }));
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormError(null);
   };
@@ -220,7 +222,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
         <div className="space-y-2">
           <Label>شهر</Label>
           <Select
-            value={values.cityId}
+            value={values.cityId ? values.cityId : undefined}
             onValueChange={(value) => handleSelectChange("cityId")(value)}
             disabled={isPending}
           >
@@ -228,7 +230,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
               <SelectValue placeholder="انتخاب شهر" />
             </SelectTrigger>
             <SelectContent dir="rtl">
-              <SelectItem value="">بدون انتخاب</SelectItem>
+              <SelectItem value={EMPTY_SELECT_VALUE}>بدون انتخاب</SelectItem>
               {cities.map((city) => (
                 <SelectItem key={city.id} value={city.id}>
                   {city.name}
