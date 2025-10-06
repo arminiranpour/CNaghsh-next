@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import type { UrlObject } from "url";
 import type { JobModeration, JobStatus } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -104,8 +105,8 @@ function parseFilters(searchParams: SearchParams): ParsedFilters {
   } satisfies ParsedFilters;
 }
 
-function buildQuery(base: ParsedFilters, overrides: Record<string, string | undefined>): string {
-  const params = new URLSearchParams();
+function buildQuery(base: ParsedFilters, overrides: Record<string, string | undefined>): UrlObject {
+  const query: Record<string, string> = {};
 
   const entries: Record<string, string | undefined> = {
     moderation: base.moderationRaw,
@@ -121,16 +122,18 @@ function buildQuery(base: ParsedFilters, overrides: Record<string, string | unde
 
   for (const [key, value] of Object.entries(entries)) {
     if (value && value.length > 0) {
-      params.set(key, value);
+      query[key] = value;
     }
   }
 
-  if (!params.has("page")) {
-    params.set("page", "1");
+  if (!query.page) {
+    query.page = "1";
   }
 
-  const queryString = params.toString();
-  return queryString.length > 0 ? `?${queryString}` : "";
+  return {
+    pathname: "/admin/jobs",
+    query,
+  } satisfies UrlObject;
 }
 
 export default async function AdminJobsPage({ searchParams }: { searchParams: SearchParams }) {

@@ -11,6 +11,7 @@ import {
   JobAdminAction,
   buildJobNotificationInfo,
   getJobForAdmin,
+  prismaWithJobModeration,
 } from "./common";
 
 export async function closeJobByAdmin(jobId: string, adminId: string) {
@@ -26,7 +27,7 @@ export async function closeJobByAdmin(jobId: string, adminId: string) {
       data: { status: JobStatus.CLOSED },
       select: JOB_ADMIN_SELECT,
     }),
-    prisma.jobModerationEvent.create({
+    prismaWithJobModeration.jobModerationEvent.create({
       data: {
         jobId,
         adminId,

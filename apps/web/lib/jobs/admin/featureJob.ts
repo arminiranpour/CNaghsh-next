@@ -1,7 +1,5 @@
 "use server";
 
-import { JobAdminAction } from "@prisma/client";
-
 import { prisma } from "@/lib/prisma";
 import { revalidateJobRelatedPaths } from "@/lib/jobs/revalidate";
 import { emitJobFeatured, emitJobUnfeatured } from "@/lib/notifications/events";
@@ -9,9 +7,11 @@ import { emitJobFeatured, emitJobUnfeatured } from "@/lib/notifications/events";
 import {
   JOB_ADMIN_SELECT,
   InvalidFeatureScheduleError,
+  JobAdminAction,
   buildJobNotificationInfo,
   getJobForAdmin,
   isJobFeatured,
+  prismaWithJobModeration,
 } from "./common";
 
 export type FeatureJobCommand =
@@ -78,7 +78,7 @@ export async function featureJobAdmin(jobId: string, adminId: string, command: F
       data: { featuredUntil: nextFeaturedUntil },
       select: JOB_ADMIN_SELECT,
     }),
-    prisma.jobModerationEvent.create({
+    prismaWithJobModeration.jobModerationEvent.create({
       data: {
         jobId,
         adminId,

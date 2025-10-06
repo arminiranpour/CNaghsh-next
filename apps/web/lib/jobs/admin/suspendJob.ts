@@ -12,6 +12,7 @@ import {
   buildJobNotificationInfo,
   ensureModerationTransition,
   getJobForAdmin,
+  prismaWithJobModeration,
 } from "./common";
 
 export async function suspendJobAdmin(jobId: string, adminId: string, note?: string | null) {
@@ -35,7 +36,7 @@ export async function suspendJobAdmin(jobId: string, adminId: string, note?: str
       data: { moderation: JobModeration.SUSPENDED },
       select: JOB_ADMIN_SELECT,
     }),
-    prisma.jobModerationEvent.create({
+    prismaWithJobModeration.jobModerationEvent.create({
       data: {
         jobId,
         adminId,

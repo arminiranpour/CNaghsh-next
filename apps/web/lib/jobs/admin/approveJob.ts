@@ -9,6 +9,7 @@ import { emitJobApproved } from "@/lib/notifications/events";
 import {
   JOB_ADMIN_SELECT,
   JobAdminAction,
+  prismaWithJobModeration,
   buildJobNotificationInfo,
   ensureModerationTransition,
   getJobForAdmin,
@@ -33,7 +34,7 @@ export async function approveJobAdmin(jobId: string, adminId: string) {
       data: { moderation: JobModeration.APPROVED },
       select: JOB_ADMIN_SELECT,
     }),
-    prisma.jobModerationEvent.create({
+    prismaWithJobModeration.jobModerationEvent.create({
       data: {
         jobId,
         adminId,

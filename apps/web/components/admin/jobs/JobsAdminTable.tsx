@@ -124,7 +124,10 @@ export function JobsAdminTable({ jobs }: JobsAdminTableProps) {
                 <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                   <div className="flex flex-col">
                     <span>{row.ownerName}</span>
-                    <Link href={`/admin/users/${row.owner.id}`} className="text-xs text-primary hover:underline">
+                    <Link
+                      href={{ pathname: "/admin/users/[id]", query: { id: row.owner.id } }}
+                      className="text-xs text-primary hover:underline"
+                    >
                       شناسه: {row.owner.id}
                     </Link>
                   </div>

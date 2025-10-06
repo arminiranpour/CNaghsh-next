@@ -12,6 +12,7 @@ import {
   buildJobNotificationInfo,
   ensureModerationTransition,
   getJobForAdmin,
+  prismaWithJobModeration,
 } from "./common";
 
 export async function rejectJobAdmin(jobId: string, adminId: string, note?: string | null) {
@@ -35,7 +36,7 @@ export async function rejectJobAdmin(jobId: string, adminId: string, note?: stri
       data: { moderation: JobModeration.REJECTED },
       select: JOB_ADMIN_SELECT,
     }),
-    prisma.jobModerationEvent.create({
+    prismaWithJobModeration.jobModerationEvent.create({
       data: {
         jobId,
         adminId,

@@ -28,8 +28,7 @@ const featureCommandSchema = z.discriminatedUnion("type", [
       .refine((value) => {
         const parsed = new Date(value);
         return !Number.isNaN(parsed.getTime());
-      }, "تاریخ معتبر نیست.")
-      .transform((value) => new Date(value)),
+      }, "تاریخ معتبر نیست."),
   }),
   z.object({ type: z.literal("CLEAR") }),
 ]);
@@ -61,7 +60,7 @@ function parseOptionalNote(note?: string): string | undefined {
 
 function parseFeatureCommand(command: FeatureCommandInput): FeatureJobCommand {
   if (command.type === "CUSTOM") {
-    return { type: "CUSTOM", until: command.until };
+    return { type: "CUSTOM", until: new Date(command.until) };
   }
   if (command.type === "PRESET") {
     return { type: "PRESET", days: command.days };

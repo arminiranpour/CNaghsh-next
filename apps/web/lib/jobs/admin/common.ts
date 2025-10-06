@@ -1,10 +1,36 @@
 "use server";
 
-import { JobAdminAction, JobModeration, JobStatus, Prisma } from "@prisma/client";
+import { JobModeration, JobStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
 import { JobNotFoundError } from "../errors";
+
+export const JobAdminAction = {
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+  SUSPEND: "SUSPEND",
+  FEATURE: "FEATURE",
+  UNFEATURE: "UNFEATURE",
+  CLOSE: "CLOSE",
+} as const;
+
+export type JobAdminAction = (typeof JobAdminAction)[keyof typeof JobAdminAction];
+
+type JobModerationEventData = {
+  jobId: string;
+  adminId: string;
+  action: JobAdminAction;
+  note: string | null;
+};
+
+type PrismaJobModerationClient = {
+  jobModerationEvent: {
+    create(args: { data: JobModerationEventData }): Promise<unknown>;
+  };
+};
+
+export const prismaWithJobModeration = prisma as typeof prisma & PrismaJobModerationClient;
 
 export class AdminActionForbiddenError extends Error {
   readonly code = "ADMIN_ACTION_FORBIDDEN" as const;
@@ -95,4 +121,3 @@ export function ensureModerationTransition(
   }
 }
 
-export { JobAdminAction };

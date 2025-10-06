@@ -50,6 +50,8 @@ export default async function AdminJobDetailPage({ params }: { params: { id: str
     notFound();
   }
 
+  const jobId = job.id;
+
   const featuredLabel = job.featuredUntil ? formatDate(job.featuredUntil) : "ویژه نیست";
   const createdLabel = formatDate(job.createdAt);
   const updatedLabel = formatDate(job.updatedAt);
@@ -57,7 +59,7 @@ export default async function AdminJobDetailPage({ params }: { params: { id: str
 
   async function closeJob() {
     "use server";
-    await closeJobAction(job.id);
+    await closeJobAction(jobId);
   }
 
   return (
@@ -88,9 +90,9 @@ export default async function AdminJobDetailPage({ params }: { params: { id: str
           />
 
           <div className="flex flex-col gap-4">
-            <ModerationControls jobId={job.id} moderation={job.moderation} />
+            <ModerationControls jobId={jobId} moderation={job.moderation} />
             <div className="flex flex-wrap items-center gap-3">
-              <FeatureControls jobId={job.id} featuredUntil={job.featuredUntil?.toISOString() ?? null} />
+              <FeatureControls jobId={jobId} featuredUntil={job.featuredUntil?.toISOString() ?? null} />
               {job.status !== "CLOSED" ? (
                 <form action={closeJob}>
                   <Button variant="outline" className="text-destructive">
@@ -102,10 +104,10 @@ export default async function AdminJobDetailPage({ params }: { params: { id: str
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-primary">
-            <Link href={`/jobs/${job.id}`} className="hover:underline">
+            <Link href={`/jobs/${jobId}`} className="hover:underline">
               مشاهده در سایت
             </Link>
-            <Link href={`/dashboard/jobs/${job.id}/edit`} className="hover:underline">
+            <Link href={`/dashboard/jobs/${jobId}/edit`} className="hover:underline">
               صفحه ویرایش مالک
             </Link>
           </div>
