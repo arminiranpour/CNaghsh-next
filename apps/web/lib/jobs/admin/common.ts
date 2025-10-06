@@ -1,5 +1,3 @@
-"use server";
-
 import { JobModeration, JobStatus, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
