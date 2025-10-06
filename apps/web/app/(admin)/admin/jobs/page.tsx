@@ -221,12 +221,12 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Se
 
           <div className="space-y-2">
             <Label htmlFor="featured">ویژه بودن</Label>
-            <Select defaultValue={parsed.featuredRaw ?? ""} name="featured">
+            <Select defaultValue={parsed.featuredRaw ?? "all"} name="featured">
               <SelectTrigger id="featured">
                 <SelectValue placeholder="همه" />
               </SelectTrigger>
               <SelectContent align="end">
-                <SelectItem value="">همه</SelectItem>
+                <SelectItem value="all">همه</SelectItem>
                 <SelectItem value="1">فقط ویژه</SelectItem>
                 <SelectItem value="0">غیر ویژه</SelectItem>
               </SelectContent>
