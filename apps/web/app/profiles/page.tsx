@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getCities } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
+import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 const SKILL_OPTIONS = SKILLS.map((skill) => ({ key: skill.key, label: skill.label }));
@@ -51,11 +52,23 @@ export default async function ProfilesDirectory({ searchParams }: { searchParams
   const cityFilter = typeof searchParams.city === "string" ? searchParams.city : undefined;
   const skillFilter = typeof searchParams.skill === "string" ? searchParams.skill : undefined;
 
+  const now = new Date();
+
   const [cities, profiles] = await Promise.all([
     getCities(),
     prisma.profile.findMany({
       where: {
         visibility: "PUBLIC",
+        moderationStatus: "APPROVED",
+        publishedAt: { not: null },
+        user: {
+          entitlements: {
+            some: {
+              key: CAN_PUBLISH_PROFILE,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
+          },
+        },
         ...(cityFilter ? { cityId: cityFilter } : {}),
         ...(skillFilter
           ? {
