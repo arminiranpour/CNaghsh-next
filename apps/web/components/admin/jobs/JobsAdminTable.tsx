@@ -125,7 +125,7 @@ export function JobsAdminTable({ jobs }: JobsAdminTableProps) {
                   <div className="flex flex-col">
                     <span>{row.ownerName}</span>
                     <Link
-                      href={{ pathname: "/admin/users/[id]", query: { id: row.owner.id } }}
+                      href={`/admin/users/${encodeURIComponent(row.owner.id)}`}
                       className="text-xs text-primary hover:underline"
                     >
                       شناسه: {row.owner.id}
