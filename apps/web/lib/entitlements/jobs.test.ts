@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { EntitlementKey } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -59,7 +60,10 @@ function createBarrier(expected: number): Barrier {
   };
 }
 
-function matchesWhere(record: MutableEntitlement, where: any): boolean {
+function matchesWhere(
+  record: MutableEntitlement,
+  where?: Prisma.UserEntitlementWhereInput,
+): boolean {
   if (!where) {
     return true;
   }
@@ -107,7 +111,9 @@ function matchesWhere(record: MutableEntitlement, where: any): boolean {
   }
 
   if (OR) {
-    if (!OR.some((clause: any) => matchesWhere(record, clause))) {
+    const clauses = Array.isArray(OR) ? OR : [OR];
+
+    if (!clauses.some((clause) => matchesWhere(record, clause))) {
       return false;
     }
   }
@@ -115,12 +121,17 @@ function matchesWhere(record: MutableEntitlement, where: any): boolean {
   return true;
 }
 
-function selectFields(record: MutableEntitlement, select: Record<string, boolean>) {
-  return Object.fromEntries(
-    Object.entries(select)
-      .filter(([, enabled]) => enabled)
-      .map(([key]) => [key, record[key as keyof MutableEntitlement]]),
-  );
+function selectFields<TSelect extends Prisma.UserEntitlementSelect>(
+  record: MutableEntitlement,
+  select: TSelect,
+) {
+  const entries = Object.entries(select)
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([key]) => [key, record[key as keyof MutableEntitlement]]);
+
+  return Object.fromEntries(entries) as Prisma.UserEntitlementGetPayload<{
+    select: TSelect;
+  }>;
 }
 
 function createTransaction(
@@ -128,7 +139,9 @@ function createTransaction(
   options: { barrier?: Barrier } = {},
 ) {
   const userEntitlement = {
-    async findMany(args: any) {
+    async findMany(
+      args?: Prisma.UserEntitlementFindManyArgs,
+    ): Promise<unknown[]> {
       if (options.barrier) {
         await options.barrier.wait();
       }
@@ -179,16 +192,22 @@ function createTransaction(
 
       return ordered;
     },
-    async findFirst(args: any) {
+    async findFirst(
+      args?: Prisma.UserEntitlementFindFirstArgs,
+    ): Promise<unknown | null> {
       const results = await this.findMany({ ...args, take: 1 });
       return results[0] ?? null;
     },
-    async findUnique(args: any) {
+    async findUnique(
+      args?: Prisma.UserEntitlementFindUniqueArgs,
+    ): Promise<MutableEntitlement | null> {
       return (
         records.find((record) => matchesWhere(record, args?.where)) ?? null
       );
     },
-    async updateMany(args: any) {
+    async updateMany(
+      args: Prisma.UserEntitlementUpdateManyArgs,
+    ): Promise<Prisma.BatchPayload> {
       let count = 0;
 
       for (const record of records) {
@@ -208,7 +227,7 @@ function createTransaction(
     },
   };
 
-  return { userEntitlement } as unknown as any;
+  return { userEntitlement } as unknown as Prisma.TransactionClient;
 }
 
 beforeEach(() => {

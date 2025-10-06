@@ -267,5 +267,7 @@ export function onJobCreditConsumed(
   _userId: string,
   _jobId: string,
 ): void {
+  void _userId;
+  void _jobId;
   // Placeholder for future notification or analytics hooks.
 }
