@@ -14,6 +14,7 @@ import type { Route } from "next";
 
 const quickLinks = [
   { href: "/dashboard/profile", label: "پروفایل", description: "اطلاعات فردی و حرفه‌ای" },
+  { href: "/dashboard/jobs", label: "آگهی‌ها", description: "مدیریت و انتشار آگهی‌های کاری" },
   { href: "/dashboard/billing", label: "صورتحساب", description: "اشتراک‌ها و پرداخت‌ها" },
   { href: "/dashboard/settings", label: "تنظیمات", description: "نام و رمز عبور" },
 ] satisfies Array<{ href: Route; label: string; description: string }>;
