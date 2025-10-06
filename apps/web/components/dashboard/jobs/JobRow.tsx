@@ -12,6 +12,7 @@ import {
   closeJobAction,
   publishJobAction,
   republishJobAction,
+  type SimpleActionResult,
 } from "@/app/(dashboard)/dashboard/jobs/actions";
 
 import { ModerationBadge } from "./ModerationBadge";
@@ -62,7 +63,7 @@ export function JobRow({ job }: JobRowProps) {
             : republishJobAction(job.id);
 
       actionPromise
-        .then((result) => {
+        .then((result: SimpleActionResult) => {
           if (result.ok) {
             toast({ title: SUCCESS_MESSAGES[type] });
             router.refresh();

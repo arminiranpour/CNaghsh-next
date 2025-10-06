@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JobStatus } from "@prisma/client";
+import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,10 +63,13 @@ export default async function DashboardJobsPage({
   const pageNumber = Number.parseInt(pageParam ?? "1", 10);
   const currentPage = Number.isNaN(pageNumber) || pageNumber < 1 ? 1 : pageNumber;
 
-  const whereClause = {
+  type JobFindManyArgs = Parameters<typeof prisma.job.findMany>[0];
+  type JobWhere = JobFindManyArgs extends { where?: infer W } ? W : never;
+
+  const whereClause: JobWhere = {
     userId,
     ...(statusFilter?.status ? { status: statusFilter.status } : {}),
-  } satisfies Parameters<typeof prisma.job.findMany>[0]["where"];
+  };
 
   const skip = (currentPage - 1) * PAGE_SIZE;
 
@@ -92,24 +96,30 @@ export default async function DashboardJobsPage({
   const hasPrevious = currentPage > 1;
   const hasNext = currentPage < totalPages;
 
-  const buildQuery = (params: { status?: string | null; page?: number }) => {
-    const query = new URLSearchParams();
+  type LinkHref = ComponentProps<typeof Link>["href"];
+
+  const buildQuery = (
+    params: { status?: string | null; page?: number },
+  ): LinkHref => {
+    const query: Record<string, string> = {};
 
     const statusValue =
       params.status !== undefined ? params.status : normalizedStatus;
 
     if (statusValue && statusValue !== "all") {
-      query.set("status", statusValue);
+      query.status = statusValue;
     }
 
     const pageValue = params.page ?? currentPage;
 
     if (pageValue > 1) {
-      query.set("page", String(pageValue));
+      query.page = String(pageValue);
     }
 
-    const queryString = query.toString();
-    return queryString.length > 0 ? `?${queryString}` : "";
+    return {
+      pathname: "/dashboard/jobs",
+      query,
+    };
   };
 
   const creditLabel = creditSummary

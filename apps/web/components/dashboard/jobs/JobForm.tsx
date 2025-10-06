@@ -21,6 +21,7 @@ import type { City } from "@/lib/location/cities";
 
 import {
   createJobAction,
+  type FormActionResult,
   type JobFormInput,
   updateJobAction,
 } from "@/app/(dashboard)/dashboard/jobs/actions";
@@ -121,7 +122,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
           : updateJobAction(jobId ?? "", payload);
 
       action
-        .then((result) => {
+        .then((result: FormActionResult) => {
           if (result.ok) {
             setFieldErrors({});
             setFormError(null);

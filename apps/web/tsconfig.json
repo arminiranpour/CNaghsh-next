@@ -9,6 +9,7 @@
     "baseUrl": ".",
     "paths": {
       "@/components/*": ["./components/*"],
+      "@/app/*": ["./app/*"],
       "@/lib/*": ["./lib/*"],
       "@acme/ui": ["../../packages/ui/src/index.ts"],
       "@acme/ui/*": ["../../packages/ui/src/*"]

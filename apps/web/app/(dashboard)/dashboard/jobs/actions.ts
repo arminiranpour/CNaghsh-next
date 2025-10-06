@@ -73,14 +73,14 @@ export type JobFormInput = {
 
 type FieldErrors = Partial<Record<keyof JobFormValues, string>>;
 
-type FormActionResult = {
+export type FormActionResult = {
   ok: boolean;
   jobId?: string;
   error?: string;
   fieldErrors?: FieldErrors;
 };
 
-type SimpleActionResult = {
+export type SimpleActionResult = {
   ok: boolean;
   error?: string;
   errorCode?: keyof typeof CREDIT_ERROR_MESSAGES;
@@ -278,8 +278,11 @@ export async function updateJobAction(
       return jobError;
     }
 
-    if (error instanceof ZodError<JobFormValues>) {
-      return { ok: false, fieldErrors: mapZodErrors(error) };
+    if (error instanceof ZodError) {
+      return {
+        ok: false,
+        fieldErrors: mapZodErrors(error as ZodError<JobFormValues>),
+      };
     }
 
     console.error("updateJobAction", error);
