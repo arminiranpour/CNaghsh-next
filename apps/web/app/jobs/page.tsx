@@ -189,7 +189,7 @@ export default async function JobsPage({
     persistedParams.set("remote", "1");
   }
 
-  const buildPageHref = (page: number): LinkProps["href"] => {
+  const buildPageHref = (page: number): LinkProps<"/jobs">["href"] => {
     const params = new URLSearchParams(persistedParams);
     if (page > 1) {
       params.set("page", String(page));
