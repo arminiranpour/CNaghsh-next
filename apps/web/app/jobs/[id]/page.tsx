@@ -99,7 +99,9 @@ export default async function JobDetailPage({
     dateStyle: "medium",
   }).format(job.createdAt);
 
-  const profileLink = job.user.profile ? `/profiles/${job.user.profile.id}` : null;
+  const profileLink = job.user.profile
+    ? { pathname: "/profiles/[id]", query: { id: job.user.profile.id } }
+    : null;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 pb-12" dir="rtl">

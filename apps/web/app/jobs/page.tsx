@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { LinkProps } from "next/link";
 import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
@@ -188,7 +189,7 @@ export default async function JobsPage({
     persistedParams.set("remote", "1");
   }
 
-  const buildPageHref = (page: number) => {
+  const buildPageHref = (page: number): LinkProps["href"] => {
     const params = new URLSearchParams(persistedParams);
     if (page > 1) {
       params.set("page", String(page));
@@ -196,8 +197,12 @@ export default async function JobsPage({
       params.delete("page");
     }
 
-    const query = params.toString();
-    return query ? `/jobs?${query}` : "/jobs";
+    const queryEntries = Object.fromEntries(params.entries());
+
+    return {
+      pathname: "/jobs",
+      query: Object.keys(queryEntries).length > 0 ? queryEntries : undefined,
+    };
   };
 
   const jsonLd =
