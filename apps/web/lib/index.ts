@@ -4,3 +4,5 @@ export { formatRials } from "./money";
 export * from "./env";
 export * from "./http";
 export * from "./url";
+export * from "./errors";
+export * from "./entitlements";
