@@ -2,6 +2,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma, type ModerationStatus, type ProfileVisibility } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  emitHidden,
+  emitModerationApproved,
+  emitModerationPending,
+  emitModerationRejected,
+  emitUnhidden,
+} from "@/lib/notifications/events";
 import { getPublishability } from "@/lib/profile/enforcement";
 
 const PROFILE_PATHS_TO_REVALIDATE = [
@@ -185,6 +192,8 @@ export async function approveProfile(
 
   await revalidateProfilePaths(profileId);
 
+  await emitModerationApproved(profile.userId, profile.id);
+
   return profile;
 }
 
@@ -220,6 +229,8 @@ export async function rejectProfile(
 
   await revalidateProfilePaths(profileId);
 
+  await emitModerationRejected(profile.userId, profile.id, cleanedReason);
+
   return profile;
 }
 
@@ -254,6 +265,8 @@ export async function revertToPending(
 
   await revalidateProfilePaths(profileId);
 
+  await emitModerationPending(profile.userId, profile.id);
+
   return profile;
 }
 
@@ -280,6 +293,8 @@ export async function hideProfile(
   ]);
 
   await revalidateProfilePaths(profileId);
+
+  await emitHidden(profile.userId, profile.id);
 
   return profile;
 }
@@ -313,6 +328,8 @@ export async function unhideProfile(
     throw new Error("این کاربر دسترسی فعال برای نمایش پروفایل ندارد.");
   }
 
+  const shouldNotify = Boolean(profile.publishedAt);
+
   const [updated] = await prisma.$transaction([
     prisma.profile.update({
       where: { id: profileId },
@@ -332,6 +349,10 @@ export async function unhideProfile(
   ]);
 
   await revalidateProfilePaths(profileId);
+
+  if (shouldNotify) {
+    await emitUnhidden(updated.userId, updated.id);
+  }
 
   return updated;
 }

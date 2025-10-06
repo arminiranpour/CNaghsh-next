@@ -15,6 +15,10 @@ import {
 } from "@/lib/profile/moderation";
 import { personalInfoSchema, skillsSchema } from "@/lib/profile/validation";
 import { deleteByUrl, saveImageFromFormData } from "@/lib/media/storage";
+import {
+  emitUserPublishSubmitted,
+  emitUserUnpublished,
+} from "@/lib/notifications/events";
 
 const GENERIC_ERROR = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
 const AUTH_ERROR = "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.";
@@ -424,6 +428,8 @@ export async function publishProfile(): Promise<PublishActionResult> {
 
     await revalidateProfilePaths(profile.id);
 
+    await emitUserPublishSubmitted(userId, profile.id);
+
     return { ok: true };
   } catch (error) {
     if (error instanceof Error && error.message === AUTH_ERROR) {
@@ -456,6 +462,8 @@ export async function unpublishProfile(): Promise<PublishActionResult> {
     });
 
     await revalidateProfilePaths(profile.id);
+
+    await emitUserUnpublished(userId, profile.id);
 
     return { ok: true };
   } catch (error) {

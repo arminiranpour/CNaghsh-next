@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import type { Route } from "next";
 
 import { DashboardSidebarNav } from "./_components/sidebar-nav";
+import { NotificationsBell } from "./_components/notifications-bell";
 
 const dashboardNav = [
   { href: "/dashboard/profile" as Route, label: "پروفایل" },
+  { href: "/dashboard/notifications" as Route, label: "اعلان‌ها" },
   { href: "/dashboard/billing" as Route, label: "صورتحساب" },
   { href: "/dashboard/settings" as Route, label: "تنظیمات" },
 ] satisfies Array<{ href: Route; label: string }>;
@@ -29,11 +31,14 @@ export default function DashboardLayout({
           </div>
         </aside>
         <main className="flex-1 border-l border-border/60 bg-background">
-          <header className="border-b border-border bg-background/90 px-6 py-4">
-            <h1 className="text-2xl font-semibold">داشبورد</h1>
-            <p className="text-sm text-muted-foreground">
-              از این بخش می‌توانید اطلاعات حساب خود را مدیریت کنید.
-            </p>
+          <header className="flex flex-col gap-3 border-b border-border bg-background/90 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold">داشبورد</h1>
+              <p className="text-sm text-muted-foreground">
+                از این بخش می‌توانید اطلاعات حساب خود را مدیریت کنید.
+              </p>
+            </div>
+            <NotificationsBell />
           </header>
           <div className="p-6">{children}</div>
         </main>

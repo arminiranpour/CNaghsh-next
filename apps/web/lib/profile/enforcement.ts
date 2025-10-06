@@ -2,6 +2,11 @@ import { revalidatePath } from "next/cache";
 
 import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { prisma } from "@/lib/prisma";
+import {
+  emitEntitlementExpired,
+  emitEntitlementRestored,
+  emitSystemAutoUnpublish,
+} from "@/lib/notifications/events";
 
 type PublishabilityReason = "NO_ENTITLEMENT" | "ENTITLEMENT_EXPIRED";
 
@@ -65,7 +70,12 @@ export async function enforceUserProfileVisibility(
 ): Promise<"unchanged" | "auto_unpublished" | "auto_published"> {
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { id: true, visibility: true },
+    select: {
+      id: true,
+      visibility: true,
+      publishedAt: true,
+      moderationStatus: true,
+    },
   });
 
   if (!profile) {
@@ -79,7 +89,6 @@ export async function enforceUserProfileVisibility(
       where: { userId },
       data: {
         visibility: "PRIVATE",
-        publishedAt: null,
       },
     });
 
@@ -88,20 +97,57 @@ export async function enforceUserProfileVisibility(
         profileId: profile.id,
         actorId: null,
         action: "SYSTEM_AUTO_UNPUBLISH",
-        reason: publishability.reason ?? "PUBLISHABILITY_REVOKED",
+        reason: publishability.reason ?? "NOT_APPROVED",
       },
     });
 
     await revalidateProfilePaths(profile.id);
 
+    await emitSystemAutoUnpublish(
+      userId,
+      profile.id,
+      publishability.reason ?? "NOT_APPROVED",
+    );
+
+    if (publishability.reason === "ENTITLEMENT_EXPIRED") {
+      await emitEntitlementExpired(userId);
+    }
+
     console.info("[enforcement] auto_unpublished", {
       userId,
       profileId: profile.id,
-      reason: publishability.reason ?? "PUBLISHABILITY_REVOKED",
+      reason: publishability.reason ?? "NOT_APPROVED",
       timestamp: new Date().toISOString(),
     });
 
     return "auto_unpublished";
+  }
+
+  if (
+    profile.visibility === "PRIVATE" &&
+    publishability.canPublish &&
+    profile.moderationStatus === "APPROVED" &&
+    profile.publishedAt
+  ) {
+    await prisma.profile.update({
+      where: { userId },
+      data: {
+        visibility: "PUBLIC",
+        publishedAt: new Date(),
+      },
+    });
+
+    await revalidateProfilePaths(profile.id);
+
+    await emitEntitlementRestored(userId);
+
+    console.info("[enforcement] auto_published", {
+      userId,
+      profileId: profile.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    return "auto_published";
   }
 
   return "unchanged";

@@ -21,6 +21,8 @@ model User {
   profile          Profile?
   moderatedProfiles Profile[]        @relation("ProfileModerators")
   moderationEvents  ModerationEvent[] @relation("ModerationActor")
+  notifications    Notification[]
+  emailLogs        EmailLog[]
 }
 
 model Profile {
@@ -245,4 +247,50 @@ enum InvoiceStatus {
 enum EntitlementKey {
   CAN_PUBLISH_PROFILE
   JOB_POST_CREDIT
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationType {
+  MODERATION_APPROVED
+  MODERATION_REJECTED
+  MODERATION_PENDING
+  MODERATION_HIDDEN
+  MODERATION_UNHIDDEN
+  SYSTEM_AUTO_UNPUBLISH
+  USER_PUBLISH_SUBMITTED
+  USER_UNPUBLISHED
+  ENTITLEMENT_EXPIRED
+  ENTITLEMENT_RESTORED
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String              @index
+  type      NotificationType
+  title     String
+  body      String
+  payload   Json?
+  channel   NotificationChannel @default(IN_APP)
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String   @index
+  to        String
+  subject   String
+  status    String
+  error     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
