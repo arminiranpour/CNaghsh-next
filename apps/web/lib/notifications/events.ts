@@ -226,6 +226,7 @@ export async function emitJobPending({
   });
 }
 
+// Job state change notifications stay IN_APP-only until additional channels are supported.
 export async function emitJobFeatured({
   userId,
   jobId,
