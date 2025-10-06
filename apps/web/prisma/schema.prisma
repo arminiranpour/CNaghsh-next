@@ -269,7 +269,7 @@ enum NotificationType {
 
 model Notification {
   id        String              @id @default(cuid())
-  userId    String              @index
+  userId    String
   type      NotificationType
   title     String
   body      String
@@ -279,18 +279,21 @@ model Notification {
   createdAt DateTime            @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  
+  @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
 }
 
 model EmailLog {
   id        String   @id @default(cuid())
-  userId    String   @index
+  userId    String
   to        String
   subject   String
   status    String
   error     String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
