@@ -1,108 +1,202 @@
-import { PrismaClient } from '@prisma/client';
+import { PlanCycle, PrismaClient, ProductType } from '@prisma/client';
 
-const prisma = new PrismaClient() as PrismaClient & {
-  product: any;
-  plan: any;
-  price: any;
-};
+const prisma = new PrismaClient();
 
-const ProductType = {
-  SUBSCRIPTION: 'SUBSCRIPTION',
-  JOB_POST: 'JOB_POST',
-} as const;
+const SUBSCRIPTION_PRODUCT_NAME = 'اشتراک';
+const SUBSCRIPTION_PLAN_NAME = 'ماهانه';
+const SUBSCRIPTION_PRICE_AMOUNT = 5_000_000;
 
-const PlanCycle = {
-  MONTHLY: 'MONTHLY',
-  QUARTERLY: 'QUARTERLY',
-  YEARLY: 'YEARLY',
-} as const;
+const JOB_PRODUCT_NAME = 'ثبت آگهی شغلی';
+const JOB_PRICE_AMOUNT = 1_500_000;
+
+async function ensureProduct(type: ProductType, name: string) {
+  const existing = await prisma.product.findFirst({
+    where: {
+      type,
+      name,
+    },
+  });
+
+  if (existing) {
+    if (!existing.active) {
+      return prisma.product.update({
+        where: { id: existing.id },
+        data: { active: true },
+      });
+    }
+
+    return existing;
+  }
+
+  return prisma.product.create({
+    data: {
+      type,
+      name,
+      active: true,
+    },
+  });
+}
+
+async function ensurePlan(productId: string, cycle: PlanCycle, name: string) {
+  const existing = await prisma.plan.findFirst({
+    where: {
+      productId,
+      cycle,
+    },
+  });
+
+  if (existing) {
+    const limitsIsEmpty = JSON.stringify(existing.limits ?? {}) === '{}';
+    const shouldUpdate =
+      !existing.active || existing.name !== name || !limitsIsEmpty;
+
+    if (shouldUpdate) {
+      return prisma.plan.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          limits: {},
+          active: true,
+        },
+      });
+    }
+
+    return existing;
+  }
+
+  return prisma.plan.create({
+    data: {
+      productId,
+      name,
+      cycle,
+      limits: {},
+      active: true,
+    },
+  });
+}
+
+async function ensurePlanPrice(planId: string, amount: number) {
+  const existing = await prisma.price.findFirst({
+    where: {
+      planId,
+      currency: 'IRR',
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  let price;
+
+  if (existing) {
+    price = await prisma.price.update({
+      where: { id: existing.id },
+      data: {
+        amount,
+        currency: 'IRR',
+        active: true,
+      },
+    });
+  } else {
+    price = await prisma.price.create({
+      data: {
+        planId,
+        amount,
+        currency: 'IRR',
+        active: true,
+      },
+    });
+  }
+
+  await prisma.price.updateMany({
+    where: {
+      planId,
+      id: { not: price.id },
+      active: true,
+    },
+    data: { active: false },
+  });
+
+  return price;
+}
+
+async function ensureProductPrice(productId: string, amount: number) {
+  const existing = await prisma.price.findFirst({
+    where: {
+      productId,
+      planId: null,
+      currency: 'IRR',
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  let price;
+
+  if (existing) {
+    price = await prisma.price.update({
+      where: { id: existing.id },
+      data: {
+        amount,
+        currency: 'IRR',
+        active: true,
+      },
+    });
+  } else {
+    price = await prisma.price.create({
+      data: {
+        productId,
+        amount,
+        currency: 'IRR',
+        active: true,
+      },
+    });
+  }
+
+  await prisma.price.updateMany({
+    where: {
+      productId,
+      planId: null,
+      id: { not: price.id },
+      active: true,
+    },
+    data: { active: false },
+  });
+
+  return price;
+}
+
 async function main() {
-  const subscriptionProductId = 'product_subscription_default';
-  const subscriptionPlanId = 'plan_subscription_monthly_default';
-  const subscriptionPriceId = 'price_subscription_monthly_default';
-  const jobProductId = 'product_job_post_default';
-  const jobPriceId = 'price_job_post_default';
+  const subscriptionProduct = await ensureProduct(
+    ProductType.SUBSCRIPTION,
+    SUBSCRIPTION_PRODUCT_NAME,
+  );
 
-  await prisma.product.upsert({
-    where: { id: subscriptionProductId },
-    update: {
-      name: 'اشتراک',
-      active: true,
-    },
-    create: {
-      id: subscriptionProductId,
-      type: ProductType.SUBSCRIPTION,
-      name: 'اشتراک',
-      active: true,
-    },
-  });
+  const subscriptionPlan = await ensurePlan(
+    subscriptionProduct.id,
+    PlanCycle.MONTHLY,
+    SUBSCRIPTION_PLAN_NAME,
+  );
 
-  await prisma.plan.upsert({
-    where: { id: subscriptionPlanId },
-    update: {
-      productId: subscriptionProductId,
-      name: 'اشتراک ماهانه',
-      cycle: PlanCycle.MONTHLY,
-      limits: {},
-      active: true,
-    },
-    create: {
-      id: subscriptionPlanId,
-      productId: subscriptionProductId,
-      name: 'اشتراک ماهانه',
-      cycle: PlanCycle.MONTHLY,
-      limits: {},
-      active: true,
-    },
-  });
+  const subscriptionPrice = await ensurePlanPrice(
+    subscriptionPlan.id,
+    SUBSCRIPTION_PRICE_AMOUNT,
+  );
 
-  await prisma.price.upsert({
-    where: { id: subscriptionPriceId },
-    update: {
-      planId: subscriptionPlanId,
-      currency: 'IRR',
-      amount: 5_000_000,
-      active: true,
-    },
-    create: {
-      id: subscriptionPriceId,
-      planId: subscriptionPlanId,
-      currency: 'IRR',
-      amount: 5_000_000,
-      active: true,
-    },
-  });
+  const jobProduct = await ensureProduct(
+    ProductType.JOB_POST,
+    JOB_PRODUCT_NAME,
+  );
 
-  await prisma.product.upsert({
-    where: { id: jobProductId },
-    update: {
-      name: 'ثبت آگهی شغلی',
-      active: true,
-    },
-    create: {
-      id: jobProductId,
-      type: ProductType.JOB_POST,
-      name: 'ثبت آگهی شغلی',
-      active: true,
-    },
-  });
+  const jobPrice = await ensureProductPrice(jobProduct.id, JOB_PRICE_AMOUNT);
 
-  await prisma.price.upsert({
-    where: { id: jobPriceId },
-    update: {
-      productId: jobProductId,
-      currency: 'IRR',
-      amount: 1_500_000,
-      active: true,
-    },
-    create: {
-      id: jobPriceId,
-      productId: jobProductId,
-      currency: 'IRR',
-      amount: 1_500_000,
-      active: true,
-    },
-  });
+  console.log('Seed ensured records:');
+  console.log('Subscription product:', subscriptionProduct.id);
+  console.log('Subscription plan:', subscriptionPlan.id);
+  console.log('Subscription price:', subscriptionPrice.id);
+  console.log('Job post product:', jobProduct.id);
+  console.log('Job post price:', jobPrice.id);
 }
 
 main()

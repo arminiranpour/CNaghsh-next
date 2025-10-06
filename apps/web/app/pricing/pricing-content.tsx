@@ -250,7 +250,7 @@ export function PricingContent({
 
       {initialUserId && (
         <p className="text-center text-sm text-muted-foreground">
-          شناسه کاربر از پارامتر آدرس دریافت شده است و دکمه‌های خرید فعال هستند.
+          شناسه کاربر به‌صورت خودکار تنظیم شده است و دکمه‌های خرید فعال هستند.
         </p>
       )}
 

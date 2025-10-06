@@ -1,11 +1,47 @@
-import { NextResponse } from "next/server";
-
-import { ProductType } from "@prisma/client";
+import { PlanCycle, ProductType } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { ok, PUBLIC_CACHE_HEADERS } from "@/lib/http";
+import { formatRials } from "@/lib/money";
 
-const CACHE_HEADERS = {
-  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+type PricingPlan = {
+  id: string;
+  name: string;
+  cycle: string;
+  price: {
+    id: string;
+    amount: number;
+    formatted: string;
+  };
+  limits: Record<string, unknown> | null;
+};
+
+type OneTimePrice = {
+  id: string;
+  name: string;
+  amount: number;
+  formatted: string;
+};
+
+const cycleLabels: Record<PlanCycle, string> = {
+  [PlanCycle.MONTHLY]: "ماهانه",
+  [PlanCycle.QUARTERLY]: "فصلی",
+  [PlanCycle.YEARLY]: "سالانه",
+};
+
+const serializeLimits = (limits: unknown): Record<string, unknown> | null => {
+  if (!limits || typeof limits !== "object") {
+    return null;
+  }
+
+  if (Array.isArray(limits)) {
+    return limits.reduce<Record<string, unknown>>((acc, value, index) => {
+      acc[index.toString()] = value;
+      return acc;
+    }, {});
+  }
+
+  return limits as Record<string, unknown>;
 };
 
 export async function GET() {
@@ -18,83 +54,59 @@ export async function GET() {
       },
     },
     include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
       prices: {
-        where: {
-          active: true,
-          currency: "IRR",
-        },
-        select: {
-          id: true,
-          amount: true,
-          currency: true,
-          active: true,
-        },
-        orderBy: {
-          amount: "asc",
-        },
+        where: { active: true },
+        orderBy: { createdAt: "asc" },
       },
     },
-    orderBy: {
-      createdAt: "asc",
-    },
+    orderBy: { createdAt: "asc" },
   });
 
-  const subscriptions = plans.map((plan) => ({
-    planId: plan.id,
-    planName: plan.name,
-    cycle: plan.cycle,
-    productId: plan.product.id,
-    productName: plan.product.name,
-    prices: plan.prices.map((price) => ({
-      priceId: price.id,
-      amount: price.amount,
-      currency: price.currency,
-      active: price.active,
-    })),
-  }));
+  const planItems: PricingPlan[] = plans
+    .map((plan) => {
+      const activePrice = plan.prices[0];
+      if (!activePrice) {
+        return null;
+      }
 
-  const jobPrices = await prisma.price.findMany({
+      return {
+        id: plan.id,
+        name: plan.name,
+        cycle: cycleLabels[plan.cycle],
+        limits: serializeLimits(plan.limits),
+        price: {
+          id: activePrice.id,
+          amount: activePrice.amount,
+          formatted: formatRials(activePrice.amount),
+        },
+      } satisfies PricingPlan;
+    })
+    .filter(Boolean) as PricingPlan[];
+
+  const oneTimePricesRaw = await prisma.price.findMany({
     where: {
       active: true,
-      currency: "IRR",
       product: {
         active: true,
         type: ProductType.JOB_POST,
       },
     },
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      amount: "asc",
-    },
+    include: { product: true },
+    orderBy: { createdAt: "asc" },
   });
 
-  const jobPost = jobPrices.map((price) => ({
-    priceId: price.id,
-    productId: price.product?.id ?? price.productId ?? "",
-    productName: price.product?.name ?? "",
+  const oneTimePrices: OneTimePrice[] = oneTimePricesRaw.map((price) => ({
+    id: price.id,
+    name: price.product?.name ?? "ثبت آگهی شغلی",
     amount: price.amount,
-    currency: price.currency,
-    active: price.active,
+    formatted: formatRials(price.amount),
   }));
 
-  return NextResponse.json(
+  return ok(
     {
-      subscriptions,
-      jobPost,
+      plans: planItems,
+      oneTimePrices,
     },
-    { headers: CACHE_HEADERS },
+    { headers: PUBLIC_CACHE_HEADERS },
   );
 }

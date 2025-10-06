@@ -9,6 +9,23 @@ Create a `.env` file in `apps/web` (or export the variable in your shell) with t
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
 ```
+## Environment variables
+
+The web application reads configuration through a typed loader in `apps/web/lib/env.ts`. Provide these variables in `apps/web/.env.local` (or your shell):
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string. |
+| `PUBLIC_BASE_URL` | ✅ | Absolute origin for building return URLs (no trailing slash, e.g. `http://localhost:3000`). |
+| `WEBHOOK_SHARED_SECRET` | ❌ | Shared secret for webhook signature verification. Leave unset to skip signature checks during local development. |
+
+Example `apps/web/.env.local`:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
+PUBLIC_BASE_URL="http://localhost:3000"
+# WEBHOOK_SHARED_SECRET="dev_secret"
+```
 
 After setting the environment variable you can run the Prisma commands:
 

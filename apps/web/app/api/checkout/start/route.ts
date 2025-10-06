@@ -1,134 +1,94 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-import { ProductType } from "@prisma/client";
-
+import { providers } from "@/lib/billing/providers";
 import { ProviderName } from "@/lib/billing/providers/types";
 import { prisma } from "@/lib/db";
-import { CheckoutStatus, InvoiceStatus, PaymentStatus, Provider } from "@/lib/prismaEnums";
-
-const NO_STORE_HEADERS = { "Cache-Control": "no-store" };
+import { badRequest, ok, safeJson, serverError } from "@/lib/http";
+import { sanitizeReturnUrl } from "@/lib/url";
+import { CheckoutStatus, Provider } from "@/lib/prismaEnums";
 
 const isProviderName = (value: string): value is ProviderName => {
   return value === "zarinpal" || value === "idpay" || value === "nextpay";
 };
 
 export async function POST(request: NextRequest) {
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
+  const parsed = await safeJson<unknown>(request);
+  if (!parsed.ok) {
+    return badRequest("Invalid JSON");
   }
+
+  const body = parsed.data;
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
+    return badRequest("Invalid JSON");
   }
 
-  const { userId, provider, priceId } = body as Record<string, unknown>;
+  const { userId, provider, priceId, returnUrl } = body as Record<string, unknown>;
 
-  if (typeof userId !== "string" || typeof provider !== "string" || typeof priceId !== "string") {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
+  if (typeof userId !== "string" || userId.trim().length === 0) {
+    return badRequest("Invalid JSON");
+  }
+  if (typeof provider !== "string" || !isProviderName(provider)) {
+    return badRequest("Invalid JSON");
   }
 
-  if (!isProviderName(provider)) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_STORE_HEADERS });
+  if (typeof priceId !== "string" || priceId.trim().length === 0) {
+    return badRequest("Invalid JSON");
+  }
+  const adapter = providers[provider];
+    if (!adapter) {
+    return badRequest("Invalid JSON");
   }
 
-  const price = await prisma.price.findUnique({
-    where: { id: priceId },
-    include: {
-      plan: {
-        include: {
-          product: {
-            select: { id: true, type: true, active: true },
-          },
-        },
-      },
-      product: {
-        select: { id: true, type: true, active: true },
-      },
-    },
+  const price = await prisma.price.findFirst({
+    where: { id: priceId, active: true },
   });
 
-  const priceIsActive =
-    price?.active &&
-    price.currency === "IRR" &&
-    ((price.planId &&
-      price.plan?.active &&
-      price.plan.product?.active &&
-      price.plan.product.type === ProductType.SUBSCRIPTION) ||
-      (price.productId && price.product?.active && price.product.type === ProductType.JOB_POST));
-
-  if (!price || !priceIsActive) {
-    return NextResponse.json({ error: "PRICE_NOT_AVAILABLE" }, { status: 400, headers: NO_STORE_HEADERS });
+  if (!price) {
+    return badRequest("Price not found");
   }
 
-  const baseUrl = process.env.PUBLIC_BASE_URL;
-  if (!baseUrl) {
-    return NextResponse.json({ error: "Missing PUBLIC_BASE_URL" }, { status: 400, headers: NO_STORE_HEADERS });
-  }
-  
+  const session = await prisma.checkoutSession.create({
+    data: {
+      userId,
+      provider: provider as Provider,
+      priceId,
+      status: CheckoutStatus.STARTED,
+      redirectUrl: "",
+      returnUrl: "",
+      providerInitPayload: {},
+    },
+  });
+  const fallbackPath = `/checkout/${session.id}/success`;
+  const resolvedReturnUrl = sanitizeReturnUrl(
+    typeof returnUrl === "string" ? returnUrl : undefined,
+    fallbackPath,
+  );
+
+  let startResult;
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const session = await tx.checkoutSession.create({
-        data: {
-          userId,
-          provider: provider as Provider,
-          priceId: price.id,
-          status: CheckoutStatus.STARTED,
-          redirectUrl: "",
-          returnUrl: "",
-          providerInitPayload: {},
-        },
-      });
-
-      const payment = await tx.payment.create({
-        data: {
-          userId,
-          checkoutSessionId: session.id,
-          provider: provider as Provider,
-          providerRef: `sandbox-${session.id}`,
-          amount: price.amount,
-          currency: price.currency,
-          status: PaymentStatus.PENDING,
-        },
-      });
-
-      await tx.invoice.create({
-        data: {
-          userId,
-          paymentId: payment.id,
-          total: price.amount,
-          currency: price.currency,
-          status: InvoiceStatus.OPEN,
-        },
-      });
-
-      const returnUrl = `${baseUrl}/checkout/${session.id}/success`;
-      const params = new URLSearchParams({
-        session: session.id,
-        provider,
-        amount: String(price.amount),
-        currency: price.currency,
-        returnUrl,
-      });
-
-       const redirectUrl = `${baseUrl}/billing/sandbox-redirect?${params.toString()}`;
-
-      await tx.checkoutSession.update({
-        where: { id: session.id },
-        data: {
-          redirectUrl,
-          returnUrl,
-          status: CheckoutStatus.PENDING,
-        },
-      });
-
-      return { sessionId: session.id, redirectUrl };
+    startResult = adapter.start({
+      sessionId: session.id,
+      amount: price.amount,
+      currency: "IRR",
+      returnUrl: resolvedReturnUrl,
     });
-    return NextResponse.json(result, { status: 201, headers: NO_STORE_HEADERS });
-
   } catch (error) {
-    console.error("checkout/start", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500, headers: NO_STORE_HEADERS });  }
+    return serverError("Failed to start checkout");
+  }
+  try {
+    await prisma.checkoutSession.update({
+      where: { id: session.id },
+      data: {
+        redirectUrl: startResult.redirectUrl,
+        returnUrl: resolvedReturnUrl,
+      },
+    });
+  } catch (error) {
+    return serverError("Failed to persist checkout session");
+  }
+
+  return ok({
+    sessionId: session.id,
+    redirectUrl: startResult.redirectUrl,
+  });
 }

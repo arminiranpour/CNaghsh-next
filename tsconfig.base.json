@@ -3,7 +3,7 @@
     "target": "ES2022",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,

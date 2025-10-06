@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { formatRials } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { getServerAuthSession } from "@/lib/auth/session";
 
 const trackedEntitlements: EntitlementKey[] = [
   EntitlementKey.CAN_PUBLISH_PROFILE,
@@ -60,8 +61,9 @@ export default async function BillingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const userId = getUserId(searchParams?.userId);
-
+  const session = await getServerAuthSession();
+  const sessionUserId = session?.user?.id ?? null;
+  const userId = getUserId(searchParams?.userId) ?? sessionUserId;
   if (!userId) {
     return (
       <div className="mx-auto max-w-xl space-y-4">

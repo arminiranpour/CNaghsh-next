@@ -1,14 +1,8 @@
+import { buildAbsoluteUrl } from "@/lib/url";
+
 import { ProviderAdapter } from "./types";
 
 type ParseResult = ReturnType<ProviderAdapter["parseWebhook"]>;
-
-const getBaseUrl = () => {
-  const baseUrl = process.env.PUBLIC_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("Missing PUBLIC_BASE_URL");
-  }
-  return baseUrl;
-};
 
 const parsePayload = (payload: unknown): ParseResult => {
   if (!payload || typeof payload !== "object") {
@@ -28,15 +22,17 @@ const parsePayload = (payload: unknown): ParseResult => {
 
 export const nextpay: ProviderAdapter = {
   start: ({ sessionId, amount, currency, returnUrl }) => {
-    const params = new URLSearchParams({
+    const url = new URL(buildAbsoluteUrl("/billing/sandbox-redirect"));
+    url.search = new URLSearchParams({
       session: sessionId,
       provider: "nextpay",
       amount: String(amount),
       currency,
       returnUrl,
-    });
+    }).toString();
+
     return {
-      redirectUrl: `${getBaseUrl()}/billing/sandbox-redirect?${params.toString()}`,
+      redirectUrl: url.toString(),
     };
   },
   parseWebhook: parsePayload,
