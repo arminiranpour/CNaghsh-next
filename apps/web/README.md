@@ -10,6 +10,17 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 | `PUBLIC_BASE_URL` | ✅ | Absolute origin without a trailing slash (e.g. `http://localhost:3000`). |
 | `WEBHOOK_SHARED_SECRET` | ❌ | Optional sandbox secret; omit locally to bypass signature checks. |
 
+## Sprint 3 — Jobs
+
+- **New Prisma additions**
+  - Model: `Job`
+  - Enums: `JobStatus`, `JobModeration`
+- **Migration name**: `sprint3_jobs`
+- **Commands**
+  - Apply migration: `pnpm --filter @app/web prisma migrate dev`
+  - Regenerate client: `pnpm --filter @app/web prisma generate`
+- No new environment variables are required for this phase.
+
 Example:
 
 ```env
