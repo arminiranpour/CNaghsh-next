@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma, type ModerationStatus, type ProfileVisibility } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { getPublishability } from "@/lib/profile/enforcement";
 
 const PROFILE_PATHS_TO_REVALIDATE = [
   "/profiles",
@@ -287,7 +288,32 @@ export async function unhideProfile(
   profileId: string,
   actorId: string,
 ): Promise<ModerationProfileSnapshot> {
-  const [profile] = await prisma.$transaction([
+  const profile = await prisma.profile.findUnique({
+    where: { id: profileId },
+    select: {
+      id: true,
+      userId: true,
+      publishedAt: true,
+    },
+  });
+
+  if (!profile) {
+    throw new Error("پروفایل یافت نشد.");
+  }
+
+  if (!profile.publishedAt) {
+    throw new Error(
+      "این هنرمند پروفایل خود را از نمایش خارج کرده است. برای انتشار مجدد، لازم است خود کاربر آن را فعال کند.",
+    );
+  }
+
+  const publishability = await getPublishability(profile.userId);
+
+  if (!publishability.canPublish) {
+    throw new Error("این کاربر دسترسی فعال برای نمایش پروفایل ندارد.");
+  }
+
+  const [updated] = await prisma.$transaction([
     prisma.profile.update({
       where: { id: profileId },
       data: {
@@ -307,7 +333,7 @@ export async function unhideProfile(
 
   await revalidateProfilePaths(profileId);
 
-  return profile;
+  return updated;
 }
 
 export type ModerationListFilters = {

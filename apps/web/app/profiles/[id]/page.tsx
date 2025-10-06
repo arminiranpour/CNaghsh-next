@@ -73,6 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     select: {
       visibility: true,
       moderationStatus: true,
+      publishedAt: true,
       stageName: true,
       firstName: true,
       lastName: true,
@@ -84,7 +85,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (
     !profile ||
     profile.visibility !== "PUBLIC" ||
-    profile.moderationStatus !== "APPROVED"
+    profile.moderationStatus !== "APPROVED" ||
+    !profile.publishedAt
   ) {
     return {};
   }
@@ -109,17 +111,18 @@ export default async function PublicProfilePage({ params }: Props) {
     where: { id: params.id },
   });
 
-  if (
-    !profile ||
-    profile.visibility !== "PUBLIC" ||
-    profile.moderationStatus !== "APPROVED"
-  ) {
+  if (!profile) {
     notFound();
   }
 
   const enforcementResult = await enforceUserProfileVisibility(profile.userId);
 
-  if (enforcementResult === "auto_unpublished") {
+  if (
+    profile.visibility !== "PUBLIC" ||
+    profile.moderationStatus !== "APPROVED" ||
+    !profile.publishedAt ||
+    enforcementResult === "auto_unpublished"
+  ) {
     notFound();
   }
 
