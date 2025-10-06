@@ -68,7 +68,28 @@ function matchesWhere(
     return true;
   }
 
-  const { OR, userId_key, remainingCredits, expiresAt, ...rest } = where;
+  type ExtendedWhereInput = Prisma.UserEntitlementWhereInput & {
+    userId_key?: {
+      userId?: string;
+      key?: EntitlementKey;
+    };
+    remainingCredits?:
+      | number
+      | Prisma.IntNullableFilter<"UserEntitlement">;
+    expiresAt?:
+      | Date
+      | string
+      | null
+      | Prisma.DateTimeNullableFilter<"UserEntitlement">;
+  };
+
+  const {
+    OR,
+    userId_key,
+    remainingCredits,
+    expiresAt,
+    ...rest
+  } = where as ExtendedWhereInput;
 
   if (userId_key) {
     if (
@@ -79,32 +100,66 @@ function matchesWhere(
     }
   }
 
-  if (typeof rest.id !== "undefined" && record.id !== rest.id) {
+  if (typeof rest.id === "string" && record.id !== rest.id) {
     return false;
   }
 
-  if (typeof rest.userId !== "undefined" && record.userId !== rest.userId) {
+  if (typeof rest.userId === "string" && record.userId !== rest.userId) {
     return false;
   }
 
-  if (typeof rest.key !== "undefined" && record.key !== rest.key) {
+  if (typeof rest.key === "string" && record.key !== rest.key) {
     return false;
   }
 
-  if (
-    remainingCredits?.gt !== undefined &&
-    !(record.remainingCredits > remainingCredits.gt)
+  if (typeof remainingCredits === "number") {
+    if (record.remainingCredits !== remainingCredits) {
+      return false;
+    }
+  } else if (
+    remainingCredits &&
+    typeof remainingCredits === "object" &&
+    "gt" in remainingCredits &&
+    typeof remainingCredits.gt === "number"
   ) {
-    return false;
+    if (!(record.remainingCredits > remainingCredits.gt)) {
+      return false;
+    }
   }
 
-  if (expiresAt !== undefined) {
+  if (typeof expiresAt !== "undefined") {
     if (expiresAt === null) {
       if (record.expiresAt !== null) {
         return false;
       }
-    } else if (typeof expiresAt === "object" && "gt" in expiresAt) {
-      if (record.expiresAt === null || !(record.expiresAt > expiresAt.gt)) {
+    } else if (expiresAt instanceof Date) {
+      if (record.expiresAt?.getTime() !== expiresAt.getTime()) {
+        return false;
+      }
+    } else if (
+      typeof expiresAt === "object" &&
+      expiresAt !== null &&
+      "gt" in expiresAt &&
+      typeof expiresAt.gt !== "undefined"
+    ) {
+      const gtValue = expiresAt.gt;
+      const gtDate = (() => {
+        if (gtValue instanceof Date) {
+          return gtValue;
+        }
+
+        if (typeof gtValue === "string") {
+          const parsed = new Date(gtValue);
+          return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        return null;
+      })();
+
+      if (
+        gtDate &&
+        (record.expiresAt === null || record.expiresAt.getTime() <= gtDate.getTime())
+      ) {
         return false;
       }
     }
@@ -148,9 +203,15 @@ function createTransaction(
 
       const filtered = records.filter((record) => matchesWhere(record, args?.where));
 
-      const ordered = Array.isArray(args?.orderBy)
+      const orderClauses = args?.orderBy
+        ? Array.isArray(args.orderBy)
+          ? args.orderBy
+          : [args.orderBy]
+        : [];
+
+      const ordered = orderClauses.length
         ? [...filtered].sort((a, b) => {
-            for (const order of args.orderBy) {
+            for (const order of orderClauses) {
               if (order.expiresAt) {
                 const { sort, nulls } = order.expiresAt;
                 const aExp = a.expiresAt;
@@ -187,7 +248,8 @@ function createTransaction(
         : filtered;
 
       if (args?.select) {
-        return ordered.map((record) => selectFields(record, args.select));
+        const select = args.select;
+        return ordered.map((record) => selectFields(record, select));
       }
 
       return ordered;
@@ -215,8 +277,15 @@ function createTransaction(
           continue;
         }
 
-        if (args?.data?.remainingCredits?.decrement) {
-          record.remainingCredits -= args.data.remainingCredits.decrement;
+        const decrement =
+          typeof args?.data?.remainingCredits === "object" &&
+          args.data.remainingCredits !== null &&
+          "decrement" in args.data.remainingCredits
+            ? args.data.remainingCredits.decrement
+            : undefined;
+
+        if (typeof decrement === "number") {
+          record.remainingCredits -= decrement;
         }
 
         record.updatedAt = new Date();
