@@ -8,48 +8,49 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  email            String            @unique
-  name             String?
-  passwordHash     String?
-  role             Role              @default(USER)
-  createdAt        DateTime          @default(now())
-  checkoutSessions CheckoutSession[]
-  invoices         Invoice[]
-  payments         Payment[]
-  entitlements     UserEntitlement[]
-  profile          Profile?
-  moderatedProfiles Profile[]        @relation("ProfileModerators")
+  id                String            @id @default(cuid())
+  email             String            @unique
+  name              String?
+  passwordHash      String?
+  role              Role              @default(USER)
+  createdAt         DateTime          @default(now())
+  checkoutSessions  CheckoutSession[]
+  invoices          Invoice[]
+  payments          Payment[]
+  entitlements      UserEntitlement[]
+  profile           Profile?
+  moderatedProfiles Profile[]         @relation("ProfileModerators")
   moderationEvents  ModerationEvent[] @relation("ModerationActor")
-  notifications    Notification[]
-  emailLogs        EmailLog[]
+  notifications     Notification[]
+  emailLogs         EmailLog[]
+  Job               Job[]
 }
 
 model Profile {
-  id          String             @id @default(cuid())
-  userId      String             @unique
-  user        User               @relation(fields: [userId], references: [id])
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  firstName   String?
-  lastName    String?
-  stageName   String?
-  age         Int?
-  phone       String?
-  address     String?
-  cityId      String?
+  firstName String?
+  lastName  String?
+  stageName String?
+  age       Int?
+  phone     String?
+  address   String?
+  cityId    String?
 
-  avatarUrl   String?
-  bio         String?
-  gallery     Json?
+  avatarUrl String?
+  bio       String?
+  gallery   Json?
 
   skills      Json?
   socialLinks Json?
 
-  visibility  ProfileVisibility  @default(PRIVATE)
-  publishedAt DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  moderationStatus ModerationStatus @default(PENDING)
+  visibility       ProfileVisibility @default(PRIVATE)
+  publishedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  moderationStatus ModerationStatus  @default(PENDING)
   moderationNotes  String?
   moderatedBy      String?
   moderatedAt      DateTime?
@@ -62,14 +63,14 @@ model Profile {
 }
 
 model ModerationEvent {
-  id        String            @id @default(cuid())
+  id        String           @id @default(cuid())
   profileId String
-  profile   Profile           @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile   Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
   actorId   String?
-  actor     User?             @relation("ModerationActor", fields: [actorId], references: [id])
+  actor     User?            @relation("ModerationActor", fields: [actorId], references: [id])
   action    ModerationAction
   reason    String?
-  createdAt DateTime          @default(now())
+  createdAt DateTime         @default(now())
 
   @@index([profileId, createdAt])
 }
@@ -184,23 +185,23 @@ model UserEntitlement {
 }
 
 model Job {
-  id            String         @id @default(cuid())
+  id            String        @id @default(cuid())
   userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title         String         @db.VarChar(140)
-  description   String         @db.Text
-  category      String         @db.VarChar(64)
-  cityId        String?        @db.VarChar(64)
-  payType       String?        @db.VarChar(32)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String        @db.VarChar(140)
+  description   String        @db.Text
+  category      String        @db.VarChar(64)
+  cityId        String?       @db.VarChar(64)
+  payType       String?       @db.VarChar(32)
   payAmount     Int?
-  currency      String?        @db.VarChar(3)
-  remote        Boolean        @default(false)
-  status        JobStatus      @default(DRAFT)
-  moderation    JobModeration  @default(PENDING)
+  currency      String?       @db.VarChar(3)
+  remote        Boolean       @default(false)
+  status        JobStatus     @default(DRAFT)
+  moderation    JobModeration @default(PENDING)
   featuredUntil DateTime?
-  views         Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  views         Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([status, moderation, featuredUntil])
   @@index([category])
@@ -317,7 +318,7 @@ model Notification {
   createdAt DateTime            @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
@@ -333,5 +334,5 @@ model EmailLog {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
+  @@index([userId])
 }
