@@ -1,4 +1,4 @@
-import { NotificationType } from "@prisma/client";
+import { NotificationChannel, NotificationType, type JobStatus } from "@prisma/client";
 
 import { notifyOnce } from "./dispatcher";
 import { getNotificationTemplate } from "./templates";
@@ -10,6 +10,7 @@ type DispatchArgs = {
   type: NotificationType;
   payload?: BasePayload;
   dedupeKey: string;
+  channels?: NotificationChannel[];
 };
 
 async function dispatchNotification({
@@ -17,6 +18,7 @@ async function dispatchNotification({
   type,
   payload,
   dedupeKey,
+  channels,
 }: DispatchArgs) {
   const template = getNotificationTemplate(type, payload);
 
@@ -27,6 +29,7 @@ async function dispatchNotification({
     body: template.body,
     payload: payload ?? undefined,
     dedupeKey,
+    channels,
   });
 }
 
@@ -127,5 +130,160 @@ export async function emitEntitlementRestored(userId: string) {
     type: NotificationType.ENTITLEMENT_RESTORED,
     payload: { entitlement: "CAN_PUBLISH_PROFILE" },
     dedupeKey: `${NotificationType.ENTITLEMENT_RESTORED}:${userId}`,
+  });
+}
+
+type JobNotificationPayload = {
+  context: "job";
+  jobId: string;
+  jobTitle: string;
+  jobStatus: JobStatus;
+  action: string;
+  note?: string;
+  featuredUntil?: string | null;
+};
+
+function createJobPayload(
+  base: Omit<JobNotificationPayload, "action">,
+  action: JobNotificationPayload["action"],
+  extra?: Partial<JobNotificationPayload>,
+): JobNotificationPayload {
+  return {
+    ...base,
+    action,
+    ...extra,
+  };
+}
+
+type JobNotificationBase = {
+  userId: string;
+  jobId: string;
+  jobTitle: string;
+  jobStatus: JobStatus;
+};
+
+export async function emitJobApproved({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+}: JobNotificationBase) {
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    "APPROVED",
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_APPROVED,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_APPROVED}:job:${jobId}:${jobStatus}`,
+  });
+}
+
+export async function emitJobRejected({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+  note,
+}: JobNotificationBase & { note?: string | null }) {
+  const cleanedNote = note?.trim() ?? "";
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    "REJECTED",
+    cleanedNote ? { note: cleanedNote } : undefined,
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_REJECTED,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_REJECTED}:job:${jobId}:${cleanedNote}`,
+  });
+}
+
+export async function emitJobPending({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+  note,
+  action,
+}: JobNotificationBase & { action: "PENDING" | "SUSPENDED"; note?: string | null }) {
+  const cleanedNote = note?.trim() ?? "";
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    action,
+    cleanedNote ? { note: cleanedNote } : undefined,
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_PENDING,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_PENDING}:job:${jobId}:${action}:${cleanedNote}`,
+  });
+}
+
+export async function emitJobFeatured({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+  featuredUntil,
+}: JobNotificationBase & { featuredUntil: Date | null }) {
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    "FEATURED",
+    { featuredUntil: featuredUntil ? featuredUntil.toISOString() : null },
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_PENDING,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_PENDING}:job:${jobId}:FEATURED:${payload.featuredUntil ?? "none"}`,
+    channels: [NotificationChannel.IN_APP],
+  });
+}
+
+export async function emitJobUnfeatured({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+}: JobNotificationBase) {
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    "UNFEATURED",
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_PENDING,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_PENDING}:job:${jobId}:UNFEATURED`,
+    channels: [NotificationChannel.IN_APP],
+  });
+}
+
+export async function emitJobClosed({
+  userId,
+  jobId,
+  jobTitle,
+  jobStatus,
+}: JobNotificationBase) {
+  const payload = createJobPayload(
+    { context: "job", jobId, jobTitle, jobStatus },
+    "CLOSED",
+  );
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.MODERATION_PENDING,
+    payload,
+    dedupeKey: `${NotificationType.MODERATION_PENDING}:job:${jobId}:CLOSED`,
+    channels: [NotificationChannel.IN_APP],
   });
 }

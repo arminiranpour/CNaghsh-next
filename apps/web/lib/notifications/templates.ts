@@ -23,12 +23,89 @@ function getReasonText(reasonKey?: unknown): string {
   return systemAutoUnpublishReasons[reasonKey] ?? `دلیل: ${reasonKey}`;
 }
 
+function isJobPayload(payload: TemplatePayload): payload is {
+  context: "job";
+  jobId: string;
+  jobTitle?: string;
+  jobStatus?: string;
+  action?: string;
+  note?: string;
+  featuredUntil?: string | null;
+} {
+  return Boolean(
+    payload &&
+      typeof payload === "object" &&
+      "context" in payload &&
+      (payload as Record<string, unknown>).context === "job" &&
+      typeof (payload as Record<string, unknown>).jobId === "string",
+  );
+}
+
+function getJobTitle(payload: { jobTitle?: string }): string {
+  if (payload.jobTitle && typeof payload.jobTitle === "string") {
+    return payload.jobTitle.trim() || "آگهی بدون عنوان";
+  }
+  return "آگهی بدون عنوان";
+}
+
+function getJobStatus(payload: { jobStatus?: string }): string {
+  if (payload.jobStatus && typeof payload.jobStatus === "string") {
+    return payload.jobStatus;
+  }
+  return "DRAFT";
+}
+
+function getJobLink(jobId: string, jobStatus: string): string {
+  if (jobStatus === "PUBLISHED") {
+    return `/jobs/${jobId}`;
+  }
+  return `/dashboard/jobs/${jobId}/edit`;
+}
+
+function formatPersianDate(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+}
+
 const templates: Record<NotificationType, (payload: TemplatePayload) => TemplateResult> = {
-  [NotificationType.MODERATION_APPROVED]: () => ({
-    title: "پروفایل شما تایید شد و منتشر شد.",
-    body: "پروفایل شما تایید شد و اکنون برای عموم نمایش داده می‌شود. در صورت نیاز می‌توانید از طریق داشبورد آن را به‌روز کنید.",
-  }),
+  [NotificationType.MODERATION_APPROVED]: (payload) => {
+    if (isJobPayload(payload)) {
+      const jobTitle = getJobTitle(payload);
+      const jobStatus = getJobStatus(payload);
+      const link = getJobLink(payload.jobId, jobStatus);
+
+      return {
+        title: "آگهی شما تایید شد",
+        body: `آگهی «${jobTitle}» تایید شد. برای مدیریت آگهی به این لینک مراجعه کنید: ${link}`,
+      };
+    }
+
+    return {
+      title: "پروفایل شما تایید شد و منتشر شد.",
+      body: "پروفایل شما تایید شد و اکنون برای عموم نمایش داده می‌شود. در صورت نیاز می‌توانید از طریق داشبورد آن را به‌روز کنید.",
+    };
+  },
   [NotificationType.MODERATION_REJECTED]: (payload) => {
+    if (isJobPayload(payload)) {
+      const jobTitle = getJobTitle(payload);
+      const link = getJobLink(payload.jobId, getJobStatus(payload));
+      const note =
+        payload.note && typeof payload.note === "string" && payload.note.trim().length > 0
+          ? payload.note.trim()
+          : "دلیل مشخص نشده است.";
+
+      return {
+        title: "آگهی شما رد شد",
+        body: `آگهی «${jobTitle}» رد شد. دلیل: ${note} — ویرایش آگهی: ${link}`,
+      };
+    }
+
     const reason =
       (payload && typeof payload === "object" && "reason" in payload
         ? payload.reason
@@ -43,10 +120,60 @@ const templates: Record<NotificationType, (payload: TemplatePayload) => Template
       body: `پروفایل شما رد شد: ${reasonText}`,
     };
   },
-  [NotificationType.MODERATION_PENDING]: () => ({
-    title: "پروفایل شما برای بازبینی قرار گرفت.",
-    body: "پروفایل شما برای بازبینی قرار گرفت و پس از بررسی نتیجه اطلاع‌رسانی می‌شود.",
-  }),
+  [NotificationType.MODERATION_PENDING]: (payload) => {
+    if (isJobPayload(payload)) {
+      const jobTitle = getJobTitle(payload);
+      const jobStatus = getJobStatus(payload);
+      const link = getJobLink(payload.jobId, jobStatus);
+      const action = typeof payload.action === "string" ? payload.action : "PENDING";
+      const note =
+        payload.note && typeof payload.note === "string" && payload.note.trim().length > 0
+          ? ` دلیل: ${payload.note.trim()}`
+          : "";
+
+      if (action === "SUSPENDED") {
+        return {
+          title: "آگهی شما معلق شد",
+          body: `آگهی «${jobTitle}» به دلیل نقض قوانین معلق شد.${note} برای بررسی بیشتر به داشبورد مراجعه کنید: ${link}`,
+        };
+      }
+
+      if (action === "FEATURED") {
+        const formattedDate = formatPersianDate(payload.featuredUntil ?? null);
+        const untilPart = formattedDate
+          ? ` تا تاریخ ${formattedDate}`
+          : "";
+        return {
+          title: "آگهی شما ویژه شد",
+          body: `آگهی «${jobTitle}»${untilPart} در بخش ویژه نمایش داده می‌شود. مدیریت آگهی: ${link}`,
+        };
+      }
+
+      if (action === "UNFEATURED") {
+        return {
+          title: "آگهی شما از ویژه خارج شد",
+          body: `آگهی «${jobTitle}» دیگر به‌صورت ویژه نمایش داده نمی‌شود. برای مدیریت آگهی به این لینک بروید: ${link}`,
+        };
+      }
+
+      if (action === "CLOSED") {
+        return {
+          title: "آگهی شما بسته شد",
+          body: `آگهی «${jobTitle}» توسط تیم پشتیبانی بسته شد. برای مشاهده جزئیات به داشبورد مراجعه کنید: ${link}`,
+        };
+      }
+
+      return {
+        title: "آگهی شما در صف بررسی است",
+        body: `آگهی «${jobTitle}» برای بررسی دوباره ثبت شد.${note} برای پیگیری به داشبورد بروید: ${link}`,
+      };
+    }
+
+    return {
+      title: "پروفایل شما برای بازبینی قرار گرفت.",
+      body: "پروفایل شما برای بازبینی قرار گرفت و پس از بررسی نتیجه اطلاع‌رسانی می‌شود.",
+    };
+  },
   [NotificationType.MODERATION_HIDDEN]: () => ({
     title: "نمایش پروفایل شما توسط مدیر مخفی شد.",
     body: "نمایش پروفایل شما توسط مدیر مخفی شد. برای جزئیات بیشتر می‌توانید با پشتیبانی تماس بگیرید.",

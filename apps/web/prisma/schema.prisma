@@ -24,6 +24,7 @@ model User {
   notifications     Notification[]
   emailLogs         EmailLog[]
   Job               Job[]
+  jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
 }
 
 model Profile {
@@ -203,10 +204,26 @@ model Job {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  moderationEvents JobModerationEvent[]
+
   @@index([status, moderation, featuredUntil])
   @@index([category])
   @@index([cityId])
   @@index([title])
+}
+
+model JobModerationEvent {
+  id        String          @id @default(cuid())
+  jobId     String
+  job       Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  adminId   String
+  admin     User            @relation("JobModerationAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  action    JobAdminAction
+  note      String?
+  createdAt DateTime        @default(now())
+
+  @@index([jobId, createdAt])
+  @@index([adminId])
 }
 
 enum ProductType {
@@ -304,6 +321,15 @@ enum JobModeration {
   APPROVED
   REJECTED
   SUSPENDED
+}
+
+enum JobAdminAction {
+  APPROVE
+  REJECT
+  SUSPEND
+  FEATURE
+  UNFEATURE
+  CLOSE
 }
 
 model Notification {
