@@ -25,6 +25,22 @@ function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function coerceDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return null;
+}
+
 function sanitizeDescription(value: string): string {
   return collapseWhitespace(stripHtml(value));
 }
@@ -71,12 +87,14 @@ export function buildJobPostingJsonLd(
   const employmentType = mapEmploymentType(job.payType);
   const organizationName = getJobOrganizationName(job);
 
+  const createdAt = coerceDate(job.createdAt);
+
   const base: Record<string, unknown> = {
     ...(options.includeContext === false ? {} : { "@context": "https://schema.org" }),
     "@type": "JobPosting",
     title: job.title,
     description,
-    datePosted: job.createdAt.toISOString(),
+    ...(createdAt ? { datePosted: createdAt.toISOString() } : {}),
     hiringOrganization: {
       "@type": "Organization",
       name: organizationName,
