@@ -16,11 +16,9 @@ type InputRecord = Record<string, string | string[] | undefined>;
 type Input = URLSearchParams | InputRecord;
 
 const ALLOWED_GENDERS = new Set<NormalizedSearchParams["gender"]>(["male", "female", "other"]);
-const ALLOWED_PAY_TYPES = new Set<NonNullable<NormalizedSearchParams["payType"]>>([
-  "paid",
-  "unpaid",
-  "negotiable",
-]);
+const PAY_TYPES = ["paid", "unpaid", "negotiable"] as const;
+type PayType = (typeof PAY_TYPES)[number];
+const ALLOWED_PAY_TYPES = new Set<string>(PAY_TYPES);
 
 const BOOLEAN_TRUE_FALSE = new Set(["true", "false"]);
 
@@ -52,8 +50,8 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
   assignString(normalized, "category", values.get("category"));
 
   const payType = getFirst(values.get("payType"));
-  if (payType && ALLOWED_PAY_TYPES.has(payType as NormalizedSearchParams["payType"])) {
-    normalized.payType = payType as NormalizedSearchParams["payType"];
+  if (isAllowedPayType(payType)) {
+    normalized.payType = payType;
   }
 
   assignBooleanString(normalized, "featured", values.get("featured"));
@@ -144,6 +142,10 @@ function buildStringArray(values: string[] | undefined): string[] {
   }
 
   return parts;
+}
+
+function isAllowedPayType(value: string | undefined): value is PayType {
+  return value !== undefined && ALLOWED_PAY_TYPES.has(value);
 }
 
 function toPageNumber(values: string[] | undefined): number | undefined {
