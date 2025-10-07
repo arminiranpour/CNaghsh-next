@@ -30,9 +30,11 @@ PUBLIC_BASE_URL="http://localhost:3000"
 After setting the environment variable you can run the Prisma commands:
 
 ```bash
-pnpm --filter @app/web prisma migrate dev -n init
-pnpm --filter @app/web prisma generate
+pnpm prisma migrate dev -n init
+pnpm prisma generate
 ```
+
+The top-level `pnpm prisma` script proxies commands to the `@app/web` package so the CLI picks up `apps/web/prisma/.env` without manually exporting `DATABASE_URL`.
 
 ## Admin Billing CRUD
 
