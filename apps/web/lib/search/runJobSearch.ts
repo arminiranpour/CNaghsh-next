@@ -66,7 +66,7 @@ export async function runJobSearch(
 
   if (hasQuery && params.query) {
     const normalizedQuery = params.query.trim();
-    const tsQuery = buildTsQuery(normalizedQuery);
+    const createTsQuery = () => buildTsQuery(normalizedQuery);
 
     const ftsRows = await prisma.$queryRaw<JobRow[]>(Prisma.sql`
       SELECT
@@ -76,12 +76,12 @@ export async function runJobSearch(
         j."category",
         j."featuredUntil",
         j."updatedAt",
-        ts_rank_cd(j.search_vector, ${tsQuery}) AS rank
+        ts_rank_cd(j.search_vector, ${createTsQuery()}) AS rank
       FROM "Job" j
       WHERE ${JOB_BASE_WHERE}
       ${cityClause}
       ${categoryClause}
-        AND j.search_vector @@ ${tsQuery}
+        AND j.search_vector @@ ${createTsQuery()}
       ${resolveJobSort(params.sort, true)}
       LIMIT ${pageSize} OFFSET ${offset}
     `);

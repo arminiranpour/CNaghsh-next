@@ -34,8 +34,10 @@ export function resolvePagination({
   pageSize,
   defaultPageSize = DEFAULT_PAGE_SIZE,
 }: PaginationInput) {
-  const size = Math.max(1, pageSize ?? defaultPageSize);
-  const currentPage = Math.max(1, page ?? 1);
+  const normalizedDefault = Math.max(1, defaultPageSize);
+  const sanitizedPageSize =
+    pageSize == null || pageSize < 1 ? normalizedDefault : pageSize;
+  const size = Math.max(1, sanitizedPageSize);  const currentPage = Math.max(1, page ?? 1);
   const offset = (currentPage - 1) * size;
 
   return { page: currentPage, pageSize: size, offset };

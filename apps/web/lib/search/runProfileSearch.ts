@@ -42,9 +42,7 @@ const PROFILE_BASE_WHERE = Prisma.sql`
   AND p."moderationStatus" = 'APPROVED'
 `;
 
-const PROFILE_NAME_EXPRESSION = Prisma.sql`
-  coalesce(p."stageName",'') || ' ' || coalesce(p."firstName",'') || ' ' || coalesce(p."lastName",'')
-`;
+const PROFILE_NAME_EXPRESSION = Prisma.sql`coalesce(p."stageName",'') || ' ' || coalesce(p."firstName",'') || ' ' || coalesce(p."lastName",'')`;
 
 export async function runProfileSearch(
   params: ProfileSearchParams,
@@ -73,7 +71,7 @@ export async function runProfileSearch(
 
   if (hasQuery && params.query) {
     const normalizedQuery = params.query.trim();
-    const tsQuery = buildTsQuery(normalizedQuery);
+    const createTsQuery = () => buildTsQuery(normalizedQuery);
 
     const ftsRows = await prisma.$queryRaw<ProfileRow[]>(Prisma.sql`
       SELECT
@@ -82,12 +80,12 @@ export async function runProfileSearch(
         p."firstName",
         p."lastName",
         p."cityId",
-        ts_rank_cd(p.search_vector, ${tsQuery}) AS rank
+        ts_rank_cd(p.search_vector, ${createTsQuery()}) AS rank
       FROM "Profile" p
       WHERE ${PROFILE_BASE_WHERE}
       ${cityClause}
       ${skillsClause}
-        AND p.search_vector @@ ${tsQuery}
+        AND p.search_vector @@ ${createTsQuery()}
       ${resolveProfileSort(params.sort, true)}
       LIMIT ${pageSize} OFFSET ${offset}
     `);
