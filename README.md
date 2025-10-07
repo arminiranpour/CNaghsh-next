@@ -7,11 +7,13 @@ This application uses Prisma with a PostgreSQL database connection.
 The repository now includes `apps/web/.env` and `apps/web/prisma/.env` with a default development connection string. Update the
 value if your local database credentials differ.
 
+> **Why the `schema=public` suffix?** Prisma issues migrations inside the specified schema. Explicitly pinning the schema prevents the CLI from falling back to a restricted default (which previously triggered `P1010` permission errors for the `postgres` user during `pnpm prisma migrate deploy`).
+
 If you prefer to manage environment variables manually, copy `apps/web/.env.example` to `apps/web/.env` (or export the variable
 in your shell) and adjust the connection string if needed:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
 ```
 ## Environment variables
 
@@ -26,7 +28,7 @@ The web application reads configuration through a typed loader in `apps/web/lib/
 Example `apps/web/.env.local`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
 PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```

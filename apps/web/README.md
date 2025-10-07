@@ -24,10 +24,12 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 Example:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
 PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
+
+> **Tip:** Keeping `schema=public` in the connection string ensures Prisma always applies migrations inside the expected schema. Without it, restricted Postgres roles can surface `P1010` access errors during `prisma migrate deploy`.
 
 Dynamic API handlers (checkout, webhooks, billing) respond with `Cache-Control: no-store`. The pricing API at `/api/pricing` advertises `Cache-Control: public, s-maxage=60, stale-while-revalidate=300` for shared caching.
 
