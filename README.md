@@ -33,7 +33,10 @@ PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
 
-After setting the environment variable you can run the Prisma commands:
+After setting the environment variable you can run the Prisma commands. The root `pnpm prisma` helper
+preloads `apps/web/.env` via [`dotenv-cli`](https://github.com/entropitor/dotenv-cli) so every Prisma
+invocation (including `pnpm prisma migrate deploy`) receives the same connection string that the
+Next.js app uses:
 
 ```bash
 pnpm prisma migrate dev -n init
