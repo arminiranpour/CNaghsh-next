@@ -35,8 +35,10 @@ export function resolveNextAuthSecret() {
     return secretFromEnv;
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    return DEFAULT_DEV_SECRET;
+ const isProduction = process.env.NODE_ENV === "production";
+ const isNextBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+  if (!isProduction || isNextBuildPhase) {    return DEFAULT_DEV_SECRET;
   }
 
   throw new Error(
