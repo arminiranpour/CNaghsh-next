@@ -19,7 +19,7 @@
     "db:seed": "prisma db seed",
     "user:create": "tsx scripts/new-user.ts",
     "enforce:profiles": "tsx scripts/enforce-publishability.ts",
-    "seo:baseline": "node apps/web/scripts/lh-baseline.mjs"
+    "seo:baseline": "node scripts/lh-baseline.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
