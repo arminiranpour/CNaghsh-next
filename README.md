@@ -34,7 +34,7 @@ pnpm prisma migrate dev -n init
 pnpm prisma generate
 ```
 
-The top-level `pnpm prisma` script proxies commands to the `@app/web` package so the CLI picks up `apps/web/prisma/.env` without manually exporting `DATABASE_URL`.
+The top-level `pnpm prisma` script proxies commands to the `@app/web` package so Prisma automatically reads `apps/web/.env` without manually exporting `DATABASE_URL`.
 
 ## Admin Billing CRUD
 
