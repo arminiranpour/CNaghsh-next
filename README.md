@@ -42,7 +42,7 @@ If you prefer to manage environment variables manually, copy `apps/web/.env.exam
 needed:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
 ```
 ## Environment variables
 
@@ -57,7 +57,7 @@ The web application reads configuration through a typed loader in `apps/web/lib/
 Example `apps/web/.env.local`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
 PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
