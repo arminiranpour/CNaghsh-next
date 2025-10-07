@@ -1,6 +1,34 @@
 # Web App Setup
 
-This application uses Prisma with a PostgreSQL database connection.
+This monorepo hosts the Next.js web application (`apps/web`) alongside infrastructure tooling. The
+jobs moderation and notification workflows added in Sprint 4 depend on a local PostgreSQL database,
+Prisma migrations, and Vitest for automated coverage.
+
+## Quick start
+
+```bash
+pnpm install
+
+# Copy environment variables and adjust DATABASE_URL if needed
+cp apps/web/.env.example apps/web/.env.local
+
+# Apply Prisma migrations & seed baseline data
+pnpm --filter @app/web prisma migrate dev
+pnpm --filter @app/web db:seed
+
+# Start the development server
+pnpm --filter @app/web dev
+
+# Run quality checks before opening a PR
+pnpm --filter @app/web lint
+pnpm --filter @app/web typecheck
+pnpm --filter @app/web test --coverage
+```
+
+`pnpm --filter @app/web test --coverage` enforces the minimum coverage thresholds defined in
+`apps/web/vitest.config.ts`. The suite includes unit, integration, and rate-limit regression tests for
+the admin server actions, public jobs queries, notifications dispatcher, cache invalidation, and the
+view debounce cookie logic.
 
 ## Database configuration
 
@@ -9,8 +37,9 @@ value if your local database credentials differ.
 
 > **Why the `schema=public` suffix?** Prisma issues migrations inside the specified schema. Explicitly pinning the schema prevents the CLI from falling back to a restricted default (which previously triggered `P1010` permission errors for the `postgres` user during `pnpm prisma migrate deploy`).
 
-If you prefer to manage environment variables manually, copy `apps/web/.env.example` to `apps/web/.env` (or export the variable
-in your shell) and adjust the connection string if needed:
+If you prefer to manage environment variables manually, copy `apps/web/.env.example` to
+`apps/web/.env.local` (or export the variable in your shell) and adjust the connection string if
+needed:
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting?schema=public"
@@ -43,7 +72,45 @@ pnpm prisma migrate dev -n init
 pnpm prisma generate
 ```
 
-Prisma automatically loads `apps/web/.env`, so you only need to define the connection string in that file (or export `DATABASE_URL` in your shell). The top-level `pnpm prisma` script proxies commands to the `@app/web` package, so the CLI picks up the same configuration that Next.js uses.
+Prisma automatically loads `apps/web/.env`, so you only need to define the connection string in that
+file (or export `DATABASE_URL` in your shell). The top-level `pnpm prisma` script proxies commands to
+the `@app/web` package, so the CLI picks up the same configuration that Next.js uses.
+
+> **macOS Postgres tip:** if you are running Postgres via Homebrew the default socket lives at
+> `/tmp/.s.PGSQL.5432`. Ensure your `DATABASE_URL` includes `host=127.0.0.1` to avoid socket
+> permission issues (`postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public`).
+
+### Prisma configuration layout
+
+Previous phases stored Prisma config in `package.json#prisma`. Prisma now recommends co-locating the
+CLI options in `prisma/schema.prisma` and using package scripts instead. The existing `package.json`
+entry remains for backwards compatibility but will be removed in a future cleanup. Prefer
+`pnpm --filter @app/web prisma <command>` to keep tooling consistent.
+
+## Running migrations & rollbacks
+
+To preview or roll back migrations locally:
+
+```bash
+# Preview SQL
+pnpm --filter @app/web prisma migrate diff --from-empty --to-schema-datamodel
+
+# Revert the last migration (development only)
+pnpm --filter @app/web prisma migrate reset
+```
+
+Always run the automated test suite after a reset to ensure the Prisma client stays in sync with the
+schema.
+
+## Documentation hub
+
+The Sprint 4 jobs work ships with dedicated documentation in `apps/web/docs`:
+
+- `jobs-handbook.md` – admin moderation playbook, notification matrix, caching taxonomy, security
+  notes, and release highlights.
+- `README.md` (within `apps/web/`) – environment variables, seeding, and manual QA checklists.
+
+Refer to the handbook for post-merge smoke-test steps and the staging verification checklist.
 
 ## Admin Billing CRUD
 

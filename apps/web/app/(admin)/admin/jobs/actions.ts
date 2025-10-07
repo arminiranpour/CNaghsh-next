@@ -39,6 +39,10 @@ type SimpleActionResult = { ok: true } | { ok: false; error: string };
 
 type AdminUser = { id: string; role: "ADMIN" };
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_CALLS = 5;
+const rateLimitBuckets = new Map<string, number[]>();
+
 async function ensureAdmin(): Promise<AdminUser> {
   const session = await getServerAuthSession();
   const user = session?.user;
@@ -90,6 +94,20 @@ function translateError(error: unknown): string {
   }
 
   return "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
+}
+
+function enforceRateLimit(adminId: string, action: string) {
+  const now = Date.now();
+  const key = `${adminId}:${action}`;
+  const history = rateLimitBuckets.get(key) ?? [];
+  const recent = history.filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS);
+
+  if (recent.length >= RATE_LIMIT_MAX_CALLS) {
+    throw new Error("تعداد درخواست‌ها زیاد است. لطفاً کمی صبر کنید و دوباره تلاش کنید.");
+  }
+
+  recent.push(now);
+  rateLimitBuckets.set(key, recent);
 }
 
 async function revalidateAdminJobPages(jobId: string) {
@@ -150,6 +168,8 @@ export async function featureJobAction(
     const id = idSchema.parse(jobId);
     const parsed = featureCommandSchema.parse(command);
     const featureCommand = parseFeatureCommand(parsed);
+
+    enforceRateLimit(admin.id, "feature");
 
     await featureJobAdmin(id, admin.id, featureCommand);
     await revalidateAdminJobPages(id);

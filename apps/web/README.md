@@ -1,4 +1,31 @@
-# Billing Sandbox
+# Web App — Billing & Jobs Sandbox
+
+This package powers both the billing sandbox and the Jobs public/SEO plus admin moderation tooling
+delivered in Sprint 4. Use the steps below to bootstrap a local environment, run automated QA, and
+execute the manual verification checklists referenced in `docs/jobs-handbook.md`.
+
+## Quick start
+
+```bash
+pnpm install
+
+# Copy defaults and adjust DATABASE_URL if required
+cp apps/web/.env.example apps/web/.env.local
+
+pnpm --filter @app/web prisma migrate dev
+pnpm --filter @app/web db:seed
+
+# Launch Next.js (http://localhost:3000)
+pnpm --filter @app/web dev
+
+# QA gates
+pnpm --filter @app/web lint
+pnpm --filter @app/web typecheck
+pnpm --filter @app/web test --coverage
+```
+
+Vitest coverage thresholds ensure the moderation state machine, rate limiting, public listing queries,
+notification dispatcher, cache invalidation, and view debounce helpers stay verified.
 
 ## Environment variables
 
@@ -10,7 +37,7 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 | `PUBLIC_BASE_URL` | ✅ | Absolute origin without a trailing slash (e.g. `http://localhost:3000`). |
 | `WEBHOOK_SHARED_SECRET` | ❌ | Optional sandbox secret; omit locally to bypass signature checks. |
 
-## Sprint 3 — Jobs
+## Sprint 4 — Jobs public & admin flows
 
 - **New Prisma additions**
   - Model: `Job`
@@ -20,6 +47,9 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
   - Apply migration: `pnpm --filter @app/web prisma migrate dev`
   - Regenerate client: `pnpm --filter @app/web prisma generate`
 - No new environment variables are required for this phase.
+
+Refer to `docs/jobs-handbook.md` for the moderation UX, notification triggers, cache tags, and
+security rules that back the new jobs experiences.
 
 Example:
 
