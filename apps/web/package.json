@@ -18,7 +18,8 @@
     "prisma:migrate": "prisma migrate dev --name sprint1_billing_entitlements",
     "db:seed": "prisma db seed",
     "user:create": "tsx scripts/new-user.ts",
-    "enforce:profiles": "tsx scripts/enforce-publishability.ts"
+    "enforce:profiles": "tsx scripts/enforce-publishability.ts",
+    "seo:baseline": "node apps/web/scripts/lh-baseline.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
@@ -58,7 +59,10 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.4"
+    "vitest": "^2.1.4",
+    "@lhci/cli": "^0.13.0",
+    "lighthouse": "^12.2.0",
+    "chrome-launcher": "^0.15.2"
   },
   "engines": {
     "node": ">=18.17.0"
