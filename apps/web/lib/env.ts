@@ -68,7 +68,8 @@ const envSchema = z
       data.NODE_ENV === "production" &&
       base.protocol !== "https:" &&
       !isLocalHostname
-    ) {      ctx.addIssue({
+    ) {
+      ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["PUBLIC_BASE_URL"],
         message: "PUBLIC_BASE_URL must use https in production",
@@ -82,11 +83,12 @@ type ParseState =
   | { ok: true; data: AppEnv }
   | { ok: false; error: Error };
 
-  const fallbackBaseUrl =
+const fallbackBaseUrl =
   process.env.PUBLIC_BASE_URL ??
-  (process.env.NODE_ENV !== "production"
-    ? `http://localhost:${process.env.PORT ?? "3000"}`
-    : undefined);
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : `http://localhost:${process.env.PORT ?? "3000"}`);
 
 const rawEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
