@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "6.16.3",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.1.0",
@@ -53,7 +53,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "15.0.0-canary.87",
     "postcss": "^8.4.38",
-    "prisma": "^5.22.0",
+    "prisma": "6.16.3",
     "tailwindcss": "^3.4.4",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
