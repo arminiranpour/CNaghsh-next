@@ -62,19 +62,18 @@ PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
 
-After setting the environment variable you can run the Prisma commands. The root `pnpm prisma` helper
-preloads `apps/web/.env` via [`dotenv-cli`](https://github.com/entropitor/dotenv-cli) so every Prisma
-invocation (including `pnpm prisma migrate deploy`) receives the same connection string that the
-Next.js app uses:
+After setting the environment variable you can run the Prisma commands. The workspace `pnpm prisma`
+helper now shells through `apps/web/scripts/prisma-cli.ts`, which loads `.env`, `.env.local`, and
+`prisma/.env` (in that order) so local overrides flow into every Prisma invocation—including
+`pnpm prisma migrate deploy`—using the same connection string that the Next.js app consumes:
 
 ```bash
 pnpm prisma migrate dev -n init
 pnpm prisma generate
 ```
 
-Prisma automatically loads `apps/web/.env`, so you only need to define the connection string in that
-file (or export `DATABASE_URL` in your shell). The top-level `pnpm prisma` script proxies commands to
-the `@app/web` package, so the CLI picks up the same configuration that Next.js uses.
+The helper proxies commands to the `@app/web` package, so Prisma invokes the local
+`scripts/prisma-cli.ts` wrapper and inherits the same environment resolution as the Next.js app.
 
 > **macOS Postgres tip:** if you are running Postgres via Homebrew the default socket lives at
 > `/tmp/.s.PGSQL.5432`. Ensure your `DATABASE_URL` includes `host=127.0.0.1` to avoid socket

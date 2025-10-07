@@ -37,6 +37,10 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 | `PUBLIC_BASE_URL` | ✅ | Absolute origin without a trailing slash (e.g. `http://localhost:3000`). |
 | `WEBHOOK_SHARED_SECRET` | ❌ | Optional sandbox secret; omit locally to bypass signature checks. |
 
+> Prisma CLI commands launched through `pnpm --filter @app/web prisma …` load environment variables
+> using `scripts/prisma-cli.ts`. The wrapper reads `.env`, `.env.local`, and `prisma/.env` (in that
+> order) so local overrides apply to both Next.js and Prisma without duplicating values.
+
 ## Sprint 4 — Jobs public & admin flows
 
 - **New Prisma additions**
