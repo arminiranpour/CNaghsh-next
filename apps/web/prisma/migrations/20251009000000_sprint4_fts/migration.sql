@@ -24,8 +24,10 @@ RETURNS tsvector LANGUAGE sql STABLE PARALLEL SAFE AS $$
         coalesce(p."firstName",'') || ' ' ||
         coalesce(p."lastName",'') || ' ' ||
         coalesce(p."bio",'') || ' ' ||
-        array_to_string(COALESCE(p."skills"::text[], ARRAY[]::text[]), ' ')
-      )
+        coalesce((
+          SELECT string_agg(skill_value, ' ')
+          FROM jsonb_array_elements_text(COALESCE(p."skills", '[]'::jsonb)) AS skill(skill_value)
+        ), '')      )
     )
 $$;
 
