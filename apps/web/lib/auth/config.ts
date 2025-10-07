@@ -28,7 +28,7 @@ type SessionContext = {
 
 const DEFAULT_DEV_SECRET = "development-next-auth-secret";
 
-function resolveNextAuthSecret() {
+export function resolveNextAuthSecret() {
   const secretFromEnv = process.env.NEXTAUTH_SECRET;
 
   if (secretFromEnv && secretFromEnv.trim().length > 0) {
