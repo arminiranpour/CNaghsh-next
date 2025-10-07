@@ -4,7 +4,7 @@ This application uses Prisma with a PostgreSQL database connection.
 
 ## Database configuration
 
-The repository now includes `apps/web/.env` and `apps/web/prisma/.env` with a default development connection string. Update the
+The repository now includes `apps/web/.env` with a default development connection string. Update the
 value if your local database credentials differ.
 
 > **Why the `schema=public` suffix?** Prisma issues migrations inside the specified schema. Explicitly pinning the schema prevents the CLI from falling back to a restricted default (which previously triggered `P1010` permission errors for the `postgres` user during `pnpm prisma migrate deploy`).
@@ -33,14 +33,17 @@ PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
 
-After setting the environment variable you can run the Prisma commands:
+After setting the environment variable you can run the Prisma commands. The root `pnpm prisma` helper
+preloads `apps/web/.env` via [`dotenv-cli`](https://github.com/entropitor/dotenv-cli) so every Prisma
+invocation (including `pnpm prisma migrate deploy`) receives the same connection string that the
+Next.js app uses:
 
 ```bash
 pnpm prisma migrate dev -n init
 pnpm prisma generate
 ```
 
-When running Prisma commands, copy `apps/web/prisma/.env.example` to `apps/web/prisma/.env` (or set `DATABASE_URL` in your environment) so the CLI uses the correct credentials for your database. The top-level `pnpm prisma` script proxies commands to the `@app/web` package, so Prisma automatically loads the `apps/web/prisma/.env` file you create.
+Prisma automatically loads `apps/web/.env`, so you only need to define the connection string in that file (or export `DATABASE_URL` in your shell). The top-level `pnpm prisma` script proxies commands to the `@app/web` package, so the CLI picks up the same configuration that Next.js uses.
 
 ## Admin Billing CRUD
 
