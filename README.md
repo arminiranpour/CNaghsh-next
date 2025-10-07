@@ -4,7 +4,7 @@ This application uses Prisma with a PostgreSQL database connection.
 
 ## Database configuration
 
-Create a `.env` file in `apps/web` (or export the variable in your shell) with the following content, adjusting the connection string if needed:
+Copy `apps/web/.env.example` to `apps/web/.env` (or export the variable in your shell) and adjust the connection string if needed:
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
@@ -34,7 +34,7 @@ pnpm prisma migrate dev -n init
 pnpm prisma generate
 ```
 
-The top-level `pnpm prisma` script proxies commands to the `@app/web` package so the CLI picks up `apps/web/prisma/.env` without manually exporting `DATABASE_URL`.
+When running Prisma commands, copy `apps/web/prisma/.env.example` to `apps/web/prisma/.env` (or set `DATABASE_URL` in your environment) so the CLI uses the correct credentials for your database. The top-level `pnpm prisma` script proxies commands to the `@app/web` package, so Prisma automatically loads the `apps/web/prisma/.env` file you create.
 
 ## Admin Billing CRUD
 
