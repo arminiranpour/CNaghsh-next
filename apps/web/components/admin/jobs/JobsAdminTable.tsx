@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useTransition } from "react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -125,7 +126,7 @@ export function JobsAdminTable({ jobs }: JobsAdminTableProps) {
                   <div className="flex flex-col">
                     <span>{row.ownerName}</span>
                     <Link
-                      href={`/admin/users/${row.owner.id}`}
+                      href={`/admin/users/${row.owner.id}` as Route}
                       className="text-xs text-primary hover:underline"
                     >
                       شناسه: {row.owner.id}
