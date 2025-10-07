@@ -82,9 +82,15 @@ type ParseState =
   | { ok: true; data: AppEnv }
   | { ok: false; error: Error };
 
+  const fallbackBaseUrl =
+  process.env.PUBLIC_BASE_URL ??
+  (process.env.NODE_ENV !== "production"
+    ? `http://localhost:${process.env.PORT ?? "3000"}`
+    : undefined);
+
 const rawEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
-  PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL,
+  PUBLIC_BASE_URL: fallbackBaseUrl,
   WEBHOOK_SHARED_SECRET: process.env.WEBHOOK_SHARED_SECRET,
   NODE_ENV: (process.env.NODE_ENV as NodeEnv | undefined) ?? undefined,
 };
