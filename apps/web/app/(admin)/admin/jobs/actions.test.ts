@@ -87,6 +87,9 @@ describe("admin job server actions", () => {
     const result = await approveJobAction("invalid-id");
 
     expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error("Expected action to fail validation");
+    }
     expect(result.error).toContain("شناسه");
     expect(approveJobAdminMock).not.toHaveBeenCalled();
   });
@@ -118,6 +121,9 @@ describe("admin job server actions", () => {
 
       const limited = await featureJobAction(jobId, { type: "CLEAR" });
       expect(limited.ok).toBe(false);
+      if (limited.ok) {
+        throw new Error("Expected rate limit to block feature command");
+      }
       expect(limited.error).toContain("تعداد درخواست‌ها زیاد است");
 
       vi.advanceTimersByTime(61 * 1000);

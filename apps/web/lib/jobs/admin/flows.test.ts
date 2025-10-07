@@ -1,6 +1,16 @@
 import { JobModeration, JobStatus } from "@prisma/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+type TestJob = {
+  id: string;
+  userId: string;
+  title: string;
+  status: JobStatus;
+  moderation: JobModeration;
+  featuredUntil: Date | null;
+  createdAt: Date;
+};
+
 const mockPrisma = vi.hoisted(() => ({
   job: {
     findUnique: vi.fn(),
@@ -33,7 +43,7 @@ vi.mock("@/lib/jobs/revalidate", () => mockRevalidate);
 
 vi.mock("@/lib/notifications/events", () => mockNotifications);
 
-const defaultJob = {
+const defaultJob: TestJob = {
   id: "job_1",
   userId: "user_1",
   title: "Backend Engineer",
@@ -43,7 +53,7 @@ const defaultJob = {
   createdAt: new Date("2024-01-10T00:00:00.000Z"),
 };
 
-function setupPrisma(job = defaultJob) {
+function setupPrisma(job: TestJob = defaultJob) {
   mockPrisma.job.findUnique.mockResolvedValue(job);
   mockPrisma.job.update.mockResolvedValue(job);
   mockPrisma.jobModerationEvent.create.mockResolvedValue({
