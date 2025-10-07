@@ -8,45 +8,40 @@ datasource db {
 }
 
 model User {
-  id                String            @id @default(cuid())
-  email             String            @unique
-  name              String?
-  passwordHash      String?
-  role              Role              @default(USER)
-  createdAt         DateTime          @default(now())
-  checkoutSessions  CheckoutSession[]
-  invoices          Invoice[]
-  payments          Payment[]
-  entitlements      UserEntitlement[]
-  profile           Profile?
-  moderatedProfiles Profile[]         @relation("ProfileModerators")
-  moderationEvents  ModerationEvent[] @relation("ModerationActor")
-  notifications     Notification[]
-  emailLogs         EmailLog[]
-  Job               Job[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  createdAt           DateTime             @default(now())
+  name                String?
+  passwordHash        String?
+  role                Role                 @default(USER)
+  checkoutSessions    CheckoutSession[]
+  emailLogs           EmailLog[]
+  invoices            Invoice[]
+  Job                 Job[]
   jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
+  moderationEvents    ModerationEvent[]    @relation("ModerationActor")
+  notifications       Notification[]
+  payments            Payment[]
+  moderatedProfiles   Profile[]            @relation("ProfileModerators")
+  profile             Profile?
+  entitlements        UserEntitlement[]
 }
 
 model Profile {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
-
-  firstName String?
-  lastName  String?
-  stageName String?
-  age       Int?
-  phone     String?
-  address   String?
-  cityId    String?
-
-  avatarUrl String?
-  bio       String?
-  gallery   Json?
-
-  skills      Json?
-  socialLinks Json?
-
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  firstName        String?
+  lastName         String?
+  stageName        String?
+  age              Int?
+  phone            String?
+  address          String?
+  cityId           String?
+  avatarUrl        String?
+  bio              String?
+  gallery          Json?
+  skills           Json?
+  socialLinks      Json?
   visibility       ProfileVisibility @default(PRIVATE)
   publishedAt      DateTime?
   createdAt        DateTime          @default(now())
@@ -55,8 +50,9 @@ model Profile {
   moderationNotes  String?
   moderatedBy      String?
   moderatedAt      DateTime?
-  moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
   moderationEvents ModerationEvent[]
+  moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
 
   @@index([visibility])
   @@index([moderationStatus])
@@ -66,12 +62,12 @@ model Profile {
 model ModerationEvent {
   id        String           @id @default(cuid())
   profileId String
-  profile   Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
   actorId   String?
-  actor     User?            @relation("ModerationActor", fields: [actorId], references: [id])
   action    ModerationAction
   reason    String?
   createdAt DateTime         @default(now())
+  actor     User?            @relation("ModerationActor", fields: [actorId], references: [id])
+  profile   Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId, createdAt])
 }
@@ -186,24 +182,23 @@ model UserEntitlement {
 }
 
 model Job {
-  id            String        @id @default(cuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title         String        @db.VarChar(140)
-  description   String        @db.Text
-  category      String        @db.VarChar(64)
-  cityId        String?       @db.VarChar(64)
-  payType       String?       @db.VarChar(32)
-  payAmount     Int?
-  currency      String?       @db.VarChar(3)
-  remote        Boolean       @default(false)
-  status        JobStatus     @default(DRAFT)
-  moderation    JobModeration @default(PENDING)
-  featuredUntil DateTime?
-  views         Int           @default(0)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
+  id               String               @id @default(cuid())
+  userId           String
+  title            String               @db.VarChar(140)
+  description      String
+  category         String               @db.VarChar(64)
+  cityId           String?              @db.VarChar(64)
+  payType          String?              @db.VarChar(32)
+  payAmount        Int?
+  currency         String?              @db.VarChar(3)
+  remote           Boolean              @default(false)
+  status           JobStatus            @default(DRAFT)
+  moderation       JobModeration        @default(PENDING)
+  featuredUntil    DateTime?
+  views            Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   moderationEvents JobModerationEvent[]
 
   @@index([status, moderation, featuredUntil])
@@ -213,17 +208,47 @@ model Job {
 }
 
 model JobModerationEvent {
-  id        String          @id @default(cuid())
+  id        String         @id @default(cuid())
   jobId     String
-  job       Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
   adminId   String
-  admin     User            @relation("JobModerationAdmin", fields: [adminId], references: [id], onDelete: Restrict)
   action    JobAdminAction
   note      String?
-  createdAt DateTime        @default(now())
+  createdAt DateTime       @default(now())
+  admin     User           @relation("JobModerationAdmin", fields: [adminId], references: [id])
+  job       Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId, createdAt])
   @@index([adminId])
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  payload   Json?
+  channel   NotificationChannel @default(IN_APP)
+  readAt    DateTime?
+  createdAt DateTime            @default(now())
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String
+  to        String
+  subject   String
+  status    String
+  error     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 enum ProductType {
@@ -330,35 +355,4 @@ enum JobAdminAction {
   FEATURE
   UNFEATURE
   CLOSE
-}
-
-model Notification {
-  id        String              @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  body      String
-  payload   Json?
-  channel   NotificationChannel @default(IN_APP)
-  readAt    DateTime?
-  createdAt DateTime            @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, createdAt])
-  @@index([userId, readAt])
-}
-
-model EmailLog {
-  id        String   @id @default(cuid())
-  userId    String
-  to        String
-  subject   String
-  status    String
-  error     String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
 }
