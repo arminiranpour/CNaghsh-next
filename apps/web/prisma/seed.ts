@@ -1,10 +1,61 @@
-import { PlanCycle, PrismaClient, ProductType } from '@prisma/client';
-
+import {
+  PlanCycle,
+  Prisma,
+  PrismaClient,
+  ProductType,
+} from '@prisma/client';
 const prisma = new PrismaClient();
 
 const SUBSCRIPTION_PRODUCT_NAME = 'اشتراک';
 const SUBSCRIPTION_PLAN_NAME = 'ماهانه';
 const SUBSCRIPTION_PRICE_AMOUNT = 5_000_000;
+
+const DATABASE_RETRY_ATTEMPTS = 10;
+const DATABASE_RETRY_DELAY_MS = 500;
+
+async function waitForDatabase() {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= DATABASE_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return;
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableDatabaseError(error) || attempt === DATABASE_RETRY_ATTEMPTS) {
+        break;
+      }
+
+      const waitMs = DATABASE_RETRY_DELAY_MS * attempt;
+      console.warn(
+        `Database not ready (attempt ${attempt}/${DATABASE_RETRY_ATTEMPTS}). Retrying in ${waitMs}ms...`,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+
+  const lastErrorMessage =
+    lastError instanceof Error ? lastError.message : JSON.stringify(lastError);
+
+  throw new Error(
+    `Unable to connect to the database using DATABASE_URL. Last error: ${lastErrorMessage}. ` +
+      'Ensure the Postgres service is running (e.g., `pnpm dev:infra`) and credentials in `apps/web/.env` are correct.',
+  );
+}
+
+function isRetryableDatabaseError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return ['P1001', 'P1002', 'P1008', 'P1010'].includes(error.code);
+  }
+
+  return false;
+}
 
 const JOB_PRODUCT_NAME = 'ثبت آگهی شغلی';
 const JOB_PRICE_AMOUNT = 1_500_000;
@@ -168,6 +219,8 @@ async function ensureProductPrice(productId: string, amount: number) {
 }
 
 async function main() {
+    await waitForDatabase();
+
   const subscriptionProduct = await ensureProduct(
     ProductType.SUBSCRIPTION,
     SUBSCRIPTION_PRODUCT_NAME,
