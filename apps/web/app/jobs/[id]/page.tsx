@@ -11,6 +11,34 @@ import { buildJobDetailMetadata, buildJobPostingJsonLd, getJobOrganizationName }
 import { incrementJobViews } from "@/lib/jobs/views";
 import { buildAbsoluteUrl } from "@/lib/url";
 
+function coerceDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+
+    if (!Number.isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  return null;
+}
+
+function formatPersianDate(value: unknown): string | null {
+  const date = coerceDate(value);
+
+  if (!date) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("fa-IR", {
+    dateStyle: "medium",
+  }).format(date);
+}
+
 function formatCurrency(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat("fa-IR", {
@@ -95,9 +123,7 @@ export default async function JobDetailPage({
     cityName,
     url: buildAbsoluteUrl(`/jobs/${job.id}`),
   });
-  const postedAt = new Intl.DateTimeFormat("fa-IR", {
-    dateStyle: "medium",
-  }).format(job.createdAt);
+  const postedAt = formatPersianDate(job.createdAt) ?? "—";
 
   const profileLink = job.user.profile
     ? { pathname: "/profiles/[id]", query: { id: job.user.profile.id } }
