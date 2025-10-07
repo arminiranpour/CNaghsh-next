@@ -4,7 +4,11 @@ This application uses Prisma with a PostgreSQL database connection.
 
 ## Database configuration
 
-Copy `apps/web/.env.example` to `apps/web/.env` (or export the variable in your shell) and adjust the connection string if needed:
+The repository now includes `apps/web/.env` and `apps/web/prisma/.env` with a default development connection string. Update the
+value if your local database credentials differ.
+
+If you prefer to manage environment variables manually, copy `apps/web/.env.example` to `apps/web/.env` (or export the variable
+in your shell) and adjust the connection string if needed:
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/casting"
