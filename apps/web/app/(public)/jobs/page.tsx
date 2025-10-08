@@ -404,12 +404,16 @@ function formatFilterValue(key: string, value: string, context: FilterFormatterC
     case "category":
       return `دسته‌بندی: ${value}`;
     case "payType":
-      return `نوع پرداخت: ${PAY_TYPE_LABELS.get(value) ?? value}`;
-    case "remote":
+      if (isPayType(value)) {
+        return `نوع پرداخت: ${PAY_TYPE_LABELS.get(value) ?? value}`;
+      }
+      return `نوع پرداخت: ${value}`;    case "remote":
       return REMOTE_FILTER_LABEL;
     case "sort":
-      return `مرتب‌سازی: ${SORT_LABELS.get(value) ?? value}`;
-    default:
+      if (isSortType(value)) {
+        return `مرتب‌سازی: ${SORT_LABELS.get(value) ?? value}`;
+      }
+      return `مرتب‌سازی: ${value}`;    default:
       return value;
   }
 }
