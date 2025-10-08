@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCities } from "@/lib/location/cities";
 import { fetchProfilesOrchestrated } from "@/lib/orchestrators/profiles";
-import type { SkillKey } from "@/lib/profile/skills";
-import { SKILLS } from "@/lib/profile/skills";
+import { SKILLS, isSkillKey, type SkillKey } from "@/lib/profile/skills";
 import { buildCanonical } from "@/lib/seo/canonical";
 import {
   normalizeSearchParams,
@@ -423,7 +422,7 @@ function resolveSkillBadges(raw: unknown) {
       continue;
     }
     seen.add(entry);
-        if (!isSkillKey(entry)) {
+    if (!isSkillKey(entry)) {
       continue;
     }
     badges.push({ key: entry, label: SKILL_LABELS.get(entry) ?? entry });
@@ -447,3 +446,4 @@ function EmptyState() {
     </div>
   );
 }
+
