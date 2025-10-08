@@ -63,8 +63,21 @@ export async function fetchProfilesOrchestrated(
     { revalidate: CACHE_TTL, tags },
   );
 
-  const data = await resolve();
+  let data: ProfileSearchResult;
 
+  try {
+    data = await resolve();
+  } catch (error) {
+    if (!isMissingIncrementalCacheError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[orchestrator:profiles] cache_unavailable_falling_back",
+      error instanceof Error ? { message: error.message } : undefined,
+    );
+    data = await runProfileSearch(searchParams);
+  }
   if (parsed.empty) {
     console.info("[orchestrator:profiles] default_params_applied", { hash: cacheKeyHash });
   }
@@ -76,4 +89,12 @@ export async function fetchProfilesOrchestrated(
     canonical: buildCanonical("/profiles", { ...filterParams, page: data.page }),
     appliedFilters: buildAppliedFilters(filterParams),
   };
+}
+
+
+function isMissingIncrementalCacheError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("Invariant: incrementalCache missing in unstable_cache")
+  );
 }
