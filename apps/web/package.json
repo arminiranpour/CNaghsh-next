@@ -13,6 +13,7 @@
     "lint": "next lint",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest",
+    "tsx": "tsx",
     "prisma": "tsx scripts/prisma-cli.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name sprint1_billing_entitlements",
