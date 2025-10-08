@@ -20,7 +20,8 @@
     "user:create": "tsx scripts/new-user.ts",
     "enforce:profiles": "tsx scripts/enforce-publishability.ts",
     "seo:baseline": "node scripts/lh-baseline.mjs",
-    "search:smoke": "tsx scripts/smoke-fts.ts"
+    "search:smoke": "tsx scripts/smoke-fts.ts",
+    "orchestrators:smoke": "tsx scripts/smoke-orchestrators.ts"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
