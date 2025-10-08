@@ -21,7 +21,11 @@ const PAGE_TITLE = "فهرست پروفایل‌ها";
 const DEFAULT_PAGE_SIZE = 12;
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
+const SKILL_KEYS = new Set(SKILLS.map((skill) => skill.key));
 
+function isSkillKey(value: unknown): value is SkillKey {
+  return typeof value === "string" && SKILL_KEYS.has(value);
+}
 const SORT_OPTIONS = [
   { value: "relevance", label: "مرتبط‌ترین" },
   { value: "newest", label: "جدیدترین" },
