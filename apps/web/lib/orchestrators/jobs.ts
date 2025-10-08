@@ -41,6 +41,8 @@ export async function fetchJobsOrchestrated(
     category: filterParams.category,
     sort: filterParams.sort,
     page,
+    remote: filterParams.remote === "true" ? true : undefined,
+    payType: filterParams.payType,
   };
 
   const cacheKeyHash = hashKey(searchParams);

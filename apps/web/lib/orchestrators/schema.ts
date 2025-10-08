@@ -17,6 +17,8 @@ export const profilesQuerySchema = baseQuerySchema.extend({
 export const jobsQuerySchema = baseQuerySchema.extend({
   category: z.string().trim().optional(),
   sort: sortJobEnum,
+  remote: z.literal("true").optional(),
+  payType: z.enum(["paid", "unpaid", "negotiable"]).optional(),
 });
 
 export type ProfilesQueryInput = z.infer<typeof profilesQuerySchema>;

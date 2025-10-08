@@ -54,6 +54,12 @@ export function buildAppliedFilters(p: Record<string, unknown>) {
   if (p.category) {
     chips.push({ key: "category", value: String(p.category) });
   }
+  if (p.remote === "true" || p.remote === true) {
+    chips.push({ key: "remote", value: "true" });
+  }
+  if (p.payType) {
+    chips.push({ key: "payType", value: String(p.payType) });
+  }
   if (p.sort) {
     chips.push({ key: "sort", value: String(p.sort) });
   }

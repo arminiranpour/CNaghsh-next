@@ -19,6 +19,8 @@ export type JobSearchParams = {
   page?: number;
   pageSize?: number;
   sort?: JobSearchSort;
+  remote?: boolean;
+  payType?: "paid" | "unpaid" | "negotiable";
 };
 
 type JobRow = {
@@ -28,6 +30,9 @@ type JobRow = {
   category: string;
   featuredUntil: Date | null;
   updatedAt: Date;
+  remote: boolean;
+  payType: string | null;
+  description: string | null;
   rank?: number | null;
   sim?: number | null;
 };
@@ -62,6 +67,12 @@ export async function runJobSearch(
     ? Prisma.sql`AND j."category" = ${params.category}`
     : Prisma.sql``;
 
+  const remoteClause = params.remote ? Prisma.sql`AND j."remote" = true` : Prisma.sql``;
+
+  const payTypeClause = params.payType
+    ? Prisma.sql`AND j."payType" = ${params.payType}`
+    : Prisma.sql``;
+
   const hasQuery = Boolean(params.query && params.query.trim().length > 0);
 
   if (hasQuery && params.query) {
@@ -76,11 +87,16 @@ export async function runJobSearch(
         j."category",
         j."featuredUntil",
         j."updatedAt",
+        j."remote",
+        j."payType",
+        j."description",
         ts_rank_cd(j.search_vector, ${createTsQuery()}) AS rank
       FROM "Job" j
       WHERE ${JOB_BASE_WHERE}
       ${cityClause}
       ${categoryClause}
+      ${remoteClause}
+      ${payTypeClause}
         AND j.search_vector @@ ${createTsQuery()}
       ${resolveJobSort(params.sort, true)}
       LIMIT ${pageSize} OFFSET ${offset}
@@ -98,11 +114,16 @@ export async function runJobSearch(
         j."category",
         j."featuredUntil",
         j."updatedAt",
+        j."remote",
+        j."payType",
+        j."description",
         similarity(${JOB_TITLE_EXPRESSION}, fa_unaccent(${normalizedQuery})) AS sim
       FROM "Job" j
       WHERE ${JOB_BASE_WHERE}
       ${cityClause}
       ${categoryClause}
+      ${remoteClause}
+      ${payTypeClause}
         AND ${JOB_TITLE_EXPRESSION} % fa_unaccent(${normalizedQuery})
         AND similarity(${JOB_TITLE_EXPRESSION}, fa_unaccent(${normalizedQuery})) >= ${SIMILARITY_THRESHOLD}
       ${resolveJobTrigramSort(params.sort)}
@@ -119,11 +140,16 @@ export async function runJobSearch(
       j."cityId",
       j."category",
       j."featuredUntil",
-      j."updatedAt"
+      j."updatedAt",
+      j."remote",
+      j."payType",
+      j."description"
     FROM "Job" j
     WHERE ${JOB_BASE_WHERE}
     ${cityClause}
     ${categoryClause}
+    ${remoteClause}
+    ${payTypeClause}
     ${resolveJobSort(params.sort, false)}
     LIMIT ${pageSize} OFFSET ${offset}
   `);
