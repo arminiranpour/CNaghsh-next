@@ -123,8 +123,8 @@ describe("search orchestrators", () => {
       sort: "featured",
       page: 2,
     });
-    expect(cacheCalls[1]?.keys).toEqual(["search:jobs", expectedHash]);
-    expect(cacheCalls[1]?.options).toMatchObject({
+    expect(cacheCalls[0]?.keys).toEqual(["search:jobs", expectedHash]);
+    expect(cacheCalls[0]?.options).toMatchObject({
       tags: ["search:jobs", `search:jobs:${expectedHash}`],
     });
   });
