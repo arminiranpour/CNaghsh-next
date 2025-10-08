@@ -20,6 +20,7 @@ const TAG_PREFIX = "search:jobs";
 type JobSearchResult = Awaited<ReturnType<typeof runJobSearch>>;
 type JobItem = JobSearchResult["items"][number];
 
+
 export async function fetchJobsOrchestrated(
   raw: URLSearchParams | Record<string, unknown>,
 ): Promise<OrchestratedResult<JobItem>> {
