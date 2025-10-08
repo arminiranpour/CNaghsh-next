@@ -42,8 +42,13 @@ const PROFILE_BASE_WHERE = Prisma.sql`
   AND p."moderationStatus" = 'APPROVED'
 `;
 
-const PROFILE_NAME_EXPRESSION = Prisma.sql`coalesce(p."stageName",'') || ' ' || coalesce(p."firstName",'') || ' ' || coalesce(p."lastName",'')`;
-
+const PROFILE_NAME_EXPRESSION = Prisma.sql`(
+  coalesce(p."stageName",'') ||
+  ' ' ||
+  coalesce(p."firstName",'') ||
+  ' ' ||
+  coalesce(p."lastName",'')
+)`;
 export async function runProfileSearch(
   params: ProfileSearchParams,
 ): Promise<SearchResult<ProfileRow>> {
