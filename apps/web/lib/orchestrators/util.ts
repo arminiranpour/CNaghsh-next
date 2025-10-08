@@ -86,18 +86,32 @@ export type ParseOutcome<T> = {
   empty: boolean;
 };
 
-export function parseWithClamp<T extends z.ZodTypeAny>(schema: T, normalized: Record<string, unknown>): ParseOutcome<z.infer<T>> {
+function hasUsableValue(record: Record<string, unknown>) {
+  return Object.values(record).some((value) => value !== undefined);
+}
+
+export function parseWithClamp<T extends z.ZodTypeAny>(
+  schema: T,
+  normalized: Record<string, unknown>,
+): ParseOutcome<z.infer<T>> {
   const initial = schema.safeParse(normalized);
   if (initial.success) {
-    return { params: initial.data, issues: [], clamped: false, empty: false };
+    return {
+      params: initial.data,
+      issues: [],
+      clamped: false,
+      empty: !hasUsableValue(initial.data as Record<string, unknown>),
+    };
   }
 
   const sanitized: Record<string, unknown> = { ...normalized };
   let removedAny = false;
 
   for (const issue of initial.error.issues) {
-    const key = issue.path[0];
-    if (typeof key === "string" && key in sanitized) {
+    const key = [...issue.path]
+      .reverse()
+      .find((segment): segment is string => typeof segment === "string");
+    if (key && key in sanitized) {
       delete sanitized[key];
       removedAny = true;
     }
@@ -106,7 +120,12 @@ export function parseWithClamp<T extends z.ZodTypeAny>(schema: T, normalized: Re
   if (removedAny) {
     const retry = schema.safeParse(sanitized);
     if (retry.success) {
-      return { params: retry.data, issues: initial.error.issues, clamped: true, empty: false };
+      return {
+        params: retry.data,
+        issues: initial.error.issues,
+        clamped: true,
+        empty: !hasUsableValue(retry.data as Record<string, unknown>),
+      };
     }
   }
 
