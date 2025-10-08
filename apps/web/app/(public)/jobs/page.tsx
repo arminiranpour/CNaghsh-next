@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,9 @@ import { getPublicJobFilters } from "@/lib/jobs/publicQueries";
 import { getCities } from "@/lib/location/cities";
 import { fetchJobsOrchestrated } from "@/lib/orchestrators/jobs";
 import { buildCanonical } from "@/lib/seo/canonical";
+import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
+import { getBaseUrl } from "@/lib/seo/baseUrl";
+import { websiteJsonLd } from "@/lib/seo/jsonld";
 import {
   normalizeSearchParams,
   type NormalizedSearchParams,
@@ -17,7 +21,9 @@ import {
 import { setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
 
-const PAGE_TITLE = "فرصت‌های شغلی";
+const PAGE_TITLE = "فرصت‌های شغلی | آگهی‌های سینما و تئاتر";
+const PAGE_DESCRIPTION =
+  "جستجوی فرصت‌های شغلی تایید‌شده در حوزه سینما، تئاتر و تولید محتوا با امکان فیلتر براساس شهر، دسته‌بندی و شرایط پرداخت.";
 const DEFAULT_PAGE_SIZE = 12;
 const REMOTE_FILTER_LABEL = "فقط فرصت‌های دورکاری";
 
@@ -66,10 +72,25 @@ type FilterFormatterContext = {
 };
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+  const canonical = buildCanonical("/jobs", searchParams);
+
   return {
     title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
     alternates: {
-      canonical: buildCanonical("/jobs", searchParams),
+      canonical,
+    },
+    openGraph: {
+      title: PAGE_TITLE,
+      description: PAGE_DESCRIPTION,
+      url: canonical,
+      siteName: SITE_NAME,
+      locale: SITE_LOCALE,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: PAGE_TITLE,
+      description: PAGE_DESCRIPTION,
     },
   };
 }
@@ -122,8 +143,16 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, "fa"));
 
+  const baseUrl = getBaseUrl();
+  const jsonLd = websiteJsonLd({
+    url: baseUrl,
+    searchUrlProfiles: `${baseUrl}/profiles`,
+    searchUrlJobs: `${baseUrl}/jobs`,
+  });
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10" dir="rtl">
+      <JsonLd data={jsonLd} />
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold text-foreground">{PAGE_TITLE}</h1>
         <p className="text-sm text-muted-foreground">

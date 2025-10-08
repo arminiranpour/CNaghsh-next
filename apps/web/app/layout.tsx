@@ -5,6 +5,10 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Header, type NavigationItem } from "@/components/site/header";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
+import { getBaseUrl } from "@/lib/seo/baseUrl";
+import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
 
 const navigation = [
   { href: "/", label: "خانه" },
@@ -19,8 +23,19 @@ const navigation = [
 ] satisfies NavigationItem[];
 
 export const metadata: Metadata = {
-  title: "بازار فراخوان بازیگری",
-  description: "اسکلت اولیه بازارگاه فراخوان‌ها و کاربران چندمنظوره"
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    locale: SITE_LOCALE,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
@@ -28,6 +43,13 @@ export default function RootLayout({
 }: {
   children: ReactNode;
 }) {
+  const baseUrl = getBaseUrl();
+  const organizationJsonLd = siteOrganizationJsonLd({
+    name: SITE_NAME,
+    url: baseUrl,
+    logoUrl: `${baseUrl}${SITE_LOGO_PATH}`,
+  });
+
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
@@ -35,6 +57,7 @@ export default function RootLayout({
           <div className="flex min-h-screen flex-col bg-background">
             <Header navigation={navigation} />
             <main className="flex-1">{children}</main>
+            <JsonLd data={organizationJsonLd} />
             <footer className="border-t border-border bg-card/50">
               <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                 <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>

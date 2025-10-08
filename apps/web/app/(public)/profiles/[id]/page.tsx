@@ -1,11 +1,15 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
 import { enforceUserProfileVisibility } from "@/lib/profile/enforcement";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
+import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
+import { getBaseUrl } from "@/lib/seo/baseUrl";
+import { breadcrumbsJsonLd, profilePersonJsonLd } from "@/lib/seo/jsonld";
 
 import type { Metadata } from "next";
 
@@ -91,16 +95,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {};
   }
 
-  const title = profile.stageName?.trim()
+  const canonical = `${getBaseUrl()}/profiles/${params.id}`;
+  const displayName = profile.stageName?.trim()
     ? profile.stageName
     : `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
+  const title = displayName ? `${displayName} | ${SITE_NAME}` : "پروفایل هنرمند";
+  const description = profile.bio ?? undefined;
 
   return {
-    title: title || "پروفایل هنرمند",
-    description: profile.bio ?? undefined,
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
     openGraph: {
-      title: title || undefined,
-      description: profile.bio ?? undefined,
+      title,
+      description,
+      url: canonical,
+      siteName: SITE_NAME,
+      locale: SITE_LOCALE,
+      images: profile.avatarUrl ? [profile.avatarUrl] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
       images: profile.avatarUrl ? [profile.avatarUrl] : undefined,
     },
   };
@@ -140,33 +159,26 @@ export default async function PublicProfilePage({ params }: Props) {
     ? profile.stageName.trim()
     : `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "پروفایل";
 
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Person",
+  const baseUrl = getBaseUrl();
+  const profileUrl = `${baseUrl}/profiles/${profile.id}`;
+  const breadcrumbs = breadcrumbsJsonLd([
+    { name: "خانه", item: `${baseUrl}/` },
+    { name: "پروفایل‌ها", item: `${baseUrl}/profiles` },
+    { name: displayName, item: profileUrl },
+  ]);
+  const personJsonLd = profilePersonJsonLd({
     name: displayName,
-    ...(profile.stageName ? { alternateName: profile.stageName } : {}),
-    ...(profile.avatarUrl ? { image: profile.avatarUrl } : {}),
-    ...(cityName
-      ? {
-          homeLocation: {
-            "@type": "Place",
-            name: cityName,
-          },
-        }
-      : {}),
-    ...(socialLinks.length
-      ? {
-          sameAs: socialLinks,
-        }
-      : {}),
-  };
+    url: profileUrl,
+    stageName: profile.stageName ?? undefined,
+    avatarUrl: profile.avatarUrl ?? undefined,
+    bio: profile.bio ?? undefined,
+    cityName,
+    socialLinks,
+  });
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12" dir="rtl">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={[breadcrumbs, personJsonLd]} />
       <header className="flex flex-col items-start gap-6 rounded-md border border-border bg-background p-6 shadow-sm">
         <div className="flex w-full flex-col gap-6 sm:flex-row sm:items-center">
           {profile.avatarUrl ? (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,9 @@ import { getCities } from "@/lib/location/cities";
 import { fetchProfilesOrchestrated } from "@/lib/orchestrators/profiles";
 import { SKILLS, isSkillKey } from "@/lib/profile/skills";
 import { buildCanonical } from "@/lib/seo/canonical";
+import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
+import { getBaseUrl } from "@/lib/seo/baseUrl";
+import { websiteJsonLd } from "@/lib/seo/jsonld";
 import {
   normalizeSearchParams,
   type NormalizedSearchParams,
@@ -17,7 +21,9 @@ import {
 import { parseSkillsSearchParam, setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
 
-const PAGE_TITLE = "فهرست پروفایل‌ها";
+const PAGE_TITLE = "فهرست پروفایل‌ها | جستجو و فیلتر هنرمندان";
+const PAGE_DESCRIPTION =
+  "جستجو و فیلتر پروفایل‌های تایید‌شده هنرمندان براساس نام، شهر، مهارت و وضعیت انتشار.";
 const DEFAULT_PAGE_SIZE = 12;
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
@@ -35,10 +41,25 @@ const UPDATED_AT_FORMATTER = new Intl.DateTimeFormat("fa-IR", {
 });
 
 export async function generateMetadata({ searchParams }: { searchParams: SearchParams }): Promise<Metadata> {
+  const canonical = buildCanonical("/profiles", searchParams);
+
   return {
     title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
     alternates: {
-      canonical: buildCanonical("/profiles", searchParams),
+      canonical,
+    },
+    openGraph: {
+      title: PAGE_TITLE,
+      description: PAGE_DESCRIPTION,
+      url: canonical,
+      siteName: SITE_NAME,
+      locale: SITE_LOCALE,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: PAGE_TITLE,
+      description: PAGE_DESCRIPTION,
     },
   };
 }
@@ -79,8 +100,16 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
     return { ...chip, label: formattedValue, href };
   });
 
+  const baseUrl = getBaseUrl();
+  const jsonLd = websiteJsonLd({
+    url: baseUrl,
+    searchUrlProfiles: `${baseUrl}/profiles`,
+    searchUrlJobs: `${baseUrl}/jobs`,
+  });
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10" dir="rtl">
+      <JsonLd data={jsonLd} />
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold text-foreground">{PAGE_TITLE}</h1>
         <p className="text-sm text-muted-foreground">

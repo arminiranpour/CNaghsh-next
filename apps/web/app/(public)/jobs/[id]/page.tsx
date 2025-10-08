@@ -2,14 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
-import { buildJobDetailMetadata, buildJobPostingJsonLd, getJobOrganizationName } from "@/lib/jobs/seo";
+import { buildJobDetailMetadata, getJobOrganizationName } from "@/lib/jobs/seo";
 import { incrementJobViews } from "@/lib/jobs/views";
-import { buildAbsoluteUrl } from "@/lib/url";
+import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
+import { getBaseUrl } from "@/lib/seo/baseUrl";
+import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
 
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {
@@ -91,7 +94,31 @@ export async function generateMetadata({
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
   const cityName = job.cityId ? cityMap.get(job.cityId) : undefined;
 
-  return buildJobDetailMetadata(job, { cityName });
+  const baseMetadata = buildJobDetailMetadata(job, { cityName });
+  const canonical = `${getBaseUrl()}/jobs/${job.id}`;
+  const title = baseMetadata.title ?? `${job.title} | ${SITE_NAME}`;
+  const description = baseMetadata.description;
+
+  return {
+    ...baseMetadata,
+    title,
+    description,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: SITE_NAME,
+      locale: SITE_LOCALE,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
 }
 
 export default async function JobDetailPage({
@@ -119,9 +146,31 @@ export default async function JobDetailPage({
   const organizationName = getJobOrganizationName(job);
   const payDetails = formatPayDetails(job);
   const isFeatured = job.featuredUntil ? job.featuredUntil > new Date() : false;
-  const jsonLd = buildJobPostingJsonLd(job, {
+  const baseUrl = getBaseUrl();
+  const canonical = `${baseUrl}/jobs/${job.id}`;
+  const breadcrumbs = breadcrumbsJsonLd([
+    { name: "خانه", item: `${baseUrl}/` },
+    { name: "فرصت‌های شغلی", item: `${baseUrl}/jobs` },
+    { name: job.title, item: canonical },
+  ]);
+  const jobJsonLd = jobPostingJsonLd({
+    id: job.id,
+    title: job.title,
+    description: job.description,
+    url: canonical,
+    organizationName,
+    remote: job.remote,
     cityName,
-    url: buildAbsoluteUrl(`/jobs/${job.id}`),
+    applicantRegionName: cityName ?? "Iran",
+    datePosted: job.createdAt,
+    validThrough: job.featuredUntil ?? undefined,
+    baseSalary:
+      job.payAmount !== null && job.payAmount !== undefined && job.currency
+        ? {
+            currency: job.currency,
+            value: job.payAmount,
+          }
+        : undefined,
   });
   const postedAt = formatPersianDate(job.createdAt) ?? "—";
 
@@ -131,7 +180,7 @@ export default async function JobDetailPage({
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 pb-12" dir="rtl">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={[breadcrumbs, jobJsonLd]} />
 
       <Card className="border border-border shadow-sm">
         <CardHeader className="space-y-4">
