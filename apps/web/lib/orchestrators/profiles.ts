@@ -9,6 +9,7 @@ import {
   buildAppliedFilters,
   canonicalizeInput,
   hashKey,
+  isMissingIncrementalCacheError,
   parseWithClamp,
   type OrchestratedResult,
 } from "./util";
@@ -89,12 +90,4 @@ export async function fetchProfilesOrchestrated(
     canonical: buildCanonical("/profiles", { ...filterParams, page: data.page }),
     appliedFilters: buildAppliedFilters(filterParams),
   };
-}
-
-
-function isMissingIncrementalCacheError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    error.message.includes("Invariant: incrementalCache missing in unstable_cache")
-  );
 }

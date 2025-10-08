@@ -9,6 +9,7 @@ import {
   buildAppliedFilters,
   canonicalizeInput,
   hashKey,
+  isMissingIncrementalCacheError,
   parseWithClamp,
   type OrchestratedResult,
 } from "./util";
@@ -63,7 +64,21 @@ export async function fetchJobsOrchestrated(
     { revalidate: CACHE_TTL, tags },
   );
 
-  const data = await resolve();
+  let data: JobSearchResult;
+
+  try {
+    data = await resolve();
+  } catch (error) {
+    if (!isMissingIncrementalCacheError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[orchestrator:jobs] cache_unavailable_falling_back",
+      error instanceof Error ? { message: error.message } : undefined,
+    );
+    data = await runJobSearch(searchParams);
+  }
 
   if (parsed.empty) {
     console.info("[orchestrator:jobs] default_params_applied", { hash: cacheKeyHash });

@@ -72,6 +72,13 @@ export type OrchestratedResult<T> = {
   appliedFilters: { key: string; value: string }[];
 };
 
+export function isMissingIncrementalCacheError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes("Invariant: incrementalCache missing in unstable_cache")
+  );
+}
+
 export type ParseOutcome<T> = {
   params: T;
   issues: ZodIssue[];
