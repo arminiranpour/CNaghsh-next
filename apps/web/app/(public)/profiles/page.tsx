@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getCities } from "@/lib/location/cities";
 import { fetchProfilesOrchestrated } from "@/lib/orchestrators/profiles";
-import { SKILLS } from "@/lib/profile/skills";
+import { SKILLS, isSkillKey, type SkillKey } from "@/lib/profile/skills";
 import { buildCanonical } from "@/lib/seo/canonical";
 import {
   normalizeSearchParams,
@@ -353,7 +353,7 @@ function formatFilterValue(key: string, value: string, context: FilterFormatterC
       const labels = parts
         .map((part) => part.trim())
         .filter(Boolean)
-        .map((part) => SKILL_LABELS.get(part) ?? part);
+        .map((part) => (isSkillKey(part) ? SKILL_LABELS.get(part) ?? part : part));
       return `مهارت‌ها: ${labels.join("، ")}`;
     }
     case "sort": {
@@ -422,6 +422,9 @@ function resolveSkillBadges(raw: unknown) {
       continue;
     }
     seen.add(entry);
+    if (!isSkillKey(entry)) {
+      continue;
+    }
     badges.push({ key: entry, label: SKILL_LABELS.get(entry) ?? entry });
     if (badges.length >= 8) {
       break;
@@ -443,3 +446,4 @@ function EmptyState() {
     </div>
   );
 }
+

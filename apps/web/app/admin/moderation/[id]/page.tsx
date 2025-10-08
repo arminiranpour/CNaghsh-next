@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { getModerationDetail } from "@/lib/profile/moderation";
-import { SKILLS, type SkillKey } from "@/lib/profile/skills";
+import { SKILLS, isSkillKey, type SkillKey } from "@/lib/profile/skills";
 
 import { ModerationActions } from "../_components/moderation-actions";
 
@@ -51,12 +51,6 @@ const EVENT_LABELS: EventLabelMap = {
 const SKILL_LABELS = new Map<SkillKey, string>(
   SKILLS.map((skill) => [skill.key, skill.label] as const),
 );
-const SKILL_KEYS = new Set<string>(SKILLS.map((skill) => skill.key));
-
-function isSkillKey(value: unknown): value is SkillKey {
-  return typeof value === "string" && SKILL_KEYS.has(value);
-}
-
 function getDisplayName(
   stageName?: string | null,
   firstName?: string | null,

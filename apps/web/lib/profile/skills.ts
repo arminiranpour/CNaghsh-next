@@ -32,3 +32,9 @@ export const SKILLS: { key: SkillKey; label: string; category: string }[] = [
 ];
 
 export const SKILL_KEYS = SKILLS.map((skill) => skill.key) as SkillKey[];
+
+const SKILL_KEY_SET = new Set<SkillKey>(SKILL_KEYS);
+
+export function isSkillKey(value: unknown): value is SkillKey {
+  return typeof value === "string" && SKILL_KEY_SET.has(value as SkillKey);
+}
