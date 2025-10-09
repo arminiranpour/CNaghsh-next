@@ -84,3 +84,14 @@ body {
   font-size: 1rem;
   line-height: 2rem;
 }
+:root {
+  --brand: oklch(0.64 0.22 41);
+  --brand-foreground: oklch(0.2 0 0);
+  --radius: 0.625rem;
+}
+
+[dir="rtl"] .rtl\\:ml-auto { margin-left: auto; }
+[dir="rtl"] .rtl\\:mr-auto { margin-right: auto; }
+
+.container-std { @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+
