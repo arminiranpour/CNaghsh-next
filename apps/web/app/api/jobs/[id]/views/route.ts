@@ -34,8 +34,7 @@ async function resolveHandler(): Promise<RouteHandler> {
     const sentry = await import("@sentry/nextjs");
     if (typeof sentry.wrapRouteHandlerWithSentry === "function") {
       cachedHandler = sentry.wrapRouteHandlerWithSentry(postHandler, {
-        method: "POST",
-        spanDescription: "app/api/jobs/[id]/views",
+        method: "POST"
       }) as RouteHandler;
       return cachedHandler;
     }
