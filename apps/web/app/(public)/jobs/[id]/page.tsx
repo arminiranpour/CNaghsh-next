@@ -9,10 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getCities } from "@/lib/location/cities";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
 import { buildJobDetailMetadata, getJobOrganizationName } from "@/lib/jobs/seo";
-import { incrementJobViews } from "@/lib/jobs/views";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
+import { JobViewTracker } from "./JobViewTracker";
 
 export const revalidate = 300;
 
@@ -143,8 +143,6 @@ export default async function JobDetailPage({
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
   const cityName = job.cityId ? cityMap.get(job.cityId) ?? job.cityId : undefined;
 
-  incrementJobViews(job.id).catch(() => {});
-
   const organizationName = getJobOrganizationName(job);
   const payDetails = formatPayDetails(job);
   const isFeatured = job.featuredUntil ? job.featuredUntil > new Date() : false;
@@ -183,6 +181,8 @@ export default async function JobDetailPage({
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 pb-12" dir="rtl">
       <JsonLd data={[breadcrumbs, jobJsonLd]} />
+
+      <JobViewTracker jobId={job.id} />
 
       <Card className="border border-border shadow-sm">
         <CardHeader className="space-y-4">

@@ -5,7 +5,6 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
-import { enforceUserProfileVisibility } from "@/lib/profile/enforcement";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
@@ -136,13 +135,10 @@ export default async function PublicProfilePage({ params }: Props) {
     notFound();
   }
 
-  const enforcementResult = await enforceUserProfileVisibility(profile.userId);
-
   if (
     profile.visibility !== "PUBLIC" ||
     profile.moderationStatus !== "APPROVED" ||
-    !profile.publishedAt ||
-    enforcementResult === "auto_unpublished"
+    !profile.publishedAt
   ) {
     notFound();
   }

@@ -23,6 +23,7 @@ const navigation = [
 ] satisfies NavigationItem[];
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: SITE_NAME,
   description: SITE_DESCRIPTION,
   openGraph: {
