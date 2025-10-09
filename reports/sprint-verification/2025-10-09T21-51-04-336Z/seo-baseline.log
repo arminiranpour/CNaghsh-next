@@ -1,0 +1,6 @@
+
+> @app/web@0.1.0 seo:baseline /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> node scripts/lh-baseline.mjs
+
+→ http://localhost:3001/profiles | Performance: 0 | LCP: n/a | CLS: n/a
+→ http://localhost:3001/jobs | Performance: 0 | LCP: n/a | CLS: n/a

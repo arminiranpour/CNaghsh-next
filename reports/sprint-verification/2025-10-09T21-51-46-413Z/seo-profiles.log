@@ -1,0 +1,42 @@
+
+> @app/web@0.1.0 seo:smoke:profiles /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> tsx scripts/seo-smoke-profiles.ts
+
+[env] PUBLIC_BASE_URL is using "http:". HTTPS is required in production.
+Sample canonical: http://127.0.0.1:3000/profiles?city=tehran&page=2
+WebSite JSON-LD:
+ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "صحنه",
+  "url": "http://127.0.0.1:3000",
+  "potentialAction": [
+    {
+      "@type": "SearchAction",
+      "target": "http://127.0.0.1:3000/profiles?query={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    {
+      "@type": "SearchAction",
+      "target": "http://127.0.0.1:3000/jobs?query={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  ]
+}
+Person JSON-LD:
+ {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Ali Singer",
+  "url": "http://127.0.0.1:3000/profiles/profile_demo_1",
+  "description": "خواننده و نوازنده با تجربه صحنه. singer / vocalist.",
+  "homeLocation": {
+    "@type": "Place",
+    "name": "tehran",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "tehran",
+      "addressCountry": "IR"
+    }
+  }
+}

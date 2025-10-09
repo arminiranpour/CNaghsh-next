@@ -1,0 +1,12 @@
+
+> @app/web@0.1.0 perf:baseline /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> node scripts/perf-baseline.mjs
+
+→ http://localhost:3000/profiles | Performance: 56 | LCP: 4.7 s | CLS: 0.12
+→ http://localhost:3000/jobs | Performance: 56 | LCP: 4.7 s | CLS: 0.12
+
+Verification cheatsheet:
+  pnpm -w dev
+  pnpm -F @app/web run perf:baseline
+  pnpm -F @app/web run cwv:smoke
+  curl -sI http://localhost:3000/logo.svg | grep -iE 'cache-control|etag|last-modified'

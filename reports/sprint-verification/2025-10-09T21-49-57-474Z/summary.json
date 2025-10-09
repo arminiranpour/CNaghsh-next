@@ -1,0 +1,148 @@
+{
+  "startedAt": "2025-10-09T21-49-57-474Z",
+  "baseUrl": "http://localhost:3000",
+  "tasks": [
+    {
+      "id": "rollout",
+      "title": "Rollout health + headers",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 95,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/rollout.log"
+    },
+    {
+      "id": "seo-baseline",
+      "title": "SEO baseline",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 8627,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/seo-baseline.log"
+    },
+    {
+      "id": "seo-profiles",
+      "title": "SEO smoke — profiles",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 295,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/seo-profiles.log"
+    },
+    {
+      "id": "seo-jobs",
+      "title": "SEO smoke — jobs",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 298,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/seo-jobs.log"
+    },
+    {
+      "id": "perf-baseline",
+      "title": "Performance baseline",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 17309,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/perf-baseline.log"
+    },
+    {
+      "id": "cwv-smoke",
+      "title": "CWV smoke",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 230,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/cwv-smoke.log"
+    },
+    {
+      "id": "search-smoke",
+      "title": "Search smoke (warm cache)",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 325,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/search-smoke.log"
+    },
+    {
+      "id": "search-bypass",
+      "title": "Search smoke (bypass cache)",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 307,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/search-bypass.log"
+    },
+    {
+      "id": "qa-analytics",
+      "title": "Analytics consent smoke",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 1272,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/qa-analytics.log"
+    },
+    {
+      "id": "unit-jsonld",
+      "title": "Unit test — seo jsonld",
+      "status": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "durationMs": 113,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/unit-jsonld.log"
+    },
+    {
+      "id": "unit-metadata",
+      "title": "Unit test — metadata routes",
+      "status": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "durationMs": 114,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/unit-metadata.log"
+    },
+    {
+      "id": "unit-analytics",
+      "title": "Unit test — analytics provider",
+      "status": "failed",
+      "exitCode": 1,
+      "signal": null,
+      "durationMs": 115,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-49-57-474Z/unit-analytics.log"
+    }
+  ],
+  "manualChecks": [
+    {
+      "id": "detail-views",
+      "title": "Job detail view counter",
+      "steps": [
+        "Open a job detail page in the browser while dev server is running.",
+        "Confirm a POST request to `/api/jobs/<id>/views` succeeds (200) without UI errors."
+      ]
+    },
+    {
+      "id": "slow-query",
+      "title": "Prisma slow query logging",
+      "steps": [
+        "Start dev server with `PRISMA_SLOW_LOG=1 pnpm -w dev`.",
+        "Trigger list pages and confirm `[perf:db] slow_query` entries appear in the server logs."
+      ]
+    },
+    {
+      "id": "robots-staging",
+      "title": "Robots meta on staging",
+      "steps": [
+        "Launch dev server with `NEXT_PUBLIC_ENV=staging` and load a page.",
+        "Verify the rendered HTML includes `<meta name=\"robots\" content=\"noindex, nofollow\">`."
+      ]
+    },
+    {
+      "id": "sentry-flags",
+      "title": "Sentry flag gating",
+      "steps": [
+        "With no `SENTRY_DSN` or without `sentry` flag, confirm the browser console lacks Sentry SDK logs.",
+        "With `SENTRY_DSN` and `NEXT_PUBLIC_FLAGS=sentry`, ensure SDK initializes and emits setup logs."
+      ]
+    }
+  ]
+}

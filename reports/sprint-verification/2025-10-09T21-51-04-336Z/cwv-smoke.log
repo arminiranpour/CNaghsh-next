@@ -1,0 +1,13 @@
+
+> @app/web@0.1.0 cwv:smoke /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> node scripts/cwv-smoke.mjs
+
+→ http://localhost:3000/profiles | x-cache: n/a | age: n/a | cache-control: no-store, must-revalidate
+→ http://localhost:3000/jobs | x-cache: n/a | age: n/a | cache-control: no-store, must-revalidate
+
+Verification cheatsheet:
+  pnpm -w dev
+  pnpm -F @app/web run perf:baseline
+  pnpm -F @app/web run cwv:smoke
+  ORCH_BYPASS_CACHE=1 pnpm -F @app/web run search:smoke
+  PRISMA_SLOW_LOG=1 pnpm -w dev

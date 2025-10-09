@@ -1,0 +1,67 @@
+{
+  "startedAt": "2025-10-09T21-51-04-336Z",
+  "baseUrl": "http://localhost:3000",
+  "tasks": [
+    {
+      "id": "rollout",
+      "title": "Rollout health + headers",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 88,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-51-04-336Z/rollout.log"
+    },
+    {
+      "id": "seo-baseline",
+      "title": "SEO baseline",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 8754,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-51-04-336Z/seo-baseline.log"
+    },
+    {
+      "id": "cwv-smoke",
+      "title": "CWV smoke",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 220,
+      "logPath": "/Users/arminiranpour/Desktop/Project/CNaghsh-next/reports/sprint-verification/2025-10-09T21-51-04-336Z/cwv-smoke.log"
+    }
+  ],
+  "manualChecks": [
+    {
+      "id": "detail-views",
+      "title": "Job detail view counter",
+      "steps": [
+        "Open a job detail page in the browser while dev server is running.",
+        "Confirm a POST request to `/api/jobs/<id>/views` succeeds (200) without UI errors."
+      ]
+    },
+    {
+      "id": "slow-query",
+      "title": "Prisma slow query logging",
+      "steps": [
+        "Start dev server with `PRISMA_SLOW_LOG=1 pnpm -w dev`.",
+        "Trigger list pages and confirm `[perf:db] slow_query` entries appear in the server logs."
+      ]
+    },
+    {
+      "id": "robots-staging",
+      "title": "Robots meta on staging",
+      "steps": [
+        "Launch dev server with `NEXT_PUBLIC_ENV=staging` and load a page.",
+        "Verify the rendered HTML includes `<meta name=\"robots\" content=\"noindex, nofollow\">`."
+      ]
+    },
+    {
+      "id": "sentry-flags",
+      "title": "Sentry flag gating",
+      "steps": [
+        "With no `SENTRY_DSN` or without `sentry` flag, confirm the browser console lacks Sentry SDK logs.",
+        "With `SENTRY_DSN` and `NEXT_PUBLIC_FLAGS=sentry`, ensure SDK initializes and emits setup logs."
+      ]
+    }
+  ]
+}

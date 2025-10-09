@@ -1,0 +1,17 @@
+
+> @app/web@0.1.0 search:smoke /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> tsx scripts/smoke-fts.ts
+
+[env] PUBLIC_BASE_URL is using "http:". HTTPS is required in production.
+Profiles for "خواننده":
+  (no results)
+Profiles for "singer":
+  profile_demo_1 — Ali Singer Ali Vocal — score=0.4117647
+Profiles for "developer":
+  (no results)
+Jobs for "casting":
+  job_demo_1 — Casting Call – Lead Actor — score=0.36363637
+Jobs for "actor":
+  (no results)
+Jobs for "کارگردان":
+  (no results)

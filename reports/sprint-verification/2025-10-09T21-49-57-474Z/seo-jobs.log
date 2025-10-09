@@ -1,0 +1,51 @@
+
+> @app/web@0.1.0 seo:smoke:jobs /Users/arminiranpour/Desktop/Project/CNaghsh-next/apps/web
+> tsx scripts/seo-smoke-jobs.ts
+
+[env] PUBLIC_BASE_URL is using "http:". HTTPS is required in production.
+Sample canonical: http://localhost:3000/jobs?page=3&remote=true
+WebSite JSON-LD:
+ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "صحنه",
+  "url": "http://localhost:3000",
+  "potentialAction": [
+    {
+      "@type": "SearchAction",
+      "target": "http://localhost:3000/profiles?query={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    {
+      "@type": "SearchAction",
+      "target": "http://localhost:3000/jobs?query={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  ]
+}
+JobPosting JSON-LD:
+ {
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "title": "Casting Call – Lead Actor",
+  "description": "دنبال بازیگر اصلی هستیم. actor needed for short film.",
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": "Ali Singer"
+  },
+  "url": "http://localhost:3000/jobs/job_demo_1",
+  "identifier": {
+    "@type": "PropertyValue",
+    "name": "internal",
+    "value": "job_demo_1"
+  },
+  "datePosted": "2025-10-07T23:39:13.192Z",
+  "jobLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "tehran",
+      "addressCountry": "IR"
+    }
+  }
+}
