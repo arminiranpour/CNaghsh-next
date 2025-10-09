@@ -35,7 +35,7 @@ async function resolveHandler(): Promise<RouteHandler> {
     if (typeof sentry.wrapRouteHandlerWithSentry === "function") {
       cachedHandler = sentry.wrapRouteHandlerWithSentry(postHandler, {
         method: "POST",
-        route: "app/api/jobs/[id]/views",
+        spanDescription: "app/api/jobs/[id]/views",
       }) as RouteHandler;
       return cachedHandler;
     }
