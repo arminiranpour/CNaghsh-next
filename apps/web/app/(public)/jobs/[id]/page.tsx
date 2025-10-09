@@ -14,6 +14,8 @@ import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
 
+export const revalidate = 300;
+
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {
     return value;

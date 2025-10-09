@@ -21,6 +21,8 @@ import {
 import { setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
 
+export const revalidate = 60;
+
 const PAGE_TITLE = "فرصت‌های شغلی | آگهی‌های سینما و تئاتر";
 const PAGE_DESCRIPTION =
   "جستجوی فرصت‌های شغلی تایید‌شده در حوزه سینما، تئاتر و تولید محتوا با امکان فیلتر براساس شهر، دسته‌بندی و شرایط پرداخت.";

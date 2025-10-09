@@ -49,38 +49,42 @@ export async function fetchJobsOrchestrated(
   const cacheKeys = [TAG_PREFIX, cacheKeyHash];
   const tags = [`${TAG_PREFIX}`, `${TAG_PREFIX}:${cacheKeyHash}`];
 
-  const resolve = unstable_cache(
-    async () => {
-      const startedAt = Date.now();
-      const result = await runJobSearch(searchParams);
-      const durationMs = Date.now() - startedAt;
-      console.info("[orchestrator:jobs] search_complete", {
-        hash: cacheKeyHash,
-        durationMs,
-        page: result.page,
-        pageSize: result.pageSize,
-        itemCount: result.items.length,
-      });
-      return result;
-    },
-    cacheKeys,
-    { revalidate: CACHE_TTL, tags },
-  );
+  const executeSearch = async () => {
+    const startedAt = Date.now();
+    const result = await runJobSearch(searchParams);
+    const durationMs = Date.now() - startedAt;
+    console.info("[orchestrator:jobs] search_complete", {
+      hash: cacheKeyHash,
+      durationMs,
+      page: result.page,
+      pageSize: result.pageSize,
+      itemCount: result.items.length,
+    });
+    return result;
+  };
 
   let data: JobSearchResult;
+  const shouldBypassCache = process.env.ORCH_BYPASS_CACHE === "1";
 
-  try {
-    data = await resolve();
-  } catch (error) {
-    if (!isMissingIncrementalCacheError(error)) {
-      throw error;
+  if (shouldBypassCache) {
+    console.info("[orchestrator:jobs] cache_bypass", { hash: cacheKeyHash });
+    data = await executeSearch();
+  } else {
+    const resolve = unstable_cache(executeSearch, cacheKeys, { revalidate: CACHE_TTL, tags });
+
+    try {
+      data = await resolve();
+    } catch (error) {
+      if (!isMissingIncrementalCacheError(error)) {
+        throw error;
+      }
+
+      console.warn(
+        "[orchestrator:jobs] cache_unavailable_falling_back",
+        error instanceof Error ? { message: error.message } : undefined,
+      );
+      data = await executeSearch();
     }
-
-    console.warn(
-      "[orchestrator:jobs] cache_unavailable_falling_back",
-      error instanceof Error ? { message: error.message } : undefined,
-    );
-    data = await runJobSearch(searchParams);
   }
 
   if (parsed.empty) {

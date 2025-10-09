@@ -46,38 +46,42 @@ export async function fetchProfilesOrchestrated(
   const cacheKeys = [TAG_PREFIX, cacheKeyHash];
   const tags = [`${TAG_PREFIX}`, `${TAG_PREFIX}:${cacheKeyHash}`];
 
-  const resolve = unstable_cache(
-    async () => {
-      const startedAt = Date.now();
-      const result = await runProfileSearch(searchParams);
-      const durationMs = Date.now() - startedAt;
-      console.info("[orchestrator:profiles] search_complete", {
-        hash: cacheKeyHash,
-        durationMs,
-        page: result.page,
-        pageSize: result.pageSize,
-        itemCount: result.items.length,
-      });
-      return result;
-    },
-    cacheKeys,
-    { revalidate: CACHE_TTL, tags },
-  );
+  const executeSearch = async () => {
+    const startedAt = Date.now();
+    const result = await runProfileSearch(searchParams);
+    const durationMs = Date.now() - startedAt;
+    console.info("[orchestrator:profiles] search_complete", {
+      hash: cacheKeyHash,
+      durationMs,
+      page: result.page,
+      pageSize: result.pageSize,
+      itemCount: result.items.length,
+    });
+    return result;
+  };
 
   let data: ProfileSearchResult;
+  const shouldBypassCache = process.env.ORCH_BYPASS_CACHE === "1";
 
-  try {
-    data = await resolve();
-  } catch (error) {
-    if (!isMissingIncrementalCacheError(error)) {
-      throw error;
+  if (shouldBypassCache) {
+    console.info("[orchestrator:profiles] cache_bypass", { hash: cacheKeyHash });
+    data = await executeSearch();
+  } else {
+    const resolve = unstable_cache(executeSearch, cacheKeys, { revalidate: CACHE_TTL, tags });
+
+    try {
+      data = await resolve();
+    } catch (error) {
+      if (!isMissingIncrementalCacheError(error)) {
+        throw error;
+      }
+
+      console.warn(
+        "[orchestrator:profiles] cache_unavailable_falling_back",
+        error instanceof Error ? { message: error.message } : undefined,
+      );
+      data = await executeSearch();
     }
-
-    console.warn(
-      "[orchestrator:profiles] cache_unavailable_falling_back",
-      error instanceof Error ? { message: error.message } : undefined,
-    );
-    data = await runProfileSearch(searchParams);
   }
   if (parsed.empty) {
     console.info("[orchestrator:profiles] default_params_applied", { hash: cacheKeyHash });

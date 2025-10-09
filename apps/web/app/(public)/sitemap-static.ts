@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 
+export const revalidate = 86400;
+
 const STATIC_PATHS = ["/", "/profiles", "/jobs", "/pricing", "/castings"] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -21,10 +21,12 @@
     "user:create": "tsx scripts/new-user.ts",
     "enforce:profiles": "tsx scripts/enforce-publishability.ts",
     "seo:baseline": "node scripts/lh-baseline.mjs",
+    "perf:baseline": "node scripts/perf-baseline.mjs",
     "search:smoke": "tsx scripts/smoke-fts.ts",
     "orchestrators:smoke": "tsx scripts/smoke-orchestrators.ts",
     "seo:smoke:profiles": "tsx scripts/seo-smoke-profiles.ts",
-    "seo:smoke:jobs": "tsx scripts/seo-smoke-jobs.ts"
+    "seo:smoke:jobs": "tsx scripts/seo-smoke-jobs.ts",
+    "cwv:smoke": "node scripts/cwv-smoke.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",

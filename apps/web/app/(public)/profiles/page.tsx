@@ -21,6 +21,8 @@ import {
 import { parseSkillsSearchParam, setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
 
+export const revalidate = 60;
+
 const PAGE_TITLE = "فهرست پروفایل‌ها | جستجو و فیلتر هنرمندان";
 const PAGE_DESCRIPTION =
   "جستجو و فیلتر پروفایل‌های تایید‌شده هنرمندان براساس نام، شهر، مهارت و وضعیت انتشار.";

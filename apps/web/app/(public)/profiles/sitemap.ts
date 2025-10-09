@@ -3,6 +3,8 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 
+export const revalidate = 86400;
+
 const MAX_ENTRIES = 5000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

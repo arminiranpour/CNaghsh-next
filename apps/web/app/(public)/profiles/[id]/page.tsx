@@ -13,6 +13,8 @@ import { breadcrumbsJsonLd, profilePersonJsonLd } from "@/lib/seo/jsonld";
 
 import type { Metadata } from "next";
 
+export const revalidate = 300;
+
 type GalleryEntry = {
   url?: unknown;
   width?: unknown;
