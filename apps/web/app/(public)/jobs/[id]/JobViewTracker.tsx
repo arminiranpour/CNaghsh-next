@@ -2,11 +2,21 @@
 
 import { useEffect } from "react";
 
-type JobViewTrackerProps = {
-  jobId: string;
+import { CONSENT_GRANTED_EVENT, hasConsent, track } from "@/lib/analytics/provider";
+
+type JobAnalytics = {
+  category?: string | null;
+  city?: string | null;
+  payType?: string | null;
+  remote?: boolean | null;
 };
 
-export function JobViewTracker({ jobId }: JobViewTrackerProps) {
+type JobViewTrackerProps = {
+  jobId: string;
+  analytics?: JobAnalytics;
+};
+
+export function JobViewTracker({ jobId, analytics }: JobViewTrackerProps) {
   useEffect(() => {
     if (!jobId) {
       return;
@@ -21,10 +31,36 @@ export function JobViewTracker({ jobId }: JobViewTrackerProps) {
       // Ignore view tracking errors in the UI
     });
 
+    const emit = () => {
+      const payload = {
+        category: analytics?.category ?? undefined,
+        city: analytics?.city ?? undefined,
+        payType: analytics?.payType ?? undefined,
+        remote: analytics?.remote ?? undefined,
+      };
+
+      track("job:view", payload);
+    };
+
+    if (hasConsent()) {
+      emit();
+    } else if (typeof window !== "undefined") {
+      const handler = () => {
+        emit();
+      };
+
+      window.addEventListener(CONSENT_GRANTED_EVENT, handler, { once: true });
+
+      return () => {
+        controller.abort();
+        window.removeEventListener(CONSENT_GRANTED_EVENT, handler);
+      };
+    }
+
     return () => {
       controller.abort();
     };
-  }, [jobId]);
+  }, [jobId, analytics?.category, analytics?.city, analytics?.payType, analytics?.remote]);
 
   return null;
 }

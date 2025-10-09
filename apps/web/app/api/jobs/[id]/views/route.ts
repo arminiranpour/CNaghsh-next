@@ -6,7 +6,7 @@ type RouteContext = {
   params: { id: string };
 };
 
-export async function POST(_request: Request, { params }: RouteContext) {
+async function postHandler(_request: Request, { params }: RouteContext) {
   const jobId = params.id;
 
   if (!jobId) {
@@ -16,4 +16,38 @@ export async function POST(_request: Request, { params }: RouteContext) {
   await incrementJobViews(jobId);
 
   return NextResponse.json({ success: true });
+}
+
+type RouteHandler = (
+  request: Request,
+  context: RouteContext,
+) => Promise<NextResponse>;
+
+let cachedHandler: RouteHandler | null = null;
+
+async function resolveHandler(): Promise<RouteHandler> {
+  if (cachedHandler) {
+    return cachedHandler;
+  }
+
+  try {
+    const sentry = await import("@sentry/nextjs");
+    if (typeof sentry.wrapRouteHandlerWithSentry === "function") {
+      cachedHandler = sentry.wrapRouteHandlerWithSentry(postHandler, {
+        method: "POST",
+        route: "app/api/jobs/[id]/views",
+      }) as RouteHandler;
+      return cachedHandler;
+    }
+  } catch (error) {
+    // Sentry is optional in local/test environments without the dependency.
+  }
+
+  cachedHandler = postHandler as RouteHandler;
+  return cachedHandler;
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  const handler = await resolveHandler();
+  return handler(request, context);
 }

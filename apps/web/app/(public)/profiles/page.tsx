@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import { ListAnalyticsTracker } from "@/components/analytics/ListAnalyticsTracker";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,13 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10" dir="rtl">
+      <ListAnalyticsTracker
+        scope="profiles"
+        query={normalized.query ?? undefined}
+        city={normalized.city ?? undefined}
+        sort={normalized.sort ?? undefined}
+        page={currentPage}
+      />
       <JsonLd data={jsonLd} />
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold text-foreground">{PAGE_TITLE}</h1>

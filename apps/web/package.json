@@ -26,10 +26,13 @@
     "orchestrators:smoke": "tsx scripts/smoke-orchestrators.ts",
     "seo:smoke:profiles": "tsx scripts/seo-smoke-profiles.ts",
     "seo:smoke:jobs": "tsx scripts/seo-smoke-jobs.ts",
-    "cwv:smoke": "node scripts/cwv-smoke.mjs"
+    "cwv:smoke": "node scripts/cwv-smoke.mjs",
+    "qa:smoke": "node scripts/rollout-check.mjs",
+    "qa:analytics": "node scripts/analytics-smoke.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
+    "@sentry/nextjs": "^8.34.0",
     "@prisma/client": "6.16.3",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-select": "^2.2.6",
@@ -69,7 +72,8 @@
     "vitest": "^2.1.4",
     "@lhci/cli": "^0.13.0",
     "lighthouse": "^12.2.0",
-    "chrome-launcher": "^0.15.2"
+    "chrome-launcher": "^0.15.2",
+    "puppeteer": "^23.7.1"
   },
   "engines": {
     "node": ">=18.17.0"

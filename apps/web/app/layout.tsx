@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
+import { ConsentGate } from "@/components/analytics/ConsentGate";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Header, type NavigationItem } from "@/components/site/header";
@@ -22,6 +23,8 @@ const navigation = [
   },
 ] satisfies NavigationItem[];
 
+const isStaging = process.env.NEXT_PUBLIC_ENV === "staging";
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: SITE_NAME,
@@ -37,6 +40,16 @@ export const metadata: Metadata = {
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
   },
+  robots: isStaging
+    ? {
+        index: false,
+        follow: false,
+        googleBot: {
+          index: false,
+          follow: false,
+        },
+      }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -57,6 +70,7 @@ export default function RootLayout({
         <ThemeProvider>
           <div className="flex min-h-screen flex-col bg-background">
             <Header navigation={navigation} />
+            <ConsentGate />
             <main className="flex-1">{children}</main>
             <JsonLd data={organizationJsonLd} />
             <footer className="border-t border-border bg-card/50">

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { ProfileViewAnalyticsTracker } from "@/components/analytics/ProfileViewAnalyticsTracker";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
@@ -177,6 +178,7 @@ export default async function PublicProfilePage({ params }: Props) {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12" dir="rtl">
       <JsonLd data={[breadcrumbs, personJsonLd]} />
+      <ProfileViewAnalyticsTracker city={cityName ?? null} />
       <header className="flex flex-col items-start gap-6 rounded-md border border-border bg-background p-6 shadow-sm">
         <div className="flex w-full flex-col gap-6 sm:flex-row sm:items-center">
           {profile.avatarUrl ? (

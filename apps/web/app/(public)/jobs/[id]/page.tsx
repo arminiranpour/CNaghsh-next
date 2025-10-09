@@ -182,7 +182,15 @@ export default async function JobDetailPage({
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 pb-12" dir="rtl">
       <JsonLd data={[breadcrumbs, jobJsonLd]} />
 
-      <JobViewTracker jobId={job.id} />
+      <JobViewTracker
+        jobId={job.id}
+        analytics={{
+          category: job.category,
+          city: cityName ?? null,
+          payType: job.payType ?? null,
+          remote: job.remote,
+        }}
+      />
 
       <Card className="border border-border shadow-sm">
         <CardHeader className="space-y-4">
