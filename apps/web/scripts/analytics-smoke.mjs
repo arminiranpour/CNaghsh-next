@@ -1,35 +1,33 @@
 #!/usr/bin/env node
 
-import puppeteer from "puppeteer";
+import { chromium } from "playwright";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 async function main() {
   let browser;
+  let context;
 
   try {
-    browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
+    browser = await chromium.launch();
+    context = await browser.newContext();
+    const page = await context.newPage();
 
-    await page.evaluateOnNewDocument(() => {
+    await page.addInitScript(() => {
       window.__analyticsCalls = [];
       window.plausible = function (event, payload) {
         window.__analyticsCalls.push({ event, payload });
       };
     });
 
-    await page.goto(`${baseUrl}/jobs`, { waitUntil: "networkidle0" });
+    await page.goto(`${baseUrl}/jobs`, { waitUntil: "networkidle" });
 
     const initialEvents = await page.evaluate(() => window.__analyticsCalls.length);
     if (initialEvents !== 0) {
       throw new Error(`Expected no analytics events before consent, found ${initialEvents}`);
     }
 
-    const allowButton = await page.waitForXPath("//button[contains(., 'اجازه می‌دهم')]");
-    if (!allowButton) {
-      throw new Error("Consent allow button not found");
-    }
-
+    const allowButton = page.getByRole("button", { name: "اجازه می‌دهم" });
     await allowButton.click();
 
     await page.waitForFunction(
@@ -41,6 +39,7 @@ async function main() {
 
     console.log("Analytics smoke passed: consent + jobs:list_view events captured");
   } finally {
+    await context?.close();
     await browser?.close();
   }
 }
