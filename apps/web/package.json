@@ -28,7 +28,8 @@
     "seo:smoke:jobs": "tsx scripts/seo-smoke-jobs.ts",
     "cwv:smoke": "node scripts/cwv-smoke.mjs",
     "qa:smoke": "node scripts/rollout-check.mjs",
-    "qa:analytics": "node scripts/analytics-smoke.mjs"
+    "qa:analytics": "node scripts/analytics-smoke.mjs",
+    "qa:sprint": "node scripts/sprint-verification.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",

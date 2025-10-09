@@ -1,5 +1,25 @@
 # QA Checklist
 
+## Sprint verification harness
+
+Run all automated SEO, caching, CWV, rollout, analytics, and unit checks in one pass:
+
+```bash
+pnpm --filter @app/web run qa:sprint
+```
+
+The harness verifies the dev server is healthy, streams command output to the console, and
+writes logs/`summary.json` to `reports/sprint-verification/<timestamp>`. Use `--list` to inspect
+available task IDs, `--only=task-id,another` to run a subset, or `--skip-server-check` if the
+server health probe should be bypassed (e.g. targeting a remote URL via `NEXT_PUBLIC_APP_URL`).
+
+Manual follow-ups still required after the automated run:
+
+- [ ] Job detail view counter issues a successful `POST /api/jobs/<id>/views` without UI errors.
+- [ ] With `PRISMA_SLOW_LOG=1 pnpm -w dev`, slow query logs emit `[perf:db] slow_query` entries.
+- [ ] `NEXT_PUBLIC_ENV=staging` renders `<meta name="robots" content="noindex, nofollow">`.
+- [ ] Sentry stays disabled without DSN/flag and initializes when `SENTRY_DSN` + `NEXT_PUBLIC_FLAGS=sentry` are provided.
+
 ## Functional smoke tests
 
 - [ ] `/profiles` loads with SSR/ISR headers (`Cache-Control`, `age`, `x-nextjs-cache`).
