@@ -12,6 +12,9 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@/*": [
+        "./*"
+      ],
       "@/components/*": [
         "./components/*"
       ],
