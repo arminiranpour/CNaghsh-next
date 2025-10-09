@@ -1,15 +1,19 @@
+export const revalidate = 300;
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
 import { buildJobDetailMetadata, buildJobPostingJsonLd, getJobOrganizationName } from "@/lib/jobs/seo";
 import { incrementJobViews } from "@/lib/jobs/views";
 import { buildAbsoluteUrl } from "@/lib/url";
+
+const DISABLED_PRIMARY_BUTTON_CLASS =
+  "inline-flex h-10 w-full items-center justify-center whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground opacity-60 transition-colors";
 
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {
@@ -173,9 +177,9 @@ export default async function JobDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button className="w-full" disabled>
+          <button type="button" className={DISABLED_PRIMARY_BUTTON_CLASS} disabled>
             ارسال درخواست (به زودی)
-          </Button>
+          </button>
         </CardContent>
       </Card>
     </div>
