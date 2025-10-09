@@ -99,7 +99,7 @@ export async function generateMetadata({
   const baseMetadata = buildJobDetailMetadata(job, { cityName });
   const canonical = `${getBaseUrl()}/jobs/${job.id}`;
   const title = baseMetadata.title ?? `${job.title} | ${SITE_NAME}`;
-  const description = baseMetadata.description;
+  const description = baseMetadata.description ?? undefined;
 
   return {
     ...baseMetadata,

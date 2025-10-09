@@ -19,7 +19,20 @@ describe("metadata routes", () => {
 
     expect(result.host).toBe("https://example.com");
     expect(result.sitemap).toBe("https://example.com/sitemap.xml");
-    expect(result.rules?.[0]?.disallow).toContain("/admin");
+    const rules = result.rules
+      ? Array.isArray(result.rules)
+        ? result.rules
+        : [result.rules]
+      : [];
+    const disallowEntries = rules.flatMap((rule) =>
+      Array.isArray(rule?.disallow)
+        ? rule.disallow
+        : rule?.disallow
+          ? [rule.disallow]
+          : [],
+    );
+
+    expect(disallowEntries).toContain("/admin");
   });
 
   it("creates sitemap index entries", () => {
