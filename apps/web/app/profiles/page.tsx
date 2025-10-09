@@ -1,11 +1,15 @@
+export const revalidate = 60;
+
 import Image from "next/image";
 import Link from "next/link";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getCities } from "@/lib/location/cities";
-import { prisma } from "@/lib/prisma";
-import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
+import {
+  getPublicDirectoryProfiles,
+  type PublicDirectoryProfile,
+} from "@/lib/profile/directoryQueries";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 const SKILL_OPTIONS = SKILLS.map((skill) => ({ key: skill.key, label: skill.label }));
@@ -13,17 +17,6 @@ const SKILL_OPTIONS = SKILLS.map((skill) => ({ key: skill.key, label: skill.labe
 type SearchParams = {
   city?: string | string[];
   skill?: string | string[];
-};
-
-type DirectoryProfile = {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  stageName: string | null;
-  avatarUrl: string | null;
-  cityId: string | null;
-  updatedAt: Date;
-  skills: unknown;
 };
 
 function normalizeSkillLabels(skills: unknown): string[] {
@@ -40,7 +33,7 @@ function normalizeSkillLabels(skills: unknown): string[] {
   return labels;
 }
 
-function getDisplayName(profile: DirectoryProfile) {
+function getDisplayName(profile: PublicDirectoryProfile) {
   if (profile.stageName?.trim()) {
     return profile.stageName.trim();
   }
@@ -52,44 +45,9 @@ export default async function ProfilesDirectory({ searchParams }: { searchParams
   const cityFilter = typeof searchParams.city === "string" ? searchParams.city : undefined;
   const skillFilter = typeof searchParams.skill === "string" ? searchParams.skill : undefined;
 
-  const now = new Date();
-
   const [cities, profiles] = await Promise.all([
     getCities(),
-    prisma.profile.findMany({
-      where: {
-        visibility: "PUBLIC",
-        moderationStatus: "APPROVED",
-        publishedAt: { not: null },
-        user: {
-          entitlements: {
-            some: {
-              key: CAN_PUBLISH_PROFILE,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-            },
-          },
-        },
-        ...(cityFilter ? { cityId: cityFilter } : {}),
-        ...(skillFilter
-          ? {
-              skills: {
-                array_contains: [skillFilter],
-              },
-            }
-          : {}),
-      },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        stageName: true,
-        avatarUrl: true,
-        cityId: true,
-        updatedAt: true,
-        skills: true,
-      },
-    }),
+    getPublicDirectoryProfiles({ cityId: cityFilter, skill: skillFilter }),
   ]);
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));

@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 
 import { Prisma } from "@prisma/client";
 
-import { CACHE_REVALIDATE, CACHE_TAGS } from "@/lib/cache/config";
+import { CACHE_REVALIDATE, CACHE_TAGS, shouldBypassCache } from "@/lib/cache/config";
 import { prisma } from "@/lib/prisma";
 
 import { PUBLIC_JOB_SORTS, PUBLIC_JOBS_PAGE_SIZE, type PublicJobSort } from "./constants";
@@ -99,6 +99,15 @@ function buildJobsListTags(params: NormalizedPublicJobQueryParams): string[] {
   return Array.from(tags);
 }
 
+function logTiming(label: string, start: bigint, metadata: string) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  const elapsed = Number(process.hrtime.bigint() - start) / 1_000_000;
+  console.info(`${label} duration=${elapsed.toFixed(1)}ms ${metadata}`);
+}
+
 export function buildPublicWhere(
   params: Pick<PublicJobQueryParams, "city" | "category" | "remote" | "payType">
 ): Prisma.JobWhereInput {
@@ -151,73 +160,22 @@ export async function getPublicJobs(params: PublicJobQueryParams = {}) {
   const skip = (normalized.page - 1) * PUBLIC_JOBS_PAGE_SIZE;
   const tags = buildJobsListTags(normalized);
 
-  const resolve = unstable_cache(
-    async () => {
-      const where = buildPublicWhere({
-        city: normalized.city,
-        category: normalized.category,
-        remote: normalized.remote,
-        payType: normalized.payType,
-      });
+  const resolver = async () => {
+    const where = buildPublicWhere({
+      city: normalized.city,
+      category: normalized.category,
+      remote: normalized.remote,
+      payType: normalized.payType,
+    });
 
-      const orderBy = buildPublicOrderBy(normalized.sort);
+    const orderBy = buildPublicOrderBy(normalized.sort);
 
-      const [items, total] = await Promise.all([
-        prisma.job.findMany({
-          where,
-          orderBy,
-          skip,
-          take: PUBLIC_JOBS_PAGE_SIZE,
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                profile: {
-                  select: {
-                    id: true,
-                    stageName: true,
-                    firstName: true,
-                    lastName: true,
-                  },
-                },
-              },
-            },
-          },
-        }),
-        prisma.job.count({ where }),
-      ]);
-
-      return {
-        items,
-        total,
-        page: normalized.page,
-        pageSize: PUBLIC_JOBS_PAGE_SIZE,
-        totalPages: Math.max(1, Math.ceil(total / PUBLIC_JOBS_PAGE_SIZE)),
-      };
-    },
-    ["public-jobs", cacheKey],
-    {
-      revalidate: CACHE_REVALIDATE.jobsList,
-      tags,
-    },
-  );
-
-  return resolve();
-}
-
-export async function getPublicJobById(id: string) {
-  if (!id) {
-    return null;
-  }
-
-  const resolve = unstable_cache(
-    async () =>
-      prisma.job.findFirst({
-        where: {
-          ...BASE_VISIBILITY_WHERE,
-          id,
-        },
+    const [items, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        orderBy,
+        skip,
+        take: PUBLIC_JOBS_PAGE_SIZE,
         include: {
           user: {
             select: {
@@ -235,52 +193,127 @@ export async function getPublicJobById(id: string) {
           },
         },
       }),
-    ["public-job", id],
-    {
-      revalidate: CACHE_REVALIDATE.jobDetail,
-      tags: [CACHE_TAGS.jobDetail(id), CACHE_TAGS.jobsList],
-    },
-  );
+      prisma.job.count({ where }),
+    ]);
 
-  return resolve();
+    return {
+      items,
+      total,
+      page: normalized.page,
+      pageSize: PUBLIC_JOBS_PAGE_SIZE,
+      totalPages: Math.max(1, Math.ceil(total / PUBLIC_JOBS_PAGE_SIZE)),
+    };
+  };
+
+  if (shouldBypassCache()) {
+    const start = process.hrtime.bigint();
+    const result = await resolver();
+    logTiming("[orch:jobs] bypass_cache", start, `key=${cacheKey}`);
+    return result;
+  }
+
+  const resolve = unstable_cache(resolver, ["public-jobs", cacheKey], {
+    revalidate: CACHE_REVALIDATE.jobsList,
+    tags,
+  });
+
+  const start = process.hrtime.bigint();
+  const result = await resolve();
+  logTiming("[orch:jobs]", start, `key=${cacheKey}`);
+  return result;
+}
+
+export async function getPublicJobById(id: string) {
+  if (!id) {
+    return null;
+  }
+
+  const resolver = async () =>
+    prisma.job.findFirst({
+      where: {
+        ...BASE_VISIBILITY_WHERE,
+        id,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            profile: {
+              select: {
+                id: true,
+                stageName: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+  if (shouldBypassCache()) {
+    const start = process.hrtime.bigint();
+    const result = await resolver();
+    logTiming("[orch:jobs] bypass_cache", start, `key=${id}`);
+    return result;
+  }
+
+  const resolve = unstable_cache(resolver, ["public-job", id], {
+    revalidate: CACHE_REVALIDATE.jobDetail,
+    tags: [CACHE_TAGS.jobDetail(id), CACHE_TAGS.jobsList],
+  });
+
+  const start = process.hrtime.bigint();
+  const result = await resolve();
+  logTiming("[orch:jobs]", start, `key=${id}`);
+  return result;
 }
 
 export async function getPublicJobFilters() {
-  const resolve = unstable_cache(
-    async () => {
-      const where = { ...BASE_VISIBILITY_WHERE } satisfies Prisma.JobWhereInput;
+  const resolver = async () => {
+    const where = { ...BASE_VISIBILITY_WHERE } satisfies Prisma.JobWhereInput;
 
-      const [categories, payTypes] = await Promise.all([
-        prisma.job.findMany({
-          where,
-          distinct: ["category"],
-          orderBy: { category: "asc" },
-          select: { category: true },
-        }),
-        prisma.job.findMany({
-          where: {
-            ...where,
-            payType: { not: null },
-          },
-          distinct: ["payType"],
-          orderBy: { payType: "asc" },
-          select: { payType: true },
-        }),
-      ]);
+    const [categories, payTypes] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        distinct: ["category"],
+        orderBy: { category: "asc" },
+        select: { category: true },
+      }),
+      prisma.job.findMany({
+        where: {
+          ...where,
+          payType: { not: null },
+        },
+        distinct: ["payType"],
+        orderBy: { payType: "asc" },
+        select: { payType: true },
+      }),
+    ]);
 
-      return {
-        categories: categories.map((entry) => entry.category).filter(Boolean),
-        payTypes: payTypes
-          .map((entry) => entry.payType)
-          .filter((value): value is string => Boolean(value && value.trim())),
-      };
-    },
-    ["public-job-filters"],
-    {
-      revalidate: CACHE_REVALIDATE.jobFilters,
-      tags: [CACHE_TAGS.jobsFilters, CACHE_TAGS.jobsList],
-    },
-  );
+    return {
+      categories: categories.map((entry) => entry.category).filter(Boolean),
+      payTypes: payTypes
+        .map((entry) => entry.payType)
+        .filter((value): value is string => Boolean(value && value.trim())),
+    };
+  };
 
-  return resolve();
+  if (shouldBypassCache()) {
+    const start = process.hrtime.bigint();
+    const result = await resolver();
+    logTiming("[orch:jobs] bypass_cache", start, "key=filters");
+    return result;
+  }
+
+  const resolve = unstable_cache(resolver, ["public-job-filters"], {
+    revalidate: CACHE_REVALIDATE.jobFilters,
+    tags: [CACHE_TAGS.jobsFilters, CACHE_TAGS.jobsList],
+  });
+
+  const start = process.hrtime.bigint();
+  const result = await resolve();
+  logTiming("[orch:jobs]", start, "key=filters");
+  return result;
 }

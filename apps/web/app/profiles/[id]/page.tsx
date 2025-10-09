@@ -1,3 +1,5 @@
+export const revalidate = 300;
+
 import Image from "next/image";
 import { notFound } from "next/navigation";
 

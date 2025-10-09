@@ -1,9 +1,10 @@
+export const revalidate = 60;
+
 import Link from "next/link";
 import type { LinkProps } from "next/link";
 import type { Metadata } from "next";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
 import {
@@ -25,6 +26,12 @@ const SORT_OPTIONS: { value: PublicJobSort; label: string }[] = [
   { value: "featured", label: "ویژه‌ها" },
   { value: "expiring", label: "رو به پایان" },
 ];
+
+const BUTTON_BASE_CLASS =
+  "inline-flex h-10 items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ring-offset-background";
+const PRIMARY_BUTTON_CLASS = `${BUTTON_BASE_CLASS} bg-primary text-primary-foreground hover:bg-primary/90`;
+const OUTLINE_BUTTON_CLASS = `${BUTTON_BASE_CLASS} border border-input bg-background hover:bg-accent hover:text-accent-foreground`;
+const OUTLINE_BUTTON_DISABLED_CLASS = `${BUTTON_BASE_CLASS} border border-input bg-background text-muted-foreground`;
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
 
@@ -317,9 +324,9 @@ export default async function JobsPage({
             </div>
 
             <div className="md:col-span-2 lg:col-span-3">
-              <Button type="submit" className="w-full">
+              <button type="submit" className={`${PRIMARY_BUTTON_CLASS} w-full`}>
                 اعمال فیلترها
-              </Button>
+              </button>
             </div>
           </form>
         </CardContent>
@@ -370,9 +377,9 @@ export default async function JobsPage({
                   ) : null}
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button asChild variant="outline">
-                    <Link href={`/jobs/${job.id}`}>مشاهده جزئیات</Link>
-                  </Button>
+                  <Link href={`/jobs/${job.id}`} className={OUTLINE_BUTTON_CLASS}>
+                    مشاهده جزئیات
+                  </Link>
                 </CardFooter>
               </Card>
             );
@@ -387,22 +394,22 @@ export default async function JobsPage({
           </span>
           <div className="flex items-center gap-2">
             {jobsResult.page > 1 ? (
-              <Button asChild variant="outline">
-                <Link href={buildPageHref(jobsResult.page - 1)}>صفحه قبل</Link>
-              </Button>
-            ) : (
-              <Button variant="outline" disabled>
+              <Link href={buildPageHref(jobsResult.page - 1)} className={OUTLINE_BUTTON_CLASS}>
                 صفحه قبل
-              </Button>
+              </Link>
+            ) : (
+              <span className={OUTLINE_BUTTON_DISABLED_CLASS} aria-disabled>
+                صفحه قبل
+              </span>
             )}
             {jobsResult.page < jobsResult.totalPages ? (
-              <Button asChild variant="outline">
-                <Link href={buildPageHref(jobsResult.page + 1)}>صفحه بعد</Link>
-              </Button>
-            ) : (
-              <Button variant="outline" disabled>
+              <Link href={buildPageHref(jobsResult.page + 1)} className={OUTLINE_BUTTON_CLASS}>
                 صفحه بعد
-              </Button>
+              </Link>
+            ) : (
+              <span className={OUTLINE_BUTTON_DISABLED_CLASS} aria-disabled>
+                صفحه بعد
+              </span>
             )}
           </div>
         </div>
