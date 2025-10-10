@@ -6,12 +6,12 @@ import Footer from "@/components/blocks/home/Footer"
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#000000] font-sans" dir="rtl">
+    <main className="min-h-screen bg-[#000000] font-sans">
       <Hero />
       <FeaturedStrip />
       <HowItWorks />
       <StatsBand />
-            <Footer />
-    </div>
+      <Footer />
+    </main>
   )
 }

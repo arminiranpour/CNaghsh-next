@@ -1,45 +1,60 @@
 import { ArrowLeft } from "lucide-react"
 
+import Container from "@/components/layout/Container"
+import Section from "@/components/layout/Section"
 import { Button } from "@/components/ui/button"
+
+const taglines = ["سینما", "آرتیستیک", "تئاتر"]
 
 export default function Hero() {
   return (
-    <section className="relative bg-[#000000] px-6 py-12 md:px-12 lg:px-24">
-      <div className="mx-auto max-w-7xl">
-        <div className="relative rounded-[2.5rem] border-4 border-[#ffffff] p-8 md:p-12">
-          <img
-            src="/cineflash/vintage-black-and-white-cinematographer-with-film-.jpg"
-            alt="Vintage cinematographer"
-            className="h-[400px] w-full rounded-2xl object-cover md:h-[500px]"
-          />
+    <Section className="relative overflow-hidden bg-[#000000] pb-20 pt-14 text-[#ffffff]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#050505] via-transparent to-[#1e3016]/30" />
+      <Container className="relative">
+        <div className="grid gap-12">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-[#ffffff]/40 bg-[#0f0f0f] p-6 shadow-[0_0_40px_rgba(0,0,0,0.35)] sm:p-8 md:p-10">
+            <img
+              src="/cineflash/vintage-black-and-white-cinematographer-with-film-.jpg"
+              alt="فیلمبردار قدیمی در حال کار"
+              className="h-[320px] w-full rounded-[2rem] object-cover sm:h-[380px] md:h-[440px]"
+            />
 
-          <button
-            type="button"
-            className="absolute bottom-8 left-8 flex h-12 w-12 items-center justify-center rounded-full bg-[#ffffff]/10 backdrop-blur-sm transition-colors hover:bg-[#ffffff]/20"
-          >
-            <ArrowLeft className="h-6 w-6 text-[#ffffff]" />
-          </button>
+            <div className="pointer-events-none absolute inset-6 rounded-[2rem] bg-gradient-to-tr from-[#000000]/60 via-transparent to-[#ff7f19]/30" />
 
-          <Button
-            variant="secondary"
-            className="absolute bottom-8 right-8 rounded-full bg-[#ffffff] px-6 py-2 text-sm text-[#000000] transition-colors hover:bg-[#e5e5e5]"
-          >
-            درباره سی‌نفلش
-          </Button>
-        </div>
+            <button
+              type="button"
+              className="absolute bottom-10 left-10 flex h-12 w-12 items-center justify-center rounded-full border border-[#ffffff]/40 bg-[#000000]/60 backdrop-blur-sm transition-colors hover:bg-[#1e3016]/70"
+              aria-label="مشاهده اسلاید قبلی"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
 
-        <div className="mt-8 text-center">
-          <h1 className="text-5xl font-bold text-[#ff7f19] md:text-6xl lg:text-7xl">سی‌نفلش</h1>
-          <div className="mt-4 flex items-center justify-center gap-4 text-lg text-[#ffffff] md:text-xl">
-            <span>سینما</span>
-            <span>آرتیستیک</span>
-            <span>تئاتر</span>
+            <Button
+              variant="secondary"
+              className="absolute bottom-10 right-10 rounded-full bg-[#ffffff] px-6 py-2 text-sm font-semibold text-[#000000] transition-colors hover:bg-[#f5f5f5]"
+            >
+              درباره سی‌نفلش
+            </Button>
           </div>
-                    <p className="mt-6 text-sm text-[#ffffff] md:text-base">
-            بزرگترین جامعهٔ جهانی بازیگران فیلم، تئاتر، شبکه‌های خانگی، تلویزیون
-          </p>
+
+          <div className="text-center">
+            <span className="inline-flex items-center justify-center rounded-full border border-[#ff7f19]/50 bg-[#ff7f19]/15 px-4 py-2 text-xs tracking-wide text-[#ffbf70]">
+              جامعه‌ی حرفه‌ای بازیگران ایران و جهان
+            </span>
+            <h1 className="mt-6 text-4xl font-extrabold text-[#ff7f19] sm:text-5xl md:text-6xl">سی‌نفلش</h1>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-base font-medium sm:text-lg">
+              {taglines.map((tagline) => (
+                <span key={tagline} className="rounded-full border border-[#ffffff]/20 px-5 py-2">
+                  {tagline}
+                </span>
+              ))}
+            </div>
+            <p className="mt-6 text-sm leading-relaxed text-[#d1d1d1] sm:text-base">
+              بزرگترین جامعهٔ جهانی بازیگران فیلم، تئاتر، شبکه‌های خانگی و تلویزیون. فضای حرفه‌ای برای کشف استعدادها و اتصال با فرصت‌های تازه.
+            </p>
+          </div>
         </div>
-      </div>
-    </section>
+      </Container>
+    </Section>
   )
 }
