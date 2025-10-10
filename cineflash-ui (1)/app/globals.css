@@ -124,6 +124,12 @@
   }
 }
 
+@layer utilities {
+  .backdrop-blur-md {
+    backdrop-filter: blur(12px);
+  }
+}
+
 /* Added custom scrollbar hiding utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
