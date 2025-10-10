@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import "./globals.css";
 
 import { ConsentGate } from "@/components/analytics/ConsentGate";
@@ -57,6 +58,9 @@ export default function RootLayout({
 }: {
   children: ReactNode;
 }) {
+  const headersList = headers();
+  const pathname = headersList.get("next-url") ?? "/";
+  const isHomePage = pathname === "/";
   const baseUrl = getBaseUrl();
   const organizationJsonLd = siteOrganizationJsonLd({
     name: SITE_NAME,
@@ -69,16 +73,18 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
           <div className="flex min-h-screen flex-col bg-background">
-            <Header navigation={navigation} />
+            {!isHomePage && <Header navigation={navigation} />}
             <ConsentGate />
             <main className="flex-1">{children}</main>
             <JsonLd data={organizationJsonLd} />
-            <footer className="border-t border-border bg-card/50">
-              <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
-                <span>ساخته شده برای اسپرینت صفر</span>
-              </div>
-            </footer>
+                        {!isHomePage && (
+              <footer className="border-t border-border bg-card/50">
+                <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
+                  <span>ساخته شده برای اسپرینت صفر</span>
+                </div>
+              </footer>
+            )}
           </div>
           <Toaster />
         </ThemeProvider>
