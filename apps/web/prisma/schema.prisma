@@ -22,6 +22,7 @@ model User {
   moderationEvents    ModerationEvent[]    @relation("ModerationActor")
   notifications       Notification[]
   payments            Payment[]
+  subscriptions       Subscription[]
   moderatedProfiles   Profile[]            @relation("ProfileModerators")
   profile             Profile?
   entitlements        UserEntitlement[]
@@ -94,6 +95,7 @@ model Plan {
   updatedAt DateTime  @updatedAt
   product   Product   @relation(fields: [productId], references: [id])
   prices    Price[]
+  subscriptions Subscription[]
 
   @@index([productId, active])
 }
@@ -134,6 +136,26 @@ model CheckoutSession {
   @@index([userId, status])
 }
 
+model Subscription {
+  id                String             @id @default(cuid())
+  userId            String
+  planId            String
+  status            SubscriptionStatus @default(active)
+  startedAt         DateTime           @default(now())
+  endsAt            DateTime
+  renewalAt         DateTime?
+  cancelAtPeriodEnd Boolean           @default(false)
+  providerRef       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  plan              Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([status])
+  @@index([endsAt])
+}
+
 model Payment {
   id                String          @id @default(cuid())
   userId            String
@@ -148,23 +170,47 @@ model Payment {
   invoice           Invoice?
   session           CheckoutSession @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  webhookLogs       PaymentWebhookLog[]
 
   @@unique([provider, providerRef])
 }
 
+model PaymentWebhookLog {
+  id          String   @id @default(cuid())
+  provider    String
+  eventType   String?
+  externalId  String
+  signature   String?
+  payload     Json
+  receivedAt  DateTime @default(now())
+  handledAt   DateTime?
+  status      String?
+  paymentId   String?
+  payment     Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, externalId])
+  @@index([receivedAt])
+  @@index([status])
+}
+
 model Invoice {
-  id        String        @id @default(cuid())
-  userId    String
-  paymentId String        @unique
-  total     Int
-  currency  String        @default("IRR")
-  status    InvoiceStatus
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  payment   Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  userId      String
+  paymentId   String      @unique
+  number      String      @unique @default(dbgenerated("concat('INV-', to_char(now(), 'YYYYMMDD'), '-', lpad(nextval('"Invoice_number_seq"')::text, 6, '0'))"))
+  type        InvoiceType @default(SALE)
+  providerRef String?
+  issuedAt    DateTime    @default(now())
+  total       Int
+  currency    String      @default("IRR")
+  status      InvoiceStatus
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  payment     Payment     @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([issuedAt])
 }
 
 model UserEntitlement {
@@ -177,8 +223,10 @@ model UserEntitlement {
   updatedAt        DateTime       @updatedAt
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, key])
-  @@index([userId, key, expiresAt])
+  /// NOTE: Prisma does not support partial indexes.
+  /// Application logic ensures at most one active CAN_PUBLISH_PROFILE entitlement per user.
+  @@unique([userId, key, expiresAt])
+  @@index([userId, key])
 }
 
 model Job {
@@ -268,6 +316,13 @@ enum Provider {
   nextpay
 }
 
+enum SubscriptionStatus {
+  active
+  expired
+  canceled
+  renewing
+}
+
 enum CheckoutStatus {
   STARTED
   PENDING
@@ -310,6 +365,11 @@ enum InvoiceStatus {
   OPEN
   PAID
   VOID
+}
+
+enum InvoiceType {
+  SALE
+  REFUND
 }
 
 enum EntitlementKey {
