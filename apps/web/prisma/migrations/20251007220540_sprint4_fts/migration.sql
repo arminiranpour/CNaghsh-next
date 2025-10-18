@@ -1,17 +1,21 @@
-/*
-  Warnings:
+-- Make destructive ops shadow-safe and idempotent.
+-- Wrap in a transaction so either all changes apply or none.
+BEGIN;
 
-  - You are about to drop the column `search_vector` on the `Job` table. All the data in the column will be lost.
-  - You are about to drop the column `search_vector` on the `Profile` table. All the data in the column will be lost.
+-- Drop the FTS indexes only if they exist.
+DO $$
+BEGIN
+  IF to_regclass('public.idx_job_search_vector') IS NOT NULL THEN
+    EXECUTE 'DROP INDEX public."idx_job_search_vector"';
+  END IF;
 
-*/
-DROP INDEX IF EXISTS "public"."idx_job_search_vector";
+  IF to_regclass('public.idx_profile_search_vector') IS NOT NULL THEN
+    EXECUTE 'DROP INDEX public."idx_profile_search_vector"';
+  END IF;
+END $$;
 
--- DropIndex
-DROP INDEX IF EXISTS "public"."idx_profile_search_vector";
-
--- AlterTable
-ALTER TABLE "Job" DROP COLUMN IF EXISTS "search_vector";
-
--- AlterTable
+-- Drop columns only if they exist (safe for shadow DB replays).
+ALTER TABLE "Job"     DROP COLUMN IF EXISTS "search_vector";
 ALTER TABLE "Profile" DROP COLUMN IF EXISTS "search_vector";
+
+COMMIT;
