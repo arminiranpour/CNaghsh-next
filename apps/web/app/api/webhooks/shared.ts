@@ -68,8 +68,8 @@ const executeWebhook = async ({
   payload,
   signature,
   skipSignatureCheck = false,
-}: ExecutionOptions): Promise<ProcessWebhookResult & { status: WebhookStatus }>
-=> {
+}: ExecutionOptions): Promise<ProcessWebhookResult & { status: WebhookStatus }> => {
+
   const sessionId = getSessionId(payload);
   if (!sessionId) {
     throw new Error("Missing sessionId");
