@@ -1,0 +1,186 @@
+import { Prisma } from "@prisma/client";
+
+import type { ProviderName, WebhookStatus } from "@/lib/billing/providers";
+import { prisma } from "@/lib/prisma";
+import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
+
+type JsonValue = Prisma.JsonValue;
+
+type ProcessWebhookInput = {
+  provider: ProviderName;
+  externalId: string;
+  providerRef: string;
+  status: WebhookStatus;
+  amount: number;
+  currency: string;
+  rawPayload: JsonValue;
+  userId: string;
+  checkoutSessionId: string;
+  signature?: string;
+  eventType?: string;
+};
+
+type PrismaClientLike = typeof prisma;
+
+export type ProcessWebhookResult = {
+  idempotent: boolean;
+  webhookLogId?: string;
+  paymentId?: string;
+  invoiceId?: string | null;
+};
+
+const isUniqueConstraintError = (error: unknown) => {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+};
+
+const mapStatusToPayment = (status: WebhookStatus): (typeof PaymentStatus)[keyof typeof PaymentStatus] => {
+  if (status === "PAID") {
+    return PaymentStatus.PAID;
+  }
+  if (status === "PENDING") {
+    return PaymentStatus.PENDING;
+  }
+  if (status === "REFUNDED") {
+    return PaymentStatus.REFUNDED;
+  }
+  return PaymentStatus.FAILED;
+};
+
+export const processWebhook = async (
+  input: ProcessWebhookInput,
+  client: PrismaClientLike = prisma,
+): Promise<ProcessWebhookResult> => {
+  const logData = {
+    provider: input.provider,
+    externalId: input.externalId,
+    eventType: input.eventType,
+    signature: input.signature,
+    payload: input.rawPayload,
+    status: "received",
+  } satisfies Prisma.PaymentWebhookLogCreateInput;
+
+  let log;
+  try {
+    log = await client.paymentWebhookLog.create({ data: logData });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return { idempotent: true };
+    }
+    throw error;
+  }
+
+  const paymentStatus = mapStatusToPayment(input.status);
+
+  const result = await client.$transaction(async (tx) => {
+    const payment = await tx.payment.upsert({
+      where: {
+        provider_providerRef: {
+          provider: input.provider,
+          providerRef: input.providerRef,
+        },
+      },
+      create: {
+        provider: input.provider,
+        providerRef: input.providerRef,
+        status: paymentStatus,
+        amount: input.amount,
+        currency: input.currency,
+        userId: input.userId,
+        checkoutSessionId: input.checkoutSessionId,
+      },
+      update: {
+        status: paymentStatus,
+        amount: input.amount,
+        currency: input.currency,
+        userId: input.userId,
+        checkoutSessionId: input.checkoutSessionId,
+      },
+    });
+
+    let invoiceId: string | null = null;
+    if (input.status === "PAID") {
+      const existingInvoice = await tx.invoice.findUnique({
+        where: { paymentId: payment.id },
+      });
+      if (existingInvoice) {
+        invoiceId = existingInvoice.id;
+      } else {
+        const invoice = await tx.invoice.create({
+          data: {
+            paymentId: payment.id,
+            userId: input.userId,
+            total: input.amount,
+            currency: input.currency,
+            status: InvoiceStatus.PAID,
+            type: "SALE",
+            providerRef: input.providerRef,
+          },
+        });
+        invoiceId = invoice.id;
+      }
+    }
+
+    await tx.paymentWebhookLog.update({
+      where: { id: log.id },
+      data: {
+        status: "handled",
+        handledAt: new Date(),
+        paymentId: payment.id,
+      },
+    });
+
+    return { payment, invoiceId } as const;
+  });
+
+  return {
+    idempotent: false,
+    webhookLogId: log.id,
+    paymentId: result.payment.id,
+    invoiceId: result.invoiceId,
+  };
+};
+
+type RecordInvalidArgs = {
+  provider: ProviderName;
+  externalId: string;
+  rawPayload: JsonValue;
+  signature?: string;
+  eventType?: string;
+};
+
+export const recordInvalidWebhook = async (
+  args: RecordInvalidArgs,
+  client: PrismaClientLike = prisma,
+): Promise<void> => {
+  try {
+    await client.paymentWebhookLog.create({
+      data: {
+        provider: args.provider,
+        externalId: args.externalId,
+        payload: args.rawPayload,
+        signature: args.signature,
+        eventType: args.eventType,
+        status: "invalid",
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      await client.paymentWebhookLog.updateMany({
+        where: {
+          provider: args.provider,
+          externalId: args.externalId,
+        },
+        data: {
+          status: "invalid",
+          signature: args.signature,
+          eventType: args.eventType,
+          payload: args.rawPayload,
+        },
+      });
+      return;
+    }
+    throw error;
+  }
+};

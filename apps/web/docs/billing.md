@@ -8,3 +8,9 @@
 - **Idempotency Guarantees**: the unique subscription per user (`@@unique([userId])`) and webhook log constraint prevent duplicate lifecycle rows and webhook reprocessing.
 
 These structures prepare the billing system for lifecycle automation while remaining backward compatible with existing seed data.
+
+## Phase 2 — Webhooks
+- Webhook payloads log into `PaymentWebhookLog` with statuses `received`, `handled`, or `invalid`. Idempotency relies on the `@@unique([provider, externalId])` constraint.
+- Provider-specific helpers normalize payloads to internal statuses (`PAID`, `FAILED`, `PENDING`, `REFUNDED`) and resolve identifiers before delegating to the shared service.
+- Use `pnpm --filter @app/web run qa:sprint --only=billing:webhooks` with `WEBHOOK_TEST_SECRET` to drive the simulator harness. The admin simulator expects `webhook-test-secret` and `x-admin-user-id` headers.
+- A successful `PAID` webhook creates or reuses the `Payment` and generates an `Invoice` once; replays short-circuit with `{ idempotent: true }`.

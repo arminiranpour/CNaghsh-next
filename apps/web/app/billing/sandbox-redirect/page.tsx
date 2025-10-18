@@ -1,4 +1,4 @@
-import type { ProviderName } from "@/lib/billing/providers/types";
+import type { ProviderName } from "@/lib/billing/providerAdapters/types";
 
 import { SandboxRedirectContent } from "./sandbox-redirect-content";
 

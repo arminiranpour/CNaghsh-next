@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import type { ProviderName } from "@/lib/billing/providers/types";
+import type { ProviderName } from "@/lib/billing/providerAdapters/types";
 
 import type { OneTimePrice, PricingPlan } from "./page";
 

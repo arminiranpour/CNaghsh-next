@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
-import { providers } from "@/lib/billing/providers";
-import { ProviderName } from "@/lib/billing/providers/types";
+import { providers } from "@/lib/billing/providerAdapters";
+import { ProviderName } from "@/lib/billing/providerAdapters/types";
 import { prisma } from "@/lib/db";
 import { badRequest, ok, safeJson, serverError } from "@/lib/http";
 import { sanitizeReturnUrl } from "@/lib/url";
