@@ -4,7 +4,7 @@ import { describe, beforeEach, expect, it, vi } from "vitest";
 
 type ProviderName = "zarinpal" | "idpay" | "nextpay";
 
-const createTestPrisma = () => {
+function createTestPrisma() {
   let idCounter = 1;
   const nextId = (prefix: string) => `${prefix}_${idCounter++}`;
 
@@ -276,7 +276,7 @@ const createTestPrisma = () => {
       },
     },
   } as const;
-};
+}
 
 const testDb = vi.hoisted(createTestPrisma);
 
