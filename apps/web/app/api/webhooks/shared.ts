@@ -10,6 +10,8 @@ import {
   type WebhookStatus,
   verifySignature,
 } from "@/lib/billing/providers";
+
+export type { ProviderName } from "@/lib/billing/providers";
 import {
   processWebhook,
   recordInvalidWebhook,

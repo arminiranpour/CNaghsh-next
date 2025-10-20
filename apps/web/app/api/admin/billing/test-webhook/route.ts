@@ -44,7 +44,11 @@ export async function POST(request: NextRequest) {
     payload?: unknown;
   };
 
-  if (typeof provider !== "string" || !isProvider(provider)) {
+  if (typeof provider !== "string") {
+    return badRequest("Invalid provider");
+  }
+
+  if (!isProvider(provider)) {
     return badRequest("Invalid provider");
   }
 

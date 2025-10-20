@@ -4,7 +4,7 @@ import type { ProviderName, WebhookStatus } from "@/lib/billing/providers";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
-type JsonValue = Prisma.JsonValue;
+type JsonPayload = Prisma.InputJsonValue;
 
 type ProcessWebhookInput = {
   provider: ProviderName;
@@ -13,7 +13,7 @@ type ProcessWebhookInput = {
   status: WebhookStatus;
   amount: number;
   currency: string;
-  rawPayload: JsonValue;
+  rawPayload: JsonPayload;
   userId: string;
   checkoutSessionId: string;
   signature?: string;
@@ -145,7 +145,7 @@ export const processWebhook = async (
 type RecordInvalidArgs = {
   provider: ProviderName;
   externalId: string;
-  rawPayload: JsonValue;
+  rawPayload: JsonPayload;
   signature?: string;
   eventType?: string;
 };
