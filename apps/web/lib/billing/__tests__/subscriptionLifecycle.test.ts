@@ -240,7 +240,7 @@ function createTestPrisma() {
         id = nextId("prod"),
         type = ProductType.SUBSCRIPTION,
         name = "Test Product",
-      } = {}) => {
+      }: { id?: string; type?: ProductType; name?: string } = {}) => {
         const product: ProductRecord = { id, type, name };
         products.set(id, product);
         return product;
@@ -352,16 +352,24 @@ describe("subscription lifecycle", () => {
     plan = testDb.helpers.createPlan({ productId: product.id, cycle: PlanCycle.MONTHLY });
     capturedEvents = [];
     offHandlers = [
-      on("SUBSCRIPTION_ACTIVATED", (event) => capturedEvents.push(event.type)),
-      on("SUBSCRIPTION_RESTARTED", (event) => capturedEvents.push(event.type)),
-      on("SUBSCRIPTION_RENEWED", (event) => capturedEvents.push(event.type)),
-      on("SUBSCRIPTION_EXPIRED", (event) => capturedEvents.push(event.type)),
-      on("SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET", (event) =>
-        capturedEvents.push(event.type),
-      ),
-      on("SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED", (event) =>
-        capturedEvents.push(event.type),
-      ),
+      on("SUBSCRIPTION_ACTIVATED", (event) => {
+        capturedEvents.push(event.type);
+      }),
+      on("SUBSCRIPTION_RESTARTED", (event) => {
+        capturedEvents.push(event.type);
+      }),
+      on("SUBSCRIPTION_RENEWED", (event) => {
+        capturedEvents.push(event.type);
+      }),
+      on("SUBSCRIPTION_EXPIRED", (event) => {
+        capturedEvents.push(event.type);
+      }),
+      on("SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET", (event) => {
+        capturedEvents.push(event.type);
+      }),
+      on("SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED", (event) => {
+        capturedEvents.push(event.type);
+      }),
     ];
   });
 

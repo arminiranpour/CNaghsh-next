@@ -29,7 +29,7 @@
     "cwv:smoke": "node scripts/cwv-smoke.mjs",
     "qa:smoke": "node scripts/rollout-check.mjs",
     "qa:analytics": "node scripts/analytics-smoke.mjs",
-    "qa:sprint": "node scripts/sprint-verification.mjs"
+    "qa:sprint": "tsx scripts/sprint-verification.mjs"
   },
   "dependencies": {
     "@acme/ui": "file:../../packages/ui",
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@lhci/cli": "^0.13.0",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^20.14.10",
+    "@types/node": "^20.19.19",
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
@@ -76,7 +76,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.2",
-    "vitest": "^2.1.4"
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=18.17.0"
