@@ -4,6 +4,8 @@ import type { ProviderName, WebhookStatus } from "@/lib/billing/providers";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
+import { applyPaymentToSubscription } from "./paymentToSubscription";
+
 type JsonPayload = Prisma.InputJsonValue;
 
 type ProcessWebhookInput = {
@@ -133,6 +135,14 @@ export const processWebhook = async (
 
     return { payment, invoiceId } as const;
   });
+
+  if (paymentStatus === PaymentStatus.PAID) {
+    try {
+      await applyPaymentToSubscription({ paymentId: result.payment.id });
+    } catch (error) {
+      console.error("applyPaymentToSubscription", error);
+    }
+  }
 
   return {
     idempotent: false,

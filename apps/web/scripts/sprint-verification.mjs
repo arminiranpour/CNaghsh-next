@@ -4,16 +4,21 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 import { PrismaClient, Prisma } from "@prisma/client";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const requireTs = createRequire(import.meta.url);
+requireTs("ts-node/register/transpile-only");
 
 const TASKS = {
   "billing:webhooks": async () => {
     await runVitest();
     return runBillingWebhooks();
   },
+  "billing:lifecycle": async () => runBillingLifecycle(),
 };
 
 const prisma = new PrismaClient();
@@ -67,6 +72,136 @@ async function runBillingWebhooks() {
 
   await writeReport("billing-webhooks", report);
   return report;
+}
+
+async function runBillingLifecycle() {
+  const {
+    activateOrStart,
+    renew,
+    setCancelAtPeriodEnd,
+    markExpired,
+    getSubscription,
+  } = await import("../lib/billing/subscriptionService.ts");
+
+  const fixtures = await ensureLifecycleFixtures();
+  await prisma.subscription.deleteMany({ where: { userId: fixtures.user.id } });
+
+  const steps = [];
+  const recordStep = (step, subscription) => {
+    steps.push({
+      step,
+      status: subscription.status,
+      startedAt: subscription.startedAt.toISOString(),
+      endsAt: subscription.endsAt.toISOString(),
+      renewalAt: subscription.renewalAt
+        ? subscription.renewalAt.toISOString()
+        : null,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    });
+  };
+
+  recordStep(
+    "activate",
+    await activateOrStart({
+      userId: fixtures.user.id,
+      planId: fixtures.plan.id,
+      providerRef: "HARNESS-LIFE-1",
+    }),
+  );
+
+  recordStep(
+    "renew-1",
+    await renew({
+      userId: fixtures.user.id,
+      providerRef: "HARNESS-LIFE-2",
+    }),
+  );
+
+  recordStep(
+    "renew-2",
+    await renew({
+      userId: fixtures.user.id,
+      providerRef: "HARNESS-LIFE-3",
+    }),
+  );
+
+  recordStep(
+    "cancel-set",
+    await setCancelAtPeriodEnd({ userId: fixtures.user.id, flag: true }),
+  );
+
+  recordStep(
+    "cancel-clear",
+    await setCancelAtPeriodEnd({ userId: fixtures.user.id, flag: false }),
+  );
+
+  recordStep(
+    "expired",
+    await markExpired({ userId: fixtures.user.id, reason: "period_end" }),
+  );
+
+  const latest = await getSubscription(fixtures.user.id);
+
+  const endsAtSequence = steps.map((step) => Date.parse(step.endsAt));
+  const endsAtMonotonic = endsAtSequence.every(
+    (value, index, array) => index === 0 || value >= array[index - 1],
+  );
+  const renewalMatchesEndsAt = steps.every(
+    (step) => !step.renewalAt || step.renewalAt === step.endsAt,
+  );
+
+  const report = {
+    userId: fixtures.user.id,
+    planId: fixtures.plan.id,
+    steps,
+    checks: {
+      endsAtMonotonic,
+      renewalMatchesEndsAt,
+      finalStatus: latest?.status ?? null,
+    },
+  };
+
+  await writeReport("billing-lifecycle", report);
+  return report;
+}
+
+async function ensureLifecycleFixtures() {
+  const email = "qa-lifecycle-user@example.test";
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      role: "USER",
+    },
+  });
+
+  const product = await prisma.product.upsert({
+    where: { id: "qa-lifecycle-product" },
+    update: { name: "QA Lifecycle Product" },
+    create: {
+      id: "qa-lifecycle-product",
+      type: "SUBSCRIPTION",
+      name: "QA Lifecycle Product",
+    },
+  });
+
+  const plan = await prisma.plan.upsert({
+    where: { id: "qa-lifecycle-plan" },
+    update: {
+      productId: product.id,
+      cycle: "MONTHLY",
+    },
+    create: {
+      id: "qa-lifecycle-plan",
+      productId: product.id,
+      name: "QA Lifecycle Plan",
+      cycle: "MONTHLY",
+      limits: {},
+    },
+  });
+
+  return { user, plan };
 }
 
 async function ensureAdmin() {

@@ -14,3 +14,13 @@ These structures prepare the billing system for lifecycle automation while remai
 - Provider-specific helpers normalize payloads to internal statuses (`PAID`, `FAILED`, `PENDING`, `REFUNDED`) and resolve identifiers before delegating to the shared service.
 - Use `pnpm --filter @app/web run qa:sprint --only=billing:webhooks` with `WEBHOOK_TEST_SECRET` to drive the simulator harness. The admin simulator expects `webhook-test-secret` and `x-admin-user-id` headers.
 - A successful `PAID` webhook creates or reuses the `Payment` and generates an `Invoice` once; replays short-circuit with `{ idempotent: true }`.
+
+## Phase 3 — Lifecycle Orchestration
+- `subscriptionService` owns lifecycle transitions: `activateOrStart`, `renew`, `setCancelAtPeriodEnd`, `markExpired`, and `getSubscription` always run inside Prisma transactions.
+- State transitions:
+  - Activation or restart → status `active`, resets `cancelAtPeriodEnd` and schedules `renewalAt`.
+  - Renewals extend from the later of `now` or the previous `endsAt` (anchor rule).
+  - Cancel at period end toggles `cancelAtPeriodEnd` and flips status to `renewing` when opting out.
+  - Mark expired preserves `endsAt` and records status `expired`.
+- Renewal anchor rule: `anchor = max(now, endsAt)` ensures time is never shortened.
+- Domain events emitted: `SUBSCRIPTION_ACTIVATED`, `SUBSCRIPTION_RESTARTED`, `SUBSCRIPTION_RENEWED`, `SUBSCRIPTION_EXPIRED`, `SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET`, `SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED`.
