@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -19,6 +19,7 @@ const TASKS = {
     return runBillingWebhooks();
   },
   "billing:lifecycle": async () => runBillingLifecycle(),
+  "billing:entitlements": async () => runBillingEntitlements(),
 };
 
 const prisma = new PrismaClient();
@@ -165,6 +166,88 @@ async function runBillingLifecycle() {
   return report;
 }
 
+async function runBillingEntitlements() {
+  const fixtures = await ensureEntitlementHarnessFixtures();
+
+  const first = await runManualScriptAndReadSummary();
+  assertSummaryShape(first.summary);
+  if (!first.summary.ok) {
+    throw new Error("Initial entitlement sync failed");
+  }
+
+  const entitlementCount = await prisma.userEntitlement.count({
+    where: { userId: fixtures.user.id, key: "CAN_PUBLISH_PROFILE" },
+  });
+  if (entitlementCount !== 1) {
+    throw new Error("Expected a single entitlement after initial sync");
+  }
+
+  await prisma.subscription.update({
+    where: { userId: fixtures.user.id },
+    data: {
+      endsAt: new Date(Date.now() - 5 * 60 * 1000),
+      status: "active",
+    },
+  });
+
+  await prisma.profile.update({
+    where: { userId: fixtures.user.id },
+    data: {
+      visibility: "PUBLIC",
+      publishedAt: new Date(),
+    },
+  });
+
+  const second = await runManualScriptAndReadSummary();
+  assertSummaryShape(second.summary);
+  if (!second.summary.ok) {
+    throw new Error("Follow-up entitlement sync failed");
+  }
+
+  const expiredDelta = second.summary.expiredMarked - first.summary.expiredMarked;
+  if (expiredDelta < 1) {
+    throw new Error("Expected expired subscriptions to be marked on second run");
+  }
+
+  const revokedDelta =
+    second.summary.entitlementsRevoked - first.summary.entitlementsRevoked;
+  if (revokedDelta < 1) {
+    throw new Error("Expected entitlement revocation on second run");
+  }
+
+  const entitlement = await prisma.userEntitlement.findFirst({
+    where: { userId: fixtures.user.id, key: "CAN_PUBLISH_PROFILE" },
+  });
+  if (!entitlement) {
+    throw new Error("Entitlement missing after second sync");
+  }
+  if (!entitlement.expiresAt || entitlement.expiresAt > new Date()) {
+    throw new Error("Entitlement should be expired after revocation");
+  }
+
+  const profile = await prisma.profile.findUnique({
+    where: { userId: fixtures.user.id },
+    select: { visibility: true },
+  });
+  if (!profile || profile.visibility !== "PRIVATE") {
+    throw new Error("Profile should be private after entitlement loss");
+  }
+
+  const report = {
+    userId: fixtures.user.id,
+    firstRun: { summary: first.summary, reportPath: first.path },
+    secondRun: { summary: second.summary, reportPath: second.path },
+    checks: {
+      expiredDelta,
+      revokedDelta,
+      profileVisibility: profile.visibility,
+    },
+  };
+
+  await writeReport("billing-entitlements", report);
+  return report;
+}
+
 async function ensureLifecycleFixtures() {
   const email = "qa-lifecycle-user@example.test";
   const user = await prisma.user.upsert({
@@ -202,6 +285,128 @@ async function ensureLifecycleFixtures() {
   });
 
   return { user, plan };
+}
+
+async function ensureEntitlementHarnessFixtures() {
+  const email = `qa-entitlements-${Date.now()}@example.test`;
+  const user = await prisma.user.create({
+    data: {
+      email,
+      role: "USER",
+    },
+  });
+
+  const product = await prisma.product.upsert({
+    where: { id: "qa-entitlements-product" },
+    update: { name: "QA Entitlements Product" },
+    create: {
+      id: "qa-entitlements-product",
+      type: "SUBSCRIPTION",
+      name: "QA Entitlements Product",
+    },
+  });
+
+  const plan = await prisma.plan.upsert({
+    where: { id: "qa-entitlements-plan" },
+    update: {
+      productId: product.id,
+      cycle: "MONTHLY",
+    },
+    create: {
+      id: "qa-entitlements-plan",
+      productId: product.id,
+      name: "QA Entitlements Plan",
+      cycle: "MONTHLY",
+      limits: {},
+    },
+  });
+
+  await prisma.subscription.create({
+    data: {
+      userId: user.id,
+      planId: plan.id,
+      status: "active",
+      startedAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
+    },
+  });
+
+  await prisma.profile.create({
+    data: {
+      userId: user.id,
+      visibility: "PUBLIC",
+      publishedAt: new Date(),
+      moderationStatus: "APPROVED",
+    },
+  });
+
+  return { user, plan };
+}
+
+async function runManualScriptAndReadSummary() {
+  const baseDir = join(
+    __dirname,
+    "../..",
+    "reports",
+    "sprint-verification",
+  );
+
+  const before = await listReportDirectories(baseDir);
+
+  await execCommand(
+    "pnpm",
+    ["--filter", "@app/web", "tsx", "scripts/check-subscriptions.ts"],
+    {
+      cwd: join(__dirname, ".."),
+    },
+  );
+
+  const after = await listReportDirectories(baseDir);
+  const candidates = after.filter((dir) => !before.includes(dir));
+  const target = (candidates.length > 0 ? candidates : after).sort().at(-1);
+
+  if (!target) {
+    throw new Error("Unable to locate entitlement report output");
+  }
+
+  const reportPath = join(baseDir, target, "billing-entitlements.json");
+  const raw = await readFile(reportPath, "utf8");
+  const summary = JSON.parse(raw);
+
+  return { summary, path: reportPath };
+}
+
+async function listReportDirectories(baseDir) {
+  try {
+    const entries = await readdir(baseDir, { withFileTypes: true });
+    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  } catch (error) {
+    if ((error && error.code) === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+function assertSummaryShape(summary) {
+  const numericKeys = [
+    "usersChecked",
+    "expiredMarked",
+    "entitlementsGranted",
+    "entitlementsRevoked",
+    "profilesUnpublished",
+  ];
+
+  if (summary.ok !== true) {
+    throw new Error("Sync result did not report ok=true");
+  }
+
+  for (const key of numericKeys) {
+    if (typeof summary[key] !== "number") {
+      throw new Error(`Sync summary missing numeric field: ${key}`);
+    }
+  }
 }
 
 async function ensureAdmin() {
