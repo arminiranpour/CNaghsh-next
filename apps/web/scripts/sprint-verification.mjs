@@ -196,6 +196,8 @@ async function runBillingEntitlements() {
       visibility: "PUBLIC",
       publishedAt: new Date(),
     },
+    select: { id: true },
+
   });
 
   const second = await runManualScriptAndReadSummary();
@@ -339,6 +341,7 @@ async function ensureEntitlementHarnessFixtures() {
       publishedAt: new Date(),
       moderationStatus: "APPROVED",
     },
+    select: { id: true },
   });
 
   return { user, plan };
