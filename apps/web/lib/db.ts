@@ -69,8 +69,9 @@ function loadPrismaModule(): PrismaModule {
   }
 
   try {
-    prismaModule = require("@prisma/client");
-    return prismaModule;
+    const module = require("@prisma/client") as PrismaModule;
+    prismaModule = module;
+    return module;
   } catch (error) {
     if (!isMissingPrismaClientError(error)) {
       throw error;
@@ -78,8 +79,9 @@ function loadPrismaModule(): PrismaModule {
 
     tryAutoGeneratePrismaClient();
     try {
-      prismaModule = require("@prisma/client");
-      return prismaModule;
+      const module = require("@prisma/client") as PrismaModule;
+      prismaModule = module;
+      return module;
     } catch (retryError) {
       const details =
         retryError instanceof Error
