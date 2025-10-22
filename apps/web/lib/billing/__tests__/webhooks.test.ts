@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { describe, beforeEach, expect, it, vi } from "vitest";
