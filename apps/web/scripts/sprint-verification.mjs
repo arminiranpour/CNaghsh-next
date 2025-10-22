@@ -5,6 +5,7 @@ import { mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { NextRequest } from "next/server";
 
 import { PrismaClient, Prisma } from "@prisma/client";
 
@@ -20,6 +21,7 @@ const TASKS = {
   },
   "billing:lifecycle": async () => runBillingLifecycle(),
   "billing:entitlements": async () => runBillingEntitlements(),
+  "billing:admin": async () => runBillingAdmin(),
 };
 
 const prisma = new PrismaClient();
@@ -250,6 +252,106 @@ async function runBillingEntitlements() {
   return report;
 }
 
+async function runBillingAdmin() {
+  const admin = await ensureAdmin();
+  const fixtures = await ensureBillingAdminFixtures();
+
+  const headers = new Headers({ "x-admin-user-id": admin.id });
+
+  const cancelModule = await import("../app/api/admin/subscriptions/[id]/cancel/route.ts");
+  await cancelModule.POST(new NextRequest("http://localhost/api", { headers }), {
+    params: { id: fixtures.subscription.id },
+  });
+  const subscription = await prisma.subscription.findUnique({
+    where: { id: fixtures.subscription.id },
+  });
+
+  const refundModule = await import("../app/api/admin/payments/[id]/refund/route.ts");
+  const refundHeaders = new Headers({
+    "Content-Type": "application/json",
+    "x-admin-user-id": admin.id,
+  });
+  await refundModule.POST(
+    new NextRequest("http://localhost/api", {
+      method: "POST",
+      headers: refundHeaders,
+      body: JSON.stringify({ amount: fixtures.payment.amount }),
+    }),
+    { params: { id: fixtures.payment.id } },
+  );
+  const payment = await prisma.payment.findUnique({ where: { id: fixtures.payment.id } });
+  const refundInvoice = await prisma.invoice.findUnique({ where: { paymentId: fixtures.payment.id } });
+
+  const adjustModule = await import("../app/api/admin/entitlements/adjust/route.ts");
+  const adjustHeaders = new Headers({
+    "Content-Type": "application/json",
+    "x-admin-user-id": admin.id,
+  });
+  const futureExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  await adjustModule.POST(
+    new NextRequest("http://localhost/api", {
+      method: "POST",
+      headers: adjustHeaders,
+      body: JSON.stringify({
+        userId: fixtures.user.id,
+        action: "grant",
+        key: "CAN_PUBLISH_PROFILE",
+        reason: "QA grant",
+        expiresAt: futureExpiry,
+      }),
+    }),
+  );
+  const entitlementsAfterGrant = await prisma.userEntitlement.findMany({
+    where: { userId: fixtures.user.id, key: "CAN_PUBLISH_PROFILE" },
+  });
+  const activeAfterGrant = entitlementsAfterGrant.filter(
+    (record) => !record.expiresAt || record.expiresAt > new Date(),
+  );
+
+  await adjustModule.POST(
+    new NextRequest("http://localhost/api", {
+      method: "POST",
+      headers: adjustHeaders,
+      body: JSON.stringify({
+        userId: fixtures.user.id,
+        action: "revoke",
+        key: "CAN_PUBLISH_PROFILE",
+        reason: "QA revoke",
+      }),
+    }),
+  );
+  const entitlementsAfterRevoke = await prisma.userEntitlement.findMany({
+    where: { userId: fixtures.user.id, key: "CAN_PUBLISH_PROFILE" },
+  });
+  const activeAfterRevoke = entitlementsAfterRevoke.filter(
+    (record) => !record.expiresAt || record.expiresAt > new Date(),
+  );
+
+  const exportModule = await import("../app/api/admin/invoices/export/route.ts");
+  const exportResponse = await exportModule.GET(
+    new NextRequest("http://localhost/api", { headers }),
+  );
+  const csv = await exportResponse.text();
+
+  const report = {
+    userId: fixtures.user.id,
+    subscriptionId: fixtures.subscription.id,
+    paymentId: fixtures.payment.id,
+    invoiceId: refundInvoice?.id ?? null,
+    checks: {
+      subscriptionStatus: subscription?.status ?? null,
+      paymentStatus: payment?.status ?? null,
+      refundInvoiceTotal: refundInvoice?.total ?? null,
+      entitlementsAfterGrant: activeAfterGrant.length,
+      entitlementsAfterRevoke: activeAfterRevoke.length,
+      csvBytes: csv.length,
+    },
+  };
+
+  await writeReport("billing-admin", report);
+  return report;
+}
+
 async function ensureLifecycleFixtures() {
   const email = "qa-lifecycle-user@example.test";
   const user = await prisma.user.upsert({
@@ -345,6 +447,109 @@ async function ensureEntitlementHarnessFixtures() {
   });
 
   return { user, plan };
+}
+
+async function ensureBillingAdminFixtures() {
+  const email = `qa-billing-admin-${Date.now()}@example.test`;
+  const user = await prisma.user.create({
+    data: {
+      email,
+      role: "USER",
+    },
+  });
+
+  const product = await prisma.product.upsert({
+    where: { id: "qa-billing-admin-product" },
+    update: { name: "QA Billing Admin Product" },
+    create: {
+      id: "qa-billing-admin-product",
+      type: "SUBSCRIPTION",
+      name: "QA Billing Admin Product",
+    },
+  });
+
+  const plan = await prisma.plan.upsert({
+    where: { id: "qa-billing-admin-plan" },
+    update: { productId: product.id, cycle: "MONTHLY" },
+    create: {
+      id: "qa-billing-admin-plan",
+      productId: product.id,
+      name: "QA Billing Admin Plan",
+      cycle: "MONTHLY",
+      limits: {},
+    },
+  });
+
+  const price = await prisma.price.upsert({
+    where: { id: "qa-billing-admin-price" },
+    update: { planId: plan.id, amount: 25000 },
+    create: {
+      id: "qa-billing-admin-price",
+      planId: plan.id,
+      amount: 25000,
+      currency: "IRR",
+    },
+  });
+
+  const sessionId = `qa-billing-admin-session-${Date.now()}`;
+  const session = await prisma.checkoutSession.create({
+    data: {
+      id: sessionId,
+      userId: user.id,
+      provider: "zarinpal",
+      priceId: price.id,
+      status: "STARTED",
+      redirectUrl: "",
+      returnUrl: "",
+      providerInitPayload: {},
+    },
+  });
+
+  const payment = await prisma.payment.create({
+    data: {
+      userId: user.id,
+      checkoutSessionId: session.id,
+      provider: "zarinpal",
+      providerRef: `QA-BILLING-${Date.now()}`,
+      amount: price.amount,
+      currency: price.currency,
+      status: "PAID",
+    },
+  });
+
+  const invoice = await prisma.invoice.create({
+    data: {
+      paymentId: payment.id,
+      userId: user.id,
+      total: payment.amount,
+      currency: payment.currency,
+      status: "PAID",
+      type: "SALE",
+      providerRef: payment.providerRef,
+    },
+  });
+
+  const subscription = await prisma.subscription.create({
+    data: {
+      userId: user.id,
+      planId: plan.id,
+      status: "active",
+      startedAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
+      providerRef: payment.providerRef,
+    },
+  });
+
+  await prisma.userEntitlement.create({
+    data: {
+      userId: user.id,
+      key: "CAN_PUBLISH_PROFILE",
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return { user, plan, subscription, payment, invoice };
 }
 
 async function runManualScriptAndReadSummary() {

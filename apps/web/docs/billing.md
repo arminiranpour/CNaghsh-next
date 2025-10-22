@@ -38,3 +38,14 @@ These structures prepare the billing system for lifecycle automation while remai
   - `expiresAt` always tracks the subscription `endsAt` for active subscriptions.
   - When entitlements lapse, profiles are automatically unpublished.
 - **Harness**: `pnpm --filter @app/web run qa:sprint --only=billing:entitlements` provisions fixtures, runs the manual script twice (active → expired), asserts counter deltas, entitlement expiry, and profile visibility, then records a consolidated report under `reports/sprint-verification/<timestamp>/billing-entitlements.json`.
+
+## Phase 5 — Admin Dashboard
+- **Paths**: `/admin/billing` provides overview metrics and tab navigation across `/admin/billing/subscriptions`, `/admin/billing/payments`, and `/admin/billing/invoices`.
+- **Filters**: each tab offers search, provider/status selections, plan or type filters, and date range pickers with server-side pagination to keep data responsive.
+- **Row actions**:
+  - Subscriptions expose “لغو فوری” to expire immediately via the lifecycle service and trigger entitlement sync.
+  - Payments expose “بازگشت” (stub refund) that marks the payment `REFUNDED`, creates a negative `Invoice` (`type = REFUND`, `total = -amount`), and expires active subscriptions for full refunds.
+  - Entitlement controls allow granting or revoking `CAN_PUBLISH_PROFILE` with required reasoning; grants accept an optional expiry date to stage access.
+- **CSV export**: the invoices tab streams `number,userEmail,type,total,currency,issuedAt,status,providerRef` for downstream reconciliation.
+- **Refund policy**: admin-triggered refunds immediately revoke publication entitlements by expiring the subscriber’s period and re-running the sync helper.
+- **QA harness**: `pnpm --filter @app/web run qa:sprint --only=billing:admin` seeds a dedicated user, executes cancel → refund → grant → revoke flows via the admin APIs, exports CSV, and writes `reports/sprint-verification/<timestamp>/billing-admin.json` on success.
