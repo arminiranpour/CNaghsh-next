@@ -490,7 +490,7 @@ beforeEach(() => {
 describe("admin billing routes", () => {
   it("force cancels subscription and removes entitlement", async () => {
     const fixtures = testStore.seed();
-    const { POST } = await import("../subscriptions/[id]/cancel/route");
+    const { POST } = await import("@/app/api/admin/subscriptions/[id]/cancel/route");
 
     const response = await POST(new NextRequest("http://localhost/api"), { params: { id: fixtures.subscription.id } });
     const body = await response.json();
@@ -503,7 +503,7 @@ describe("admin billing routes", () => {
 
   it("marks payment refunded and creates refund invoice", async () => {
     const fixtures = testStore.seed();
-    const { POST } = await import("../payments/[id]/refund/route");
+    const { POST } = await import("@/app/api/admin/payments/[id]/refund/route");
 
     const request = new NextRequest("http://localhost/api", {
       method: "POST",
@@ -526,7 +526,7 @@ describe("admin billing routes", () => {
   it("grants and revokes entitlement", async () => {
     const fixtures = testStore.seed();
     testStore.clearEntitlements(fixtures.user.id);
-    const { POST } = await import("../entitlements/adjust/route");
+    const { POST } = await import("@/app/api/admin/entitlements/adjust/route");
 
     const future = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     const grantRequest = new NextRequest("http://localhost/api", {
@@ -562,7 +562,7 @@ describe("admin billing routes", () => {
   it("exports invoices as CSV", async () => {
     const fixtures = testStore.seed();
     void fixtures;
-    const { GET } = await import("../invoices/export/route");
+    const { GET } = await import("@/app/api/admin/invoices/export/route");
 
     const response = await GET(new NextRequest("http://localhost/api"));
     expect(response.headers.get("content-type")).toContain("text/csv");

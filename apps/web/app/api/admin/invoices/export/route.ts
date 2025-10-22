@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { InvoiceStatus, InvoiceType } from "@prisma/client";
+import { InvoiceStatus, InvoiceType, type Prisma } from "@prisma/client";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import { unauthorized } from "@/lib/http";
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   const dateFromRaw = getQueryParam(request, "dateFrom") ?? undefined;
   const dateToRaw = getQueryParam(request, "dateTo") ?? undefined;
 
-  const where: Parameters<typeof prisma.invoice.findMany>[0]["where"] = {};
+  const where: Prisma.InvoiceWhereInput = {};
 
   if (q && q.trim()) {
     const trimmed = q.trim();
