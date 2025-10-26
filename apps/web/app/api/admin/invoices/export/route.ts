@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { InvoiceStatus, InvoiceType, type Prisma } from "@prisma/client";
 
-import { getServerAuthSession } from "@/lib/auth/session";
+import { findAdminUser } from "@/lib/admin/ensureAdmin";
 import { unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
@@ -13,28 +13,8 @@ function getQueryParam(request: NextRequest, key: string): string | undefined {
   return value ?? undefined;
 }
 
-async function ensureAdmin(request: NextRequest) {
-  const session = await getServerAuthSession();
-  if (session?.user && session.user.role === "ADMIN") {
-    return session.user;
-  }
-
-  const adminId = request.headers.get("x-admin-user-id");
-  if (adminId) {
-    const admin = await prisma.user.findUnique({
-      where: { id: adminId },
-      select: { id: true, role: true },
-    });
-    if (admin?.role === "ADMIN") {
-      return admin;
-    }
-  }
-
-  return null;
-}
-
 export async function GET(request: NextRequest) {
-  const admin = await ensureAdmin(request);
+  const admin = await findAdminUser(request);
   if (!admin) {
     return unauthorized("Admin required");
   }
@@ -90,7 +70,11 @@ export async function GET(request: NextRequest) {
 
   const header = "number,userEmail,type,total,currency,issuedAt,status,providerRef";
   const rows = invoices.map((invoice) => {
-    const issuedAt = invoice.issuedAt.toISOString();
+    const issuedAtValue =
+      invoice.issuedAt instanceof Date ? invoice.issuedAt : new Date(invoice.issuedAt);
+    const issuedAt = Number.isNaN(issuedAtValue.getTime())
+      ? new Date().toISOString()
+      : issuedAtValue.toISOString();
     return [
       invoice.number,
       invoice.user.email ?? "",

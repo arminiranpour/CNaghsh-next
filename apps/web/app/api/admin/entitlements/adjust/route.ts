@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { getServerAuthSession } from "@/lib/auth/session";
+import { findAdminUser } from "@/lib/admin/ensureAdmin";
 import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { badRequest, ok, unauthorized } from "@/lib/http";
@@ -15,28 +15,8 @@ const bodySchema = z.object({
   reason: z.string().min(3),
 });
 
-async function ensureAdmin(request: NextRequest) {
-  const session = await getServerAuthSession();
-  if (session?.user && session.user.role === "ADMIN") {
-    return session.user;
-  }
-
-  const adminId = request.headers.get("x-admin-user-id");
-  if (adminId) {
-    const admin = await prisma.user.findUnique({
-      where: { id: adminId },
-      select: { id: true, role: true },
-    });
-    if (admin?.role === "ADMIN") {
-      return admin;
-    }
-  }
-
-  return null;
-}
-
 export async function POST(request: NextRequest) {
-  const admin = await ensureAdmin(request);
+  const admin = await findAdminUser(request);
   if (!admin) {
     return unauthorized("Admin required");
   }
