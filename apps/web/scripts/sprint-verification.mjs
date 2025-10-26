@@ -256,6 +256,8 @@ async function runBillingAdmin() {
   const admin = await ensureAdmin();
   const fixtures = await ensureBillingAdminFixtures();
 
+  const pageStatuses = await smokeTestAdminPages(admin.id);
+
   const headers = new Headers({ "x-admin-user-id": admin.id });
 
   const cancelModule = await import("../app/api/admin/subscriptions/[id]/cancel/route.ts");
@@ -345,11 +347,44 @@ async function runBillingAdmin() {
       entitlementsAfterGrant: activeAfterGrant.length,
       entitlementsAfterRevoke: activeAfterRevoke.length,
       csvBytes: csv.length,
+      pages: pageStatuses,
     },
   };
 
   await writeReport("billing-admin", report);
   return report;
+}
+
+async function smokeTestAdminPages(adminId) {
+  const baseUrl = process.env.BILLING_ADMIN_BASE_URL ?? "http://localhost:3000";
+  const endpoints = [
+    { label: "overview", path: "/admin/billing" },
+    { label: "subscriptions", path: "/admin/billing/subscriptions" },
+    { label: "payments", path: "/admin/billing/payments" },
+    { label: "invoices", path: "/admin/billing/invoices" },
+  ];
+
+  const results = [];
+
+  for (const endpoint of endpoints) {
+    const url = new URL(endpoint.path, baseUrl);
+    let response;
+    try {
+      response = await fetch(url, {
+        headers: { "x-admin-user-id": adminId },
+      });
+    } catch (error) {
+      throw new Error(`Failed to load ${url.toString()}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (response.status !== 200) {
+      throw new Error(`Expected 200 for ${url.toString()}, received ${response.status}`);
+    }
+
+    results.push({ label: endpoint.label, status: response.status });
+  }
+
+  return results;
 }
 
 async function ensureLifecycleFixtures() {

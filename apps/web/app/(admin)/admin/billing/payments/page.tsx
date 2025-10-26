@@ -1,5 +1,7 @@
 import type { PaymentStatus, Provider } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 import { AdminBillingTabs } from "../_components/admin-billing-tabs";
 import { PaginationControls } from "../_components/pagination-controls";
 import { PaymentFilters } from "../_components/payment-filters";

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { InvoiceStatus, InvoiceType, PaymentStatus } from "@prisma/client";
 import { z } from "zod";
 
-import { findAdminUser } from "@/lib/admin/ensureAdmin";
+import { ensureAdmin } from "@/lib/admin/ensureAdmin";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { markExpired } from "@/lib/billing/subscriptionService";
 import { badRequest, notFound, ok, unauthorized } from "@/lib/http";
@@ -12,7 +12,7 @@ const paramsSchema = z.object({ id: z.string().cuid() });
 const bodySchema = z.object({ amount: z.number().int().positive().optional() });
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const admin = await findAdminUser(request);
+  const admin = await ensureAdmin(request);
   if (!admin) {
     return unauthorized("Admin required");
   }

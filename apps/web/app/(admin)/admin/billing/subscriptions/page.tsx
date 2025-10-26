@@ -1,5 +1,7 @@
 import type { SubscriptionStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 import { AdminBillingTabs } from "../_components/admin-billing-tabs";
 import { PaginationControls } from "../_components/pagination-controls";
 import { SubscriptionFilters } from "../_components/subscription-filters";

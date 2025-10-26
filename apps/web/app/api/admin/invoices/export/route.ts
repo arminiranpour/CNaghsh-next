@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { InvoiceStatus, InvoiceType, type Prisma } from "@prisma/client";
 
-import { findAdminUser } from "@/lib/admin/ensureAdmin";
+import { ensureAdmin } from "@/lib/admin/ensureAdmin";
 import { unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
@@ -14,7 +14,7 @@ function getQueryParam(request: NextRequest, key: string): string | undefined {
 }
 
 export async function GET(request: NextRequest) {
-  const admin = await findAdminUser(request);
+  const admin = await ensureAdmin(request);
   if (!admin) {
     return unauthorized("Admin required");
   }

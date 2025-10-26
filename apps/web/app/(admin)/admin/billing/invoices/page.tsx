@@ -1,5 +1,7 @@
 import type { InvoiceStatus, InvoiceType } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 import { AdminBillingTabs } from "../_components/admin-billing-tabs";
 import { InvoiceExportButton } from "../_components/invoice-export-button";
 import { InvoiceFilters } from "../_components/invoice-filters";

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { findAdminUser } from "@/lib/admin/ensureAdmin";
+import { ensureAdmin } from "@/lib/admin/ensureAdmin";
 import { badRequest, notFound, ok, unauthorized } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
@@ -10,7 +10,7 @@ import { markExpired } from "@/lib/billing/subscriptionService";
 const paramsSchema = z.object({ id: z.string().cuid() });
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const admin = await findAdminUser(request);
+  const admin = await ensureAdmin(request);
   if (!admin) {
     return unauthorized("Admin required");
   }

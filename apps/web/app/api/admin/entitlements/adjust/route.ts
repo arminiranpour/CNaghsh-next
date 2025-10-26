@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
-import { findAdminUser } from "@/lib/admin/ensureAdmin";
+import { ensureAdmin } from "@/lib/admin/ensureAdmin";
 import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { badRequest, ok, unauthorized } from "@/lib/http";
@@ -16,7 +16,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const admin = await findAdminUser(request);
+  const admin = await ensureAdmin(request);
   if (!admin) {
     return unauthorized("Admin required");
   }

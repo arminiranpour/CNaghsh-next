@@ -49,3 +49,9 @@ These structures prepare the billing system for lifecycle automation while remai
 - **CSV export**: the invoices tab streams `number,userEmail,type,total,currency,issuedAt,status,providerRef` for downstream reconciliation.
 - **Refund policy**: admin-triggered refunds immediately revoke publication entitlements by expiring the subscriber’s period and re-running the sync helper.
 - **QA harness**: `pnpm --filter @app/web run qa:sprint --only=billing:admin` seeds a dedicated user, executes cancel → refund → grant → revoke flows via the admin APIs, exports CSV, and writes `reports/sprint-verification/<timestamp>/billing-admin.json` on success.
+
+### Local QA Access
+- یک شناسه مدیر را با اجرای دستور زیر به‌دست آورید:
+  - `pnpm --filter @app/web tsx -e "import {prisma} from './lib/prisma';(async()=>{const u=await prisma.user.findFirst({where:{role:'ADMIN'},select:{id:true}});console.log(u?.id||'NO_ADMIN');process.exit(0)})()"`
+- برای دور زدن احراز هویت در محیط توسعه، مقدار کوکی `ADMIN_USER_ID` را روی آن شناسه قرار دهید یا درخواست‌ها را با هدر `x-admin-user-id` ارسال کنید.
+- در صورت فعال بودن متغیر محیطی `DEV_ADMIN_BYPASS=true`، میان‌افزار برنامه به‌صورت خودکار مقدار کوکی را به هدر تبدیل می‌کند تا مرورگر محلی بدون ابزار اضافی دسترسی مدیر را دریافت کند.
