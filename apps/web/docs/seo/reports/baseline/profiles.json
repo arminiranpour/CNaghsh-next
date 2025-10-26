@@ -1,6 +1,6 @@
 {
   "lighthouseVersion": "12.8.2",
-  "requestedUrl": "http://localhost:3001/profiles",
+  "requestedUrl": "http://localhost:3000/profiles",
   "mainDocumentUrl": "chrome-error://chromewebdata/",
   "finalDisplayedUrl": "chrome-error://chromewebdata/",
   "finalUrl": "chrome-error://chromewebdata/",
@@ -13,7 +13,7 @@
     "artifactKey": "PageLoadError"
   },
   "runWarnings": [
-    "The page may not be loading as expected because your test URL (http://localhost:3001/profiles) was redirected to chrome-error://chromewebdata/. Try testing the second URL directly.",
+    "The page may not be loading as expected because your test URL (http://localhost:3000/profiles) was redirected to chrome-error://chromewebdata/. Try testing the second URL directly.",
     "Chrome prevented page load with an interstitial. Make sure you are testing the correct URL and that the server is properly responding to all requests."
   ],
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36",
@@ -5090,7 +5090,7 @@
       "core/gather/driver/navigation.js | warningRedirected": [
         {
           "values": {
-            "requested": "http://localhost:3001/profiles",
+            "requested": "http://localhost:3000/profiles",
             "final": "chrome-error://chromewebdata/"
           },
           "path": "runWarnings[0]"

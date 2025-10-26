@@ -58,7 +58,7 @@ security rules that back the new jobs experiences.
 Example:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5556/casting?schema=public"
 PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```

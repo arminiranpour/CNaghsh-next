@@ -15,10 +15,10 @@
    ```
 
 2. **بررسی robots و sitemap**
-   - `http://localhost:3001/robots.txt`
-   - `http://localhost:3001/sitemap.xml`
-   - `http://localhost:3001/profiles/sitemap.xml`
-   - `http://localhost:3001/jobs/sitemap.xml`
+   - `http://localhost:3000/robots.txt`
+   - `http://localhost:3000/sitemap.xml`
+   - `http://localhost:3000/profiles/sitemap.xml`
+   - `http://localhost:3000/jobs/sitemap.xml`
 
 3. **تایید JSON-LD روی صفحات**
    صفحات `/profiles`, `/jobs`, یک پروفایل نمونه و یک آگهی نمونه را در مرورگر باز کنید و وجود اسکریپت `application/ld+json` را بررسی کنید.

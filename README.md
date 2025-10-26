@@ -42,7 +42,7 @@ If you prefer to manage environment variables manually, copy `apps/web/.env.exam
 needed:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5556/casting?schema=public"
 ```
 ## Environment variables
 
@@ -57,7 +57,7 @@ The web application reads configuration through a typed loader in `apps/web/lib/
 Example `apps/web/.env.local`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5556/casting?schema=public"
 PUBLIC_BASE_URL="http://localhost:3000"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
@@ -76,8 +76,9 @@ The helper proxies commands to the `@app/web` package, so Prisma invokes the loc
 `scripts/prisma-cli.ts` wrapper and inherits the same environment resolution as the Next.js app.
 
 > **macOS Postgres tip:** if you are running Postgres via Homebrew the default socket lives at
-> `/tmp/.s.PGSQL.5432`. Ensure your `DATABASE_URL` includes `host=127.0.0.1` to avoid socket
-> permission issues (`postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public`).
+> `/tmp/.s.PGSQL.5432`. Ensure your `DATABASE_URL` includes `host=127.0.0.1` and the mapped port
+> (`postgresql://postgres:postgres@127.0.0.1:5556/casting?schema=public`) to avoid socket
+> permission issues.
 
 ### Prisma configuration layout
 

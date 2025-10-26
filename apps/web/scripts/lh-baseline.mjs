@@ -8,8 +8,8 @@ const { launch } = await import("chrome-launcher");
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPORT_DIR = path.resolve(__dirname, "../docs/seo/reports/baseline");
 const TARGETS = [
-  { name: "profiles", url: "http://localhost:3001/profiles" },
-  { name: "jobs", url: "http://localhost:3001/jobs" },
+  { name: "profiles", url: "http://localhost:3000/profiles" },
+  { name: "jobs", url: "http://localhost:3000/jobs" },
 ];
 
 async function main() {
