@@ -1,0 +1,14 @@
+{
+  "userId": "cmh83cn110001uaser3wxneh4",
+  "subscriptionId": "cmh83cn1g0007uaseb5nm5dvc",
+  "paymentId": "cmh83cn1a0003uased4jtbp5t",
+  "invoiceId": "cmh83cn1c0005uaseksvxgjw9",
+  "checks": {
+    "subscriptionStatus": "expired",
+    "paymentStatus": "REFUNDED",
+    "refundInvoiceTotal": -25000,
+    "entitlementsAfterGrant": 0,
+    "entitlementsAfterRevoke": 0,
+    "csvBytes": 612
+  }
+}
