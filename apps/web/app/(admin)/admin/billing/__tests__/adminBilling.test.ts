@@ -49,6 +49,103 @@ type EntitlementRecord = {
 
 type TestStore = ReturnType<typeof createTestStore>;
 
+type SubscriptionWhereUniqueInput = { id?: string; userId?: string };
+type SubscriptionInclude = { plan?: boolean; user?: boolean };
+type SubscriptionFindUniqueArgs = {
+  where: SubscriptionWhereUniqueInput;
+  include?: SubscriptionInclude;
+};
+type SerializedSubscriptionRecord = Omit<SubscriptionRecord, "endsAt" | "updatedAt"> & {
+  endsAt: string;
+  updatedAt: string;
+  plan?: PlanRecord | null;
+  user?: UserRecord | null;
+};
+
+type PaymentWhereUniqueInput = { id: string };
+type PaymentInclude = { invoice?: boolean };
+type PaymentFindUniqueArgs = { where: PaymentWhereUniqueInput; include?: PaymentInclude };
+type PaymentUpdateArgs = { where: PaymentWhereUniqueInput; data: Partial<PaymentRecord> };
+type SerializedPaymentRecord = Omit<PaymentRecord, "createdAt"> & {
+  createdAt: string;
+  invoice?: Pick<InvoiceRecord, "id" | "number" | "type"> | null;
+};
+
+type InvoiceWhereUniqueInput = { paymentId?: string; id?: string };
+type InvoiceFindUniqueArgs = { where: InvoiceWhereUniqueInput };
+type InvoiceCreateData = {
+  paymentId: string;
+  userId: string;
+  number?: string;
+  type: InvoiceRecord["type"];
+  total: number;
+  currency: string;
+  status: InvoiceRecord["status"];
+  issuedAt?: Date | string;
+  providerRef?: string | null;
+};
+type InvoiceCreateArgs = { data: InvoiceCreateData };
+type InvoiceUpdateArgs = { where: { id: string }; data: Partial<Omit<InvoiceRecord, "id">> };
+type InvoiceSearchClause = {
+  number?: { contains: string };
+  providerRef?: { contains: string };
+  user?: { email?: { contains: string } };
+};
+type InvoiceFindManyArgs = {
+  where?: {
+    type?: InvoiceRecord["type"];
+    status?: InvoiceRecord["status"];
+    OR?: InvoiceSearchClause[];
+    issuedAt?: { gte?: string; lte?: string };
+  };
+  orderBy?: { issuedAt?: "asc" | "desc" };
+  include?: { user?: boolean };
+};
+type SerializedInvoiceRecord = Omit<InvoiceRecord, "issuedAt"> & {
+  issuedAt: string;
+  user?: UserRecord | null;
+};
+
+type UserEntitlementWhereInput = { userId?: string; key?: EntitlementRecord["key"] };
+type UserEntitlementOrderBy = { updatedAt?: "asc" | "desc"; expiresAt?: "asc" | "desc" };
+type UserEntitlementFindFirstArgs = { where: UserEntitlementWhereInput; orderBy?: UserEntitlementOrderBy };
+type UserEntitlementCreateArgs = {
+  data: { userId: string; key: EntitlementRecord["key"]; expiresAt?: Date | string | null };
+};
+type UserEntitlementUpdateArgs = {
+  where: { id: string };
+  data: { expiresAt?: Date | string | null };
+};
+type UserEntitlementFindManyArgs = { where: UserEntitlementWhereInput };
+type SerializedEntitlementRecord = Omit<EntitlementRecord, "expiresAt" | "createdAt" | "updatedAt"> & {
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type TestPrismaClient = {
+  subscription: {
+    findUnique(args: SubscriptionFindUniqueArgs): Promise<SerializedSubscriptionRecord | null>;
+  };
+  payment: {
+    findUnique(args: PaymentFindUniqueArgs): Promise<SerializedPaymentRecord | null>;
+    update(args: PaymentUpdateArgs): Promise<PaymentRecord>;
+  };
+  invoice: {
+    findUnique(args: InvoiceFindUniqueArgs): Promise<SerializedInvoiceRecord | null>;
+    create(args: InvoiceCreateArgs): Promise<SerializedInvoiceRecord>;
+    update(args: InvoiceUpdateArgs): Promise<SerializedInvoiceRecord>;
+    findMany(args: InvoiceFindManyArgs): Promise<SerializedInvoiceRecord[]>;
+  };
+  userEntitlement: {
+    findFirst(args: UserEntitlementFindFirstArgs): Promise<SerializedEntitlementRecord | null>;
+    create(args: UserEntitlementCreateArgs): Promise<SerializedEntitlementRecord>;
+    update(args: UserEntitlementUpdateArgs): Promise<SerializedEntitlementRecord>;
+    findMany(args: UserEntitlementFindManyArgs): Promise<SerializedEntitlementRecord[]>;
+  };
+  $transaction<T>(callback: (client: TestPrismaClient) => Promise<T>): Promise<T>;
+};
+
 let testStore: TestStore;
 
 function createTestStore() {
@@ -76,18 +173,59 @@ function createTestStore() {
     return null;
   };
 
-  const prisma = {
+  const serializeSubscription = (record: SubscriptionRecord): SerializedSubscriptionRecord => ({
+    id: record.id,
+    userId: record.userId,
+    planId: record.planId,
+    status: record.status,
+    endsAt: record.endsAt.toISOString(),
+    cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+    updatedAt: record.updatedAt.toISOString(),
+  });
+
+  const serializePayment = (record: PaymentRecord): SerializedPaymentRecord => ({
+    id: record.id,
+    userId: record.userId,
+    provider: record.provider,
+    providerRef: record.providerRef,
+    amount: record.amount,
+    currency: record.currency,
+    status: record.status,
+    createdAt: record.createdAt.toISOString(),
+  });
+
+  const serializeInvoice = (record: InvoiceRecord): SerializedInvoiceRecord => ({
+    id: record.id,
+    paymentId: record.paymentId,
+    userId: record.userId,
+    number: record.number,
+    type: record.type,
+    total: record.total,
+    currency: record.currency,
+    status: record.status,
+    issuedAt: record.issuedAt.toISOString(),
+    providerRef: record.providerRef,
+  });
+
+  const serializeEntitlement = (record: EntitlementRecord): SerializedEntitlementRecord => ({
+    id: record.id,
+    userId: record.userId,
+    key: record.key,
+    expiresAt: record.expiresAt ? record.expiresAt.toISOString() : null,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  });
+
+  const prisma: TestPrismaClient = {
     subscription: {
-      findUnique: async ({ where, include }: any) => {
+      findUnique: async ({ where, include }: SubscriptionFindUniqueArgs) => {
         const record = getSubscription(where);
         if (!record) {
           return null;
         }
-        const payload: any = clone({
-          ...record,
-          endsAt: record.endsAt.toISOString(),
-          updatedAt: record.updatedAt.toISOString(),
-        });
+        const payload: SerializedSubscriptionRecord = {
+          ...serializeSubscription(record),
+        };
         if (include?.plan) {
           const plan = plans.get(record.planId);
           payload.plan = plan ? clone(plan) : null;
@@ -100,49 +238,48 @@ function createTestStore() {
       },
     },
     payment: {
-      findUnique: async ({ where, include }: any) => {
+      findUnique: async ({ where, include }: PaymentFindUniqueArgs) => {
         const record = payments.get(where.id);
         if (!record) {
           return null;
         }
-        const payload: any = clone({
-          ...record,
-          createdAt: record.createdAt.toISOString(),
-        });
+        const payload: SerializedPaymentRecord = {
+          ...serializePayment(record),
+        };
         if (include?.invoice) {
           const invoice = Array.from(invoices.values()).find((item) => item.paymentId === record.id) ?? null;
           if (invoice) {
-            payload.invoice = clone({
+            payload.invoice = {
               id: invoice.id,
               number: invoice.number,
               type: invoice.type,
-            });
+            };
           } else {
             payload.invoice = null;
           }
         }
         return payload;
       },
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: PaymentUpdateArgs) => {
         const record = payments.get(where.id);
         if (!record) {
           throw new Error("PAYMENT_NOT_FOUND");
         }
         const updated = { ...record, ...data } satisfies PaymentRecord;
         payments.set(record.id, updated);
-        return clone(updated);
+        return { ...updated };
       },
     },
     invoice: {
-      findUnique: async ({ where }: any) => {
+      findUnique: async ({ where }: InvoiceFindUniqueArgs) => {
         if (where.paymentId) {
           const invoice = Array.from(invoices.values()).find((item) => item.paymentId === where.paymentId);
-          return invoice ? clone({ ...invoice, issuedAt: invoice.issuedAt.toISOString() }) : null;
+          return invoice ? serializeInvoice(invoice) : null;
         }
         const invoice = invoices.get(where.id);
-        return invoice ? clone({ ...invoice, issuedAt: invoice.issuedAt.toISOString() }) : null;
+        return invoice ? serializeInvoice(invoice) : null;
       },
-      create: async ({ data }: any) => {
+      create: async ({ data }: InvoiceCreateArgs) => {
         const id = nextId("inv");
         const record: InvoiceRecord = {
           id,
@@ -153,13 +290,13 @@ function createTestStore() {
           total: data.total,
           currency: data.currency,
           status: data.status,
-          issuedAt: data.issuedAt ?? new Date(),
+          issuedAt: data.issuedAt ? new Date(data.issuedAt) : new Date(),
           providerRef: data.providerRef ?? null,
         };
         invoices.set(id, record);
-        return clone({ ...record, issuedAt: record.issuedAt.toISOString() });
+        return serializeInvoice(record);
       },
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: InvoiceUpdateArgs) => {
         const record = invoices.get(where.id);
         if (!record) {
           throw new Error("INVOICE_NOT_FOUND");
@@ -167,12 +304,12 @@ function createTestStore() {
         const updated = {
           ...record,
           ...data,
-          issuedAt: data.issuedAt ?? record.issuedAt,
+          issuedAt: data.issuedAt ? new Date(data.issuedAt) : record.issuedAt,
         } satisfies InvoiceRecord;
         invoices.set(record.id, updated);
-        return clone({ ...updated, issuedAt: updated.issuedAt.toISOString() });
+        return serializeInvoice(updated);
       },
-      findMany: async ({ where, orderBy, include }: any) => {
+      findMany: async ({ where, orderBy, include }: InvoiceFindManyArgs) => {
         let results = Array.from(invoices.values());
         if (where?.type) {
           results = results.filter((record) => record.type === where.type);
@@ -181,8 +318,9 @@ function createTestStore() {
           results = results.filter((record) => record.status === where.status);
         }
         if (where?.OR) {
+          const clauses = where.OR;
           results = results.filter((record) =>
-            where.OR.some((clause: any) => {
+            clauses.some((clause) => {
               if (clause.number) {
                 return record.number.toLowerCase().includes(clause.number.contains.toLowerCase());
               }
@@ -214,10 +352,7 @@ function createTestStore() {
         }
         return results.map((record) => {
           const user = users.get(record.userId);
-          const payload: any = clone({
-            ...record,
-            issuedAt: record.issuedAt.toISOString(),
-          });
+          const payload: SerializedInvoiceRecord = serializeInvoice(record);
           if (include?.user) {
             payload.user = user ? clone(user) : null;
           }
@@ -226,7 +361,7 @@ function createTestStore() {
       },
     },
     userEntitlement: {
-      findFirst: async ({ where, orderBy }: any) => {
+      findFirst: async ({ where, orderBy }: UserEntitlementFindFirstArgs) => {
         const items = Array.from(entitlements.values()).filter((item) => {
           if (where.userId && item.userId !== where.userId) {
             return false;
@@ -242,9 +377,9 @@ function createTestStore() {
           items.sort((a, b) => (b.expiresAt?.getTime() ?? 0) - (a.expiresAt?.getTime() ?? 0));
         }
         const first = items[0];
-        return first ? clone({ ...first, createdAt: first.createdAt.toISOString(), updatedAt: first.updatedAt.toISOString() }) : null;
+        return first ? serializeEntitlement(first) : null;
       },
-      create: async ({ data }: any) => {
+      create: async ({ data }: UserEntitlementCreateArgs) => {
         const id = nextId("ent");
         const now = new Date();
         const record: EntitlementRecord = {
@@ -256,9 +391,9 @@ function createTestStore() {
           updatedAt: now,
         };
         entitlements.set(id, record);
-        return clone({ ...record, createdAt: record.createdAt.toISOString(), updatedAt: record.updatedAt.toISOString() });
+        return serializeEntitlement(record);
       },
-      update: async ({ where, data }: any) => {
+      update: async ({ where, data }: UserEntitlementUpdateArgs) => {
         const record = entitlements.get(where.id);
         if (!record) {
           throw new Error("ENTITLEMENT_NOT_FOUND");
@@ -270,9 +405,9 @@ function createTestStore() {
           updatedAt: new Date(),
         };
         entitlements.set(record.id, updated);
-        return clone({ ...updated, createdAt: updated.createdAt.toISOString(), updatedAt: updated.updatedAt.toISOString() });
+        return serializeEntitlement(updated);
       },
-      findMany: async ({ where }: any) => {
+      findMany: async ({ where }: UserEntitlementFindManyArgs) => {
         const items = Array.from(entitlements.values()).filter((item) => {
           if (where.userId && item.userId !== where.userId) {
             return false;
@@ -282,15 +417,11 @@ function createTestStore() {
           }
           return true;
         });
-        return items.map((item) => clone({
-          ...item,
-          createdAt: item.createdAt.toISOString(),
-          updatedAt: item.updatedAt.toISOString(),
-        }));
+        return items.map((item) => serializeEntitlement(item));
       },
     },
-    $transaction: async (callback: (client: any) => Promise<any>) => callback(prisma),
-  } as const;
+    $transaction: async <T>(callback: (client: TestPrismaClient) => Promise<T>) => callback(prisma),
+  };
 
   const createUser = (user: UserRecord) => {
     users.set(user.id, user);
