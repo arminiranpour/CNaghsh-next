@@ -158,7 +158,10 @@ function createTestStore() {
   const invoices = new Map<string, InvoiceRecord>();
   const entitlements = new Map<string, EntitlementRecord>();
 
-  const nextId = (prefix: string) => `${prefix}_${idCounter++}`;
+  const nextId = (prefix: string) => {
+    const suffix = String(idCounter++).padStart(10, "0");
+    return `c${prefix}_${suffix}`;
+  };
 
   const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
@@ -545,8 +548,8 @@ function createTestStore() {
   };
 
   const seed = () => {
-    const user: UserRecord = { id: "user1", email: "user@example.com", name: "Test" };
-    const plan: PlanRecord = { id: "plan1", name: "Basic" };
+    const user: UserRecord = { id: nextId("usr"), email: "user@example.com", name: "Test" };
+    const plan: PlanRecord = { id: nextId("plan"), name: "Basic" };
     createUser(user);
     createPlan(plan);
     const subscription = createSubscription({
