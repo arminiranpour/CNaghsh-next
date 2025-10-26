@@ -276,6 +276,9 @@ function createTestStore() {
           const invoice = Array.from(invoices.values()).find((item) => item.paymentId === where.paymentId);
           return invoice ? serializeInvoice(invoice) : null;
         }
+        if (!where.id) {
+          return null;
+        }
         const invoice = invoices.get(where.id);
         return invoice ? serializeInvoice(invoice) : null;
       },
