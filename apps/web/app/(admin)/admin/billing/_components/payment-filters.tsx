@@ -13,15 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const ALL_OPTION_VALUE = "all";
+
 const PROVIDER_OPTIONS = [
-  { value: "", label: "همه ارائه‌دهندگان" },
+  { value: ALL_OPTION_VALUE, label: "همه ارائه‌دهندگان" },
   { value: "zarinpal", label: "Zarinpal" },
   { value: "idpay", label: "IDPay" },
   { value: "nextpay", label: "NextPay" },
 ] as const;
 
 const STATUS_OPTIONS = [
-  { value: "", label: "همه وضعیت‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه وضعیت‌ها" },
   { value: "PENDING", label: "Pending" },
   { value: "PAID", label: "Paid" },
   { value: "FAILED", label: "Failed" },
@@ -43,8 +45,16 @@ export function PaymentFilters({ defaultValues }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [provider, setProvider] = useState(defaultValues.provider ?? "");
-  const [status, setStatus] = useState(defaultValues.status ?? "");
+  const [provider, setProvider] = useState(
+    defaultValues.provider && defaultValues.provider.length > 0
+      ? defaultValues.provider
+      : ALL_OPTION_VALUE
+  );
+  const [status, setStatus] = useState(
+    defaultValues.status && defaultValues.status.length > 0
+      ? defaultValues.status
+      : ALL_OPTION_VALUE
+  );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
 
@@ -53,10 +63,10 @@ export function PaymentFilters({ defaultValues }: Props) {
     if (search.trim()) {
       params.set("q", search.trim());
     }
-    if (provider) {
+    if (provider && provider !== ALL_OPTION_VALUE) {
       params.set("provider", provider);
     }
-    if (status) {
+    if (status && status !== ALL_OPTION_VALUE) {
       params.set("status", status);
     }
     if (dateFrom) {
@@ -74,8 +84,8 @@ export function PaymentFilters({ defaultValues }: Props) {
 
   const reset = () => {
     setSearch("");
-    setProvider("");
-    setStatus("");
+    setProvider(ALL_OPTION_VALUE);
+    setStatus(ALL_OPTION_VALUE);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -105,7 +115,7 @@ export function PaymentFilters({ defaultValues }: Props) {
             </SelectTrigger>
             <SelectContent>
               {PROVIDER_OPTIONS.map((option) => (
-                <SelectItem key={option.value || "all"} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -120,7 +130,7 @@ export function PaymentFilters({ defaultValues }: Props) {
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value || "all"} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}

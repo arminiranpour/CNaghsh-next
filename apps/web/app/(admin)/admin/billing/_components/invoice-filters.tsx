@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const ALL_OPTION_VALUE = "all";
+
 type Props = {
   defaultValues: {
     q?: string;
@@ -24,13 +26,13 @@ type Props = {
 };
 
 const TYPE_OPTIONS = [
-  { value: "", label: "همه نوع‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه نوع‌ها" },
   { value: "SALE", label: "Sale" },
   { value: "REFUND", label: "Refund" },
 ] as const;
 
 const STATUS_OPTIONS = [
-  { value: "", label: "همه وضعیت‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه وضعیت‌ها" },
   { value: "PAID", label: "Paid" },
   { value: "OPEN", label: "Open" },
   { value: "VOID", label: "Void" },
@@ -41,8 +43,16 @@ export function InvoiceFilters({ defaultValues }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [type, setType] = useState(defaultValues.type ?? "");
-  const [status, setStatus] = useState(defaultValues.status ?? "");
+  const [type, setType] = useState(
+    defaultValues.type && defaultValues.type.length > 0
+      ? defaultValues.type
+      : ALL_OPTION_VALUE
+  );
+  const [status, setStatus] = useState(
+    defaultValues.status && defaultValues.status.length > 0
+      ? defaultValues.status
+      : ALL_OPTION_VALUE
+  );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
 
@@ -51,10 +61,10 @@ export function InvoiceFilters({ defaultValues }: Props) {
     if (search.trim()) {
       params.set("q", search.trim());
     }
-    if (type) {
+    if (type && type !== ALL_OPTION_VALUE) {
       params.set("type", type);
     }
-    if (status) {
+    if (status && status !== ALL_OPTION_VALUE) {
       params.set("status", status);
     }
     if (dateFrom) {
@@ -72,8 +82,8 @@ export function InvoiceFilters({ defaultValues }: Props) {
 
   const reset = () => {
     setSearch("");
-    setType("");
-    setStatus("");
+    setType(ALL_OPTION_VALUE);
+    setStatus(ALL_OPTION_VALUE);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -103,7 +113,7 @@ export function InvoiceFilters({ defaultValues }: Props) {
             </SelectTrigger>
             <SelectContent>
               {TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value || "all"} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -118,7 +128,7 @@ export function InvoiceFilters({ defaultValues }: Props) {
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value || "all"} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
