@@ -13,8 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const ALL_OPTION_VALUE = "all";
+
 const STATUS_OPTIONS = [
-  { value: "", label: "همه وضعیت‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه وضعیت‌ها" },
   { value: "active", label: "Active" },
   { value: "renewing", label: "Renewing" },
   { value: "expired", label: "Expired" },
@@ -95,13 +97,16 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">وضعیت</label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select
+            value={status || ALL_OPTION_VALUE}
+            onValueChange={(value) => setStatus(value === ALL_OPTION_VALUE ? "" : value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((option) => (
-                <SelectItem key={option.value || "all"} value={option.value}>
+                <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -110,12 +115,15 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">پلن</label>
-          <Select value={planId} onValueChange={setPlanId}>
+          <Select
+            value={planId || ALL_OPTION_VALUE}
+            onValueChange={(value) => setPlanId(value === ALL_OPTION_VALUE ? "" : value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">همه پلن‌ها</SelectItem>
+              <SelectItem value={ALL_OPTION_VALUE}>همه پلن‌ها</SelectItem>
               {plans.map((plan) => (
                 <SelectItem key={plan.value} value={plan.value}>
                   {plan.label}
