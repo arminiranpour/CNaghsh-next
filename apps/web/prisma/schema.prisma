@@ -22,12 +22,13 @@ model User {
   moderationEvents    ModerationEvent[]    @relation("ModerationActor")
   notifications       Notification[]
   payments            Payment[]
-  subscriptions       Subscription[]
   moderatedProfiles   Profile[]            @relation("ProfileModerators")
   profile             Profile?
+  subscriptions       Subscription?
   entitlements        UserEntitlement[]
 }
 
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Profile {
   id               String            @id @default(cuid())
   userId           String            @unique
@@ -138,7 +139,7 @@ model CheckoutSession {
 
 model Subscription {
   id                String             @id @default(cuid())
-  userId            String
+  userId            String             @unique
   planId            String
   status            SubscriptionStatus @default(active)
   startedAt         DateTime           @default(now())
@@ -148,10 +149,9 @@ model Subscription {
   providerRef       String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  plan              Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  plan              Plan               @relation(fields: [planId], references: [id])
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId])
   @@index([status])
   @@index([endsAt])
 }
@@ -186,7 +186,7 @@ model PaymentWebhookLog {
   handledAt  DateTime?
   status     String?
   paymentId  String?
-  payment    Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  payment    Payment?  @relation(fields: [paymentId], references: [id])
 
   @@unique([provider, externalId])
   @@index([receivedAt])
@@ -197,15 +197,15 @@ model Invoice {
   id          String        @id @default(cuid())
   userId      String
   paymentId   String        @unique
-  number      String        @unique @default(dbgenerated("concat('INV-', to_char(now(), 'YYYYMMDD'), '-', lpad(nextval(format('%I', 'Invoice_number_seq'))::text, 6, '0'))"))
-  type        InvoiceType   @default(SALE)
-  providerRef String?
-  issuedAt    DateTime      @default(now())
   total       Int
   currency    String        @default("IRR")
   status      InvoiceStatus
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  number      String        @unique @default(dbgenerated("concat('INV-', to_char(now(), 'YYYYMMDD'::text), '-', lpad((nextval((format('%I'::text, 'Invoice_number_seq'))::regclass))::text, 6, '0'::text))"))
+  type        InvoiceType   @default(SALE)
+  providerRef String?
+  issuedAt    DateTime      @default(now())
   payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -223,12 +223,11 @@ model UserEntitlement {
   updatedAt        DateTime       @updatedAt
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// NOTE: Prisma does not support partial indexes.
-  /// Application logic ensures at most one active CAN_PUBLISH_PROFILE entitlement per user.
   @@unique([userId, key, expiresAt])
   @@index([userId, key])
 }
 
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model Job {
   id               String               @id @default(cuid())
   userId           String

@@ -1,0 +1,32 @@
+{
+  "userId": "cmh9hx5d2000guatammhzkprs",
+  "subscriptionId": "cmh9hx5d7000muatacup44thm",
+  "paymentId": "cmh9hx5d4000iuatavduzbu57",
+  "invoiceId": "cmh9hx5d4000kuataqro88jgz",
+  "checks": {
+    "subscriptionStatus": "expired",
+    "paymentStatus": "REFUNDED",
+    "refundInvoiceTotal": -25000,
+    "entitlementsAfterGrant": 0,
+    "entitlementsAfterRevoke": 0,
+    "csvBytes": 339,
+    "pages": [
+      {
+        "label": "overview",
+        "status": 200
+      },
+      {
+        "label": "subscriptions",
+        "status": 200
+      },
+      {
+        "label": "payments",
+        "status": 200
+      },
+      {
+        "label": "invoices",
+        "status": 200
+      }
+    ]
+  }
+}

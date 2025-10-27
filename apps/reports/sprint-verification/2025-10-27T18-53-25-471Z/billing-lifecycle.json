@@ -1,0 +1,59 @@
+{
+  "userId": "cmh9hx5cg0007uatan52siin3",
+  "planId": "qa-lifecycle-plan",
+  "steps": [
+    {
+      "step": "activate",
+      "status": "active",
+      "startedAt": "2025-10-27T18:53:25.460Z",
+      "endsAt": "2025-11-27T18:53:25.460Z",
+      "renewalAt": "2025-11-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": false
+    },
+    {
+      "step": "renew-1",
+      "status": "active",
+      "startedAt": "2025-11-27T18:53:25.460Z",
+      "endsAt": "2025-12-27T18:53:25.460Z",
+      "renewalAt": "2025-12-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": false
+    },
+    {
+      "step": "renew-2",
+      "status": "active",
+      "startedAt": "2025-12-27T18:53:25.460Z",
+      "endsAt": "2026-01-27T18:53:25.460Z",
+      "renewalAt": "2026-01-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": false
+    },
+    {
+      "step": "cancel-set",
+      "status": "renewing",
+      "startedAt": "2025-12-27T18:53:25.460Z",
+      "endsAt": "2026-01-27T18:53:25.460Z",
+      "renewalAt": "2026-01-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": true
+    },
+    {
+      "step": "cancel-clear",
+      "status": "active",
+      "startedAt": "2025-12-27T18:53:25.460Z",
+      "endsAt": "2026-01-27T18:53:25.460Z",
+      "renewalAt": "2026-01-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": false
+    },
+    {
+      "step": "expired",
+      "status": "expired",
+      "startedAt": "2025-12-27T18:53:25.460Z",
+      "endsAt": "2026-01-27T18:53:25.460Z",
+      "renewalAt": "2026-01-27T18:53:25.460Z",
+      "cancelAtPeriodEnd": false
+    }
+  ],
+  "checks": {
+    "endsAtMonotonic": true,
+    "renewalMatchesEndsAt": true,
+    "finalStatus": "expired"
+  }
+}
