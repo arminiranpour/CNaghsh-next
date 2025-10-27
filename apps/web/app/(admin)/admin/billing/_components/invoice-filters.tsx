@@ -15,6 +15,8 @@ import {
 
 const ALL_OPTION_VALUE = "all";
 
+const isValidOption = (option: { value: string }) => option.value.trim().length > 0;
+
 type Props = {
   defaultValues: {
     q?: string;
@@ -112,7 +114,7 @@ export function InvoiceFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {TYPE_OPTIONS.map((option) => (
+              {TYPE_OPTIONS.filter(isValidOption).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -127,7 +129,7 @@ export function InvoiceFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((option) => (
+              {STATUS_OPTIONS.filter(isValidOption).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

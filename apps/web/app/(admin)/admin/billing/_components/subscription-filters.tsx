@@ -23,6 +23,8 @@ const STATUS_OPTIONS = [
   { value: "canceled", label: "Canceled" },
 ] as const;
 
+const isValidOption = (option: { value: string }) => option.value.trim().length > 0;
+
 type Option = { value: string; label: string };
 
 type Props = {
@@ -39,6 +41,8 @@ type Props = {
 export function SubscriptionFilters({ defaultValues, plans }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  const filteredPlans = plans.filter(isValidOption);
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
   const [status, setStatus] = useState(defaultValues.status ?? "");
@@ -105,7 +109,7 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((option) => (
+              {STATUS_OPTIONS.filter(isValidOption).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -124,7 +128,7 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_OPTION_VALUE}>همه پلن‌ها</SelectItem>
-              {plans.map((plan) => (
+              {filteredPlans.map((plan) => (
                 <SelectItem key={plan.value} value={plan.value}>
                   {plan.label}
                 </SelectItem>
