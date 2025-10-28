@@ -1,3 +1,5 @@
+import { normalizeSelectValue } from "@/lib/select";
+
 export type NormalizedSearchParams = {
   query?: string;
   city?: string;
@@ -27,7 +29,7 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
   const values = collectValues(input);
 
   assignString(normalized, "query", values.get("query"));
-  assignString(normalized, "city", values.get("city"));
+  assignSelectString(normalized, "city", values.get("city"));
 
   const skills = buildStringArray(values.get("skills"));
   if (skills.length > 0) {
@@ -39,7 +41,7 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
     normalized.gender = gender as NormalizedSearchParams["gender"];
   }
 
-  assignString(normalized, "sort", values.get("sort"));
+  assignSelectString(normalized, "sort", values.get("sort"));
 
   const page = toPageNumber(values.get("page"));
   if (page !== undefined) {
@@ -47,7 +49,7 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
   }
 
   assignBooleanString(normalized, "remote", values.get("remote"));
-  assignString(normalized, "category", values.get("category"));
+  assignSelectString(normalized, "category", values.get("category"));
 
   const payType = getFirst(values.get("payType"));
   if (isAllowedPayType(payType)) {
@@ -92,6 +94,18 @@ function assignString(
   const value = getFirst(rawValues);
   if (value) {
     target[key] = value;
+  }
+}
+
+function assignSelectString(
+  target: NormalizedSearchParams,
+  key: keyof Pick<NormalizedSearchParams, "city" | "sort" | "category">,
+  rawValues: string[] | undefined,
+) {
+  const value = getFirst(rawValues);
+  const normalized = normalizeSelectValue(value);
+  if (normalized) {
+    target[key] = normalized as NormalizedSearchParams[typeof key];
   }
 }
 

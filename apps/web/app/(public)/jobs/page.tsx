@@ -21,6 +21,7 @@ import {
 } from "@/lib/url/normalizeSearchParams";
 import { setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
+import { ALL_SELECT_OPTION_VALUE } from "@/lib/select";
 
 export const revalidate = 60;
 
@@ -197,10 +198,10 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
               <select
                 id="jobs-city"
                 name="city"
-                defaultValue={normalized.city ?? ""}
+                defaultValue={normalized.city ?? ALL_SELECT_OPTION_VALUE}
                 className={SELECT_CLASSNAME}
               >
-                <option value="">همه شهرها</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>همه شهرها</option>
                 {cities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.name}
@@ -214,10 +215,10 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
               <select
                 id="jobs-category"
                 name="category"
-                defaultValue={normalized.category ?? ""}
+                defaultValue={normalized.category ?? ALL_SELECT_OPTION_VALUE}
                 className={SELECT_CLASSNAME}
               >
-                <option value="">همه دسته‌ها</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>همه دسته‌ها</option>
                 {categories.map((category) => (
                   <option key={category} value={category}>
                     {category}
@@ -231,10 +232,10 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
               <select
                 id="jobs-payType"
                 name="payType"
-                defaultValue={normalized.payType ?? ""}
+                defaultValue={normalized.payType ?? ALL_SELECT_OPTION_VALUE}
                 className={SELECT_CLASSNAME}
               >
-                <option value="">همه گزینه‌ها</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>همه گزینه‌ها</option>
                 {PAY_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -264,10 +265,10 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
               <select
                 id="jobs-sort"
                 name="sort"
-                defaultValue={normalized.sort ?? ""}
+                defaultValue={normalized.sort ?? ALL_SELECT_OPTION_VALUE}
                 className={SELECT_CLASSNAME}
               >
-                <option value="">پیش‌فرض (مرتبط‌ترین)</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>پیش‌فرض (مرتبط‌ترین)</option>
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}

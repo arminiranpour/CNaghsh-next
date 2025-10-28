@@ -11,13 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { JobsAdminTable, type JobAdminRow } from "@/components/admin/jobs/JobsAdminTable";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { listJobsForAdmin } from "@/lib/jobs/admin/listJobs";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
 const PAGE_SIZE = 20;
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-type ModerationOption = "pending" | "approved" | "rejected" | "suspended" | "all";
-type StatusOption = "draft" | "published" | "closed" | "all";
+type ModerationOption =
+  | typeof ALL_SELECT_OPTION_VALUE
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "suspended";
+type StatusOption = typeof ALL_SELECT_OPTION_VALUE | "draft" | "published" | "closed";
+type FeaturedOption = typeof ALL_SELECT_OPTION_VALUE | "1" | "0";
 
 type ParsedFilters = {
   moderation?: JobModeration;
@@ -27,9 +34,12 @@ type ParsedFilters = {
   search?: string;
   dateFrom?: Date;
   dateTo?: Date;
-  featuredRaw?: string | undefined;
-  moderationRaw?: string | undefined;
-  statusRaw?: string | undefined;
+  moderationSelect: ModerationOption;
+  statusSelect: StatusOption;
+  featuredSelect: FeaturedOption;
+  moderationQuery?: string;
+  statusQuery?: string;
+  featuredQuery?: string;
   userRaw?: string | undefined;
   searchRaw?: string | undefined;
   dateFromRaw?: string | undefined;
@@ -37,19 +47,23 @@ type ParsedFilters = {
   page: number;
 };
 
+const DEFAULT_MODERATION_OPTION: ModerationOption = "pending";
+const DEFAULT_STATUS_OPTION: StatusOption = ALL_SELECT_OPTION_VALUE;
+const DEFAULT_FEATURED_OPTION: FeaturedOption = ALL_SELECT_OPTION_VALUE;
+
 const MODERATION_MAP: Record<ModerationOption, JobModeration | undefined> = {
+  [ALL_SELECT_OPTION_VALUE]: undefined,
   pending: "PENDING",
   approved: "APPROVED",
   rejected: "REJECTED",
   suspended: "SUSPENDED",
-  all: undefined,
 };
 
 const STATUS_MAP: Record<StatusOption, JobStatus | undefined> = {
+  [ALL_SELECT_OPTION_VALUE]: undefined,
   draft: "DRAFT",
   published: "PUBLISHED",
   closed: "CLOSED",
-  all: undefined,
 };
 
 function getParam(params: SearchParams, key: string): string | undefined {
@@ -72,18 +86,53 @@ function parseDate(value?: string | null): Date | undefined {
 }
 
 function parseFilters(searchParams: SearchParams): ParsedFilters {
-  const moderationParam = (getParam(searchParams, "moderation") ?? "pending").toLowerCase() as ModerationOption;
-  const statusParam = (getParam(searchParams, "status") ?? "all").toLowerCase() as StatusOption;
-  const featuredParam = getParam(searchParams, "featured");
+  const moderationParamRaw = getParam(searchParams, "moderation");
+  const statusParamRaw = getParam(searchParams, "status");
+  const featuredParamRaw = getParam(searchParams, "featured");
   const userParam = getParam(searchParams, "user") ?? undefined;
   const searchParam = getParam(searchParams, "q") ?? undefined;
   const dateFromParam = getParam(searchParams, "dateFrom") ?? undefined;
   const dateToParam = getParam(searchParams, "dateTo") ?? undefined;
   const pageParam = Number.parseInt(getParam(searchParams, "page") ?? "1", 10);
 
-  const moderation = MODERATION_MAP[moderationParam] ?? "PENDING";
-  const status = STATUS_MAP[statusParam];
-  const featured = featuredParam === "1" ? "ONLY" : featuredParam === "0" ? "NONE" : undefined;
+  const moderationSelect: ModerationOption = (() => {
+    const normalized = normalizeSelectValue(moderationParamRaw)?.toLowerCase();
+    if (
+      normalized === "pending" ||
+      normalized === "approved" ||
+      normalized === "rejected" ||
+      normalized === "suspended" ||
+      normalized === ALL_SELECT_OPTION_VALUE
+    ) {
+      return normalized as ModerationOption;
+    }
+    return DEFAULT_MODERATION_OPTION;
+  })();
+
+  const statusSelect: StatusOption = (() => {
+    const normalized = normalizeSelectValue(statusParamRaw)?.toLowerCase();
+    if (
+      normalized === "draft" ||
+      normalized === "published" ||
+      normalized === "closed" ||
+      normalized === ALL_SELECT_OPTION_VALUE
+    ) {
+      return normalized as StatusOption;
+    }
+    return DEFAULT_STATUS_OPTION;
+  })();
+
+  const featuredSelect: FeaturedOption = (() => {
+    const normalized = normalizeSelectValue(featuredParamRaw);
+    if (normalized === "1" || normalized === "0") {
+      return normalized;
+    }
+    return DEFAULT_FEATURED_OPTION;
+  })();
+
+  const moderation = MODERATION_MAP[moderationSelect] ?? "PENDING";
+  const status = STATUS_MAP[statusSelect];
+  const featured = featuredSelect === "1" ? "ONLY" : featuredSelect === "0" ? "NONE" : undefined;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
   return {
@@ -94,9 +143,12 @@ function parseFilters(searchParams: SearchParams): ParsedFilters {
     search: searchParam?.trim() ? searchParam.trim() : undefined,
     dateFrom: parseDate(dateFromParam),
     dateTo: parseDate(dateToParam),
-    featuredRaw: featuredParam ?? undefined,
-    moderationRaw: moderationParam,
-    statusRaw: statusParam,
+    moderationSelect,
+    statusSelect,
+    featuredSelect,
+    moderationQuery: normalizeSelectValue(moderationSelect),
+    statusQuery: normalizeSelectValue(statusSelect),
+    featuredQuery: normalizeSelectValue(featuredSelect),
     userRaw: userParam ?? undefined,
     searchRaw: searchParam ?? undefined,
     dateFromRaw: dateFromParam ?? undefined,
@@ -109,9 +161,9 @@ function buildQuery(base: ParsedFilters, overrides: Record<string, string | unde
   const query: Record<string, string> = {};
 
   const entries: Record<string, string | undefined> = {
-    moderation: base.moderationRaw,
-    status: base.statusRaw,
-    featured: base.featuredRaw,
+    moderation: base.moderationQuery,
+    status: base.statusQuery,
+    featured: base.featuredQuery,
     user: base.userRaw,
     q: base.searchRaw,
     dateFrom: base.dateFromRaw,
@@ -190,7 +242,7 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Se
           <input type="hidden" name="page" value="1" />
           <div className="space-y-2">
             <Label htmlFor="moderation">وضعیت بررسی</Label>
-            <Select defaultValue={parsed.moderationRaw ?? "pending"} name="moderation">
+            <Select defaultValue={parsed.moderationSelect} name="moderation">
               <SelectTrigger id="moderation">
                 <SelectValue placeholder="وضعیت بررسی" />
               </SelectTrigger>
@@ -199,19 +251,19 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Se
                 <SelectItem value="approved">تأیید شده</SelectItem>
                 <SelectItem value="rejected">رد شده</SelectItem>
                 <SelectItem value="suspended">معلق</SelectItem>
-                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value={ALL_SELECT_OPTION_VALUE}>همه</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="status">وضعیت انتشار</Label>
-            <Select defaultValue={parsed.statusRaw ?? "all"} name="status">
+            <Select defaultValue={parsed.statusSelect} name="status">
               <SelectTrigger id="status">
                 <SelectValue placeholder="وضعیت انتشار" />
               </SelectTrigger>
               <SelectContent align="end">
-                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value={ALL_SELECT_OPTION_VALUE}>همه</SelectItem>
                 <SelectItem value="draft">پیش‌نویس</SelectItem>
                 <SelectItem value="published">منتشرشده</SelectItem>
                 <SelectItem value="closed">بسته</SelectItem>
@@ -221,12 +273,12 @@ export default async function AdminJobsPage({ searchParams }: { searchParams: Se
 
           <div className="space-y-2">
             <Label htmlFor="featured">ویژه بودن</Label>
-            <Select defaultValue={parsed.featuredRaw ?? "all"} name="featured">
+            <Select defaultValue={parsed.featuredSelect} name="featured">
               <SelectTrigger id="featured">
                 <SelectValue placeholder="همه" />
               </SelectTrigger>
               <SelectContent align="end">
-                <SelectItem value="all">همه</SelectItem>
+                <SelectItem value={ALL_SELECT_OPTION_VALUE}>همه</SelectItem>
                 <SelectItem value="1">فقط ویژه</SelectItem>
                 <SelectItem value="0">غیر ویژه</SelectItem>
               </SelectContent>

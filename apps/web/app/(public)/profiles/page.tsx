@@ -21,6 +21,7 @@ import {
 } from "@/lib/url/normalizeSearchParams";
 import { parseSkillsSearchParam, setSkillsSearchParam } from "@/lib/url/skillsParam";
 import { cn } from "@/lib/utils";
+import { ALL_SELECT_OPTION_VALUE } from "@/lib/select";
 
 export const revalidate = 60;
 
@@ -149,10 +150,10 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
               <select
                 id="profiles-city"
                 name="city"
-                defaultValue={normalized.city ?? ""}
+                defaultValue={normalized.city ?? ALL_SELECT_OPTION_VALUE}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="">همه شهرها</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>همه شهرها</option>
                 {cities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.name}
@@ -229,7 +230,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
                     id="profiles-gender-any"
                     name="gender"
                     type="radio"
-                    value=""
+                    value={ALL_SELECT_OPTION_VALUE}
                     defaultChecked={!normalized.gender}
                     className="h-4 w-4 border border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
@@ -245,10 +246,10 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
               <select
                 id="profiles-sort"
                 name="sort"
-                defaultValue={normalized.sort ?? ""}
+                defaultValue={normalized.sort ?? ALL_SELECT_OPTION_VALUE}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                <option value="">پیش‌فرض (مرتبط‌ترین)</option>
+                <option value={ALL_SELECT_OPTION_VALUE}>پیش‌فرض (مرتبط‌ترین)</option>
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}

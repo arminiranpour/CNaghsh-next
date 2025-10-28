@@ -84,11 +84,13 @@ const SelectItem = React.forwardRef<
 
   if (!normalizedValue) {
     if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        "[ui/select] <SelectItem> received an empty value and was not rendered.",
-        value,
+      const error = new Error(
+        'SelectItem received value="" (empty string). Use ALL_SELECT_OPTION_VALUE ("__all__") or provide a non-empty string value.'
       );
+      error.name = "SelectItemEmptyValueError";
+      throw error;
     }
+
     return null;
   }
 

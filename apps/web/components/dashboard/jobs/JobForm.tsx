@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import type { City } from "@/lib/location/cities";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
 import {
   createJobAction,
@@ -32,7 +33,16 @@ const SUCCESS_MESSAGES = {
 } as const;
 
 const GENERIC_ERROR_MESSAGE = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
-const EMPTY_SELECT_VALUE = "__EMPTY__";
+type FormValues = {
+  title: string;
+  description: string;
+  category: string;
+  cityId?: string;
+  payType: string;
+  payAmount: string;
+  currency: string;
+  remote: boolean;
+};
 
 type JobFormProps = {
   mode: "create" | "edit";
@@ -56,11 +66,11 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [values, setValues] = useState({
+  const [values, setValues] = useState<FormValues>(() => ({
     title: initialValues.title ?? "",
     description: initialValues.description ?? "",
     category: initialValues.category ?? "",
-    cityId: initialValues.cityId ?? "",
+    cityId: normalizeSelectValue(initialValues.cityId ?? undefined),
     payType: initialValues.payType ?? "",
     payAmount:
       initialValues.payAmount !== null && initialValues.payAmount !== undefined
@@ -68,7 +78,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
         : "",
     currency: initialValues.currency ?? "",
     remote: initialValues.remote ?? false,
-  });
+  }));
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -80,8 +90,8 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
       setFormError(null);
     };
 
-  const handleSelectChange = (field: "cityId" | "payType") => (value: string) => {
-    const nextValue = value === EMPTY_SELECT_VALUE ? "" : value;
+  const handleSelectChange = (field: "cityId") => (value: string) => {
+    const nextValue = normalizeSelectValue(value);
     setValues((prev) => ({ ...prev, [field]: nextValue }));
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormError(null);
@@ -100,7 +110,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
       title: values.title.trim(),
       description: values.description.trim(),
       category: values.category.trim(),
-      cityId: values.cityId.trim() ? values.cityId.trim() : undefined,
+      cityId: normalizeSelectValue(values.cityId),
       payType: values.payType.trim() ? values.payType.trim() : undefined,
       payAmount: values.payAmount.trim(),
       currency: values.currency.trim() ? values.currency.trim() : undefined,
@@ -222,7 +232,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
         <div className="space-y-2">
           <Label>شهر</Label>
           <Select
-            value={values.cityId ? values.cityId : undefined}
+            value={values.cityId ?? ALL_SELECT_OPTION_VALUE}
             onValueChange={(value) => handleSelectChange("cityId")(value)}
             disabled={isPending}
           >
@@ -230,7 +240,7 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
               <SelectValue placeholder="انتخاب شهر" />
             </SelectTrigger>
             <SelectContent dir="rtl">
-              <SelectItem value={EMPTY_SELECT_VALUE}>بدون انتخاب</SelectItem>
+              <SelectItem value={ALL_SELECT_OPTION_VALUE}>بدون انتخاب</SelectItem>
               {cities.map((city) => (
                 <SelectItem key={city.id} value={city.id}>
                   {city.name}

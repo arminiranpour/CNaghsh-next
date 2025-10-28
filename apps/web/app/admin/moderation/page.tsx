@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 import { getCities } from "@/lib/location/cities";
 import { listProfilesForModeration } from "@/lib/profile/moderation";
 import { SKILLS } from "@/lib/profile/skills";
@@ -16,24 +17,42 @@ type SkillOption = {
   label: string;
 };
 
+const ALL_OPTION_VALUE = ALL_SELECT_OPTION_VALUE;
+
 const STATUS_OPTIONS = [
-  { value: "ALL", label: "همه وضعیت‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه وضعیت‌ها" },
   { value: "PENDING", label: "در انتظار بررسی" },
   { value: "APPROVED", label: "تایید شده" },
   { value: "REJECTED", label: "رد شده" },
 ] as const;
 
 const VISIBILITY_OPTIONS = [
-  { value: "ALL", label: "همه نمایش‌ها" },
+  { value: ALL_OPTION_VALUE, label: "همه نمایش‌ها" },
   { value: "PUBLIC", label: "منتشر" },
   { value: "PRIVATE", label: "غیرمنتشر" },
 ] as const;
 
 const AVATAR_OPTIONS = [
-  { value: "ALL", label: "همه" },
+  { value: ALL_OPTION_VALUE, label: "همه" },
   { value: "with", label: "دارای تصویر" },
   { value: "without", label: "بدون تصویر" },
 ] as const;
+
+type StatusSelectValue = (typeof STATUS_OPTIONS)[number]["value"];
+type VisibilitySelectValue = (typeof VISIBILITY_OPTIONS)[number]["value"];
+type AvatarSelectValue = (typeof AVATAR_OPTIONS)[number]["value"];
+
+function isStatusSelectValue(value: string | undefined): value is StatusSelectValue {
+  return STATUS_OPTIONS.some((option) => option.value === value);
+}
+
+function isVisibilitySelectValue(value: string | undefined): value is VisibilitySelectValue {
+  return VISIBILITY_OPTIONS.some((option) => option.value === value);
+}
+
+function isAvatarSelectValue(value: string | undefined): value is AvatarSelectValue {
+  return AVATAR_OPTIONS.some((option) => option.value === value);
+}
 
 const PAGE_SIZE = 20;
 
@@ -87,30 +106,41 @@ export default async function ModerationPage({
   const queryParam = getParam(searchParams, "q");
   const pageParam = Number.parseInt(getParam(searchParams, "page") ?? "1", 10);
 
-  const normalizedAvatarParam =
-    hasAvatarParam === "with" || hasAvatarParam === "without"
-      ? hasAvatarParam
-      : "ALL";
-  const normalizedCityParam = cityParam?.trim() ? cityParam.trim() : "ALL";
-  const normalizedSkillParam = skillParam?.trim() ? skillParam.trim() : "ALL";
+  const statusSelectValue: StatusSelectValue = (() => {
+    const normalized = normalizeSelectValue(statusParam)?.toUpperCase();
+    return isStatusSelectValue(normalized) ? normalized : ALL_OPTION_VALUE;
+  })();
+
+  const visibilitySelectValue: VisibilitySelectValue = (() => {
+    const normalized = normalizeSelectValue(visibilityParam)?.toUpperCase();
+    return isVisibilitySelectValue(normalized) ? normalized : ALL_OPTION_VALUE;
+  })();
+
+  const avatarSelectValue: AvatarSelectValue = (() => {
+    const normalized = normalizeSelectValue(hasAvatarParam);
+    return isAvatarSelectValue(normalized) ? normalized : ALL_OPTION_VALUE;
+  })();
+
+  const citySelectValue = normalizeSelectValue(cityParam) ?? ALL_OPTION_VALUE;
+  const skillSelectValue = normalizeSelectValue(skillParam) ?? ALL_OPTION_VALUE;
 
   const filters = {
     status:
-      statusParam === "PENDING" || statusParam === "APPROVED" || statusParam === "REJECTED"
-        ? statusParam
+      statusSelectValue !== ALL_OPTION_VALUE
+        ? (statusSelectValue as Exclude<StatusSelectValue, typeof ALL_OPTION_VALUE>)
         : undefined,
     visibility:
-      visibilityParam === "PUBLIC" || visibilityParam === "PRIVATE"
-        ? visibilityParam
+      visibilitySelectValue !== ALL_OPTION_VALUE
+        ? (visibilitySelectValue as Exclude<VisibilitySelectValue, typeof ALL_OPTION_VALUE>)
         : undefined,
     hasAvatar:
-      normalizedAvatarParam === "with"
+      avatarSelectValue === "with"
         ? true
-        : normalizedAvatarParam === "without"
+        : avatarSelectValue === "without"
           ? false
           : undefined,
-    cityId: normalizedCityParam !== "ALL" ? normalizedCityParam : undefined,
-    skill: normalizedSkillParam !== "ALL" ? normalizedSkillParam : undefined,
+    cityId: citySelectValue !== ALL_OPTION_VALUE ? citySelectValue : undefined,
+    skill: skillSelectValue !== ALL_OPTION_VALUE ? skillSelectValue : undefined,
     from: parseDateParam(fromParam),
     to: parseDateParam(toParam),
     q: queryParam?.trim() ? queryParam.trim() : undefined,
@@ -153,6 +183,15 @@ export default async function ModerationPage({
 
   const totalPages = Math.max(1, Math.ceil(listResult.total / listResult.pageSize));
 
+  const sanitizedSearchParams: SearchParams = {
+    ...searchParams,
+    status: normalizeSelectValue(statusSelectValue),
+    visibility: normalizeSelectValue(visibilitySelectValue),
+    avatar: normalizeSelectValue(avatarSelectValue),
+    city: normalizeSelectValue(citySelectValue),
+    skill: normalizeSelectValue(skillSelectValue),
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <header className="space-y-1">
@@ -167,7 +206,7 @@ export default async function ModerationPage({
           <input type="hidden" name="page" value="1" />
           <div className="space-y-2">
             <Label htmlFor="status">وضعیت</Label>
-            <Select defaultValue={statusParam ?? "ALL"} name="status">
+            <Select defaultValue={statusSelectValue} name="status">
               <SelectTrigger id="status">
                 <SelectValue placeholder="وضعیت" />
               </SelectTrigger>
@@ -183,7 +222,7 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="visibility">نمایش</Label>
-            <Select defaultValue={visibilityParam ?? "ALL"} name="visibility">
+            <Select defaultValue={visibilitySelectValue} name="visibility">
               <SelectTrigger id="visibility">
                 <SelectValue placeholder="نمایش" />
               </SelectTrigger>
@@ -199,7 +238,7 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="avatar">تصویر پروفایل</Label>
-            <Select defaultValue={normalizedAvatarParam} name="avatar">
+            <Select defaultValue={avatarSelectValue} name="avatar">
               <SelectTrigger id="avatar">
                 <SelectValue placeholder="تصویر" />
               </SelectTrigger>
@@ -215,12 +254,12 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="city">شهر</Label>
-            <Select defaultValue={normalizedCityParam} name="city">
+            <Select defaultValue={citySelectValue} name="city">
               <SelectTrigger id="city">
                 <SelectValue placeholder="همه شهرها" />
               </SelectTrigger>
               <SelectContent align="end" className="max-h-64">
-                <SelectItem value="ALL">همه شهرها</SelectItem>
+                <SelectItem value={ALL_OPTION_VALUE}>همه شهرها</SelectItem>
                 {cities.map((city) => (
                   <SelectItem key={city.id} value={city.id}>
                     {city.name}
@@ -232,12 +271,12 @@ export default async function ModerationPage({
 
           <div className="space-y-2">
             <Label htmlFor="skill">مهارت</Label>
-            <Select defaultValue={normalizedSkillParam} name="skill">
+            <Select defaultValue={skillSelectValue} name="skill">
               <SelectTrigger id="skill">
                 <SelectValue placeholder="همه مهارت‌ها" />
               </SelectTrigger>
               <SelectContent align="end" className="max-h-64">
-                <SelectItem value="ALL">همه مهارت‌ها</SelectItem>
+                <SelectItem value={ALL_OPTION_VALUE}>همه مهارت‌ها</SelectItem>
                 {skillOptions.map((skill) => (
                   <SelectItem key={skill.key} value={skill.key}>
                     {skill.label}
@@ -290,7 +329,7 @@ export default async function ModerationPage({
       <PaginationControls
         totalPages={totalPages}
         currentPage={listResult.page}
-        searchParams={searchParams}
+        searchParams={sanitizedSearchParams}
       />
     </div>
   );
