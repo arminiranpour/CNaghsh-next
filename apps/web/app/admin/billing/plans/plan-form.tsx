@@ -25,7 +25,7 @@ const cycleOptions: Array<{ value: PlanCycleValue; label: string }> = [
 ];
 
 type PlanFormValues = {
-  productId: string;
+  productId: string | undefined;
   name: string;
   cycle: PlanCycleValue;
   limitsText: string;
@@ -47,7 +47,7 @@ export function PlanForm({ products, initialValues, action, submitLabel }: PlanF
   const router = useRouter();
   const { toast } = useToast();
   const [values, setValues] = useState<PlanFormValues>({
-    productId: initialValues?.productId ?? (products[0]?.id ?? ""),
+    productId: initialValues?.productId ?? products[0]?.id,
     name: initialValues?.name ?? "",
     cycle: initialValues?.cycle ?? "MONTHLY",
     limitsText: initialValues?.limitsText ?? DEFAULT_LIMITS,
@@ -62,12 +62,13 @@ export function PlanForm({ products, initialValues, action, submitLabel }: PlanF
     event.preventDefault();
 
     const nextErrors: FormErrors = {};
+    const productId = values.productId;
 
     if (!values.name.trim()) {
       nextErrors.name = "مقدار نامعتبر";
     }
 
-    if (!values.productId) {
+    if (!productId) {
       nextErrors.productId = "مقدار نامعتبر";
     }
 
@@ -91,9 +92,13 @@ export function PlanForm({ products, initialValues, action, submitLabel }: PlanF
 
     setErrors({});
 
+    if (!productId) {
+      return;
+    }
+
     startTransition(async () => {
       const result = await action({
-        productId: values.productId,
+        productId,
         name: values.name.trim(),
         cycle: values.cycle as Parameters<PlanAction>[0]["cycle"],
         limits: parsedLimits as Parameters<PlanAction>[0]["limits"],
@@ -133,7 +138,7 @@ export function PlanForm({ products, initialValues, action, submitLabel }: PlanF
           <div className="space-y-2">
             <Label>محصول</Label>
             <Select
-              value={values.productId}
+              value={values.productId ?? undefined}
               onValueChange={(value) =>
                 setValues((prev) => ({ ...prev, productId: value }))
               }

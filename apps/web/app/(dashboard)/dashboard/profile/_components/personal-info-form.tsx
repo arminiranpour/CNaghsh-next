@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import type { City } from "@/lib/location/cities";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
 import { upsertPersonalInfo } from "../actions";
 
@@ -29,7 +30,7 @@ type PersonalInfoFormValues = {
   age: string;
   phone: string;
   address: string;
-  cityId: string;
+  cityId: string | undefined;
   avatarUrl: string;
   bio: string;
 };
@@ -62,7 +63,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
     age: initialValues.age ? String(initialValues.age) : "",
     phone: initialValues.phone ?? "",
     address: initialValues.address ?? "",
-    cityId: initialValues.cityId ?? "",
+    cityId: normalizeSelectValue(initialValues.cityId ?? undefined),
     avatarUrl: initialValues.avatarUrl ?? "",
     bio: initialValues.bio ?? "",
   });
@@ -77,8 +78,9 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
       setFormError(null);
     };
 
-  const handleCityChange = (cityId: string) => {
-    setValues((prev) => ({ ...prev, cityId }));
+  const handleCityChange = (value: string) => {
+    const normalized = normalizeSelectValue(value);
+    setValues((prev) => ({ ...prev, cityId: normalized }));
     setFieldErrors((prev) => ({ ...prev, cityId: undefined }));
     setFormError(null);
   };
@@ -95,7 +97,8 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
     formData.set("age", values.age.trim());
     formData.set("phone", values.phone.trim());
     formData.set("address", values.address.trim());
-    formData.set("cityId", values.cityId.trim());
+    const normalizedCityId = normalizeSelectValue(values.cityId);
+    formData.set("cityId", normalizedCityId ?? "");
     formData.set("bio", values.bio.trim());
     formData.set("avatarUrl", values.avatarUrl.trim());
 
@@ -238,7 +241,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
         <div className="space-y-2">
           <Label htmlFor="cityId">شهر</Label>
           <Select
-            value={values.cityId}
+            value={values.cityId ?? ALL_SELECT_OPTION_VALUE}
             onValueChange={handleCityChange}
             disabled={isPending || cities.length === 0}
             name="cityId"
@@ -247,6 +250,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
               <SelectValue placeholder="شهر خود را انتخاب کنید" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_SELECT_OPTION_VALUE}>بدون انتخاب</SelectItem>
               {cities.length === 0 ? (
                 <SelectItem disabled value="no_cities">
                   به‌زودی لیست شهرها تکمیل می‌شود
@@ -259,7 +263,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
               ))}
             </SelectContent>
           </Select>
-          <input type="hidden" name="cityId" value={values.cityId} />
+          <input type="hidden" name="cityId" value={values.cityId ?? ""} />
           {fieldErrors.cityId ? (
             <p className="text-sm text-destructive">{fieldErrors.cityId}</p>
           ) : null}

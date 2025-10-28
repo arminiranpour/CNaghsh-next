@@ -1,3 +1,23 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@radix-ui/react-select",
+            "message": "Import Select only from '@/components/ui/select' wrapper"
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["**/components/ui/select", "**/components/ui/select/**"],
+            "message": "Import Select only from '@/components/ui/select' wrapper",
+            "allow": ["@/components/ui/select"]
+          }
+        ]
+      }
+    ]
+  }
 }
