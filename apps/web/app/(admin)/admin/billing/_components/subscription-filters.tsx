@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
-const ALL_OPTION_VALUE = ALL_SELECT_OPTION_VALUE;
+const ALL_OPTION_VALUE = "all" as const;
 
 function normalizeOptionValue(value?: string): string | undefined {
   if (!value) {
@@ -22,7 +22,15 @@ function normalizeOptionValue(value?: string): string | undefined {
   }
 
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed === ALL_OPTION_VALUE || trimmed === ALL_SELECT_OPTION_VALUE) {
+    return undefined;
+  }
+
+  return trimmed;
 }
 
 const STATUS_OPTIONS = [
@@ -128,21 +136,14 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
             onValueChange={(value) => setStatus(normalizeSelectValue(value))}
           >
             <SelectTrigger>
-              <SelectValue placeholder="همه" />
+              <SelectValue placeholder="همه وضعیت‌ها" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((option) => {
-                const value = normalizeOptionValue(option.value);
-                if (!value) {
-                  return null;
-                }
-
-                return (
-                  <SelectItem key={value} value={value}>
-                    {option.label}
-                  </SelectItem>
-                );
-              })}
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -153,22 +154,15 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
             onValueChange={(value) => setPlanId(normalizeSelectValue(value))}
           >
             <SelectTrigger>
-              <SelectValue placeholder="همه" />
+              <SelectValue placeholder="همه پلن‌ها" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_OPTION_VALUE}>همه پلن‌ها</SelectItem>
-              {filteredPlans.map((plan) => {
-                const value = normalizeOptionValue(plan.value);
-                if (!value) {
-                  return null;
-                }
-
-                return (
-                  <SelectItem key={value} value={value}>
-                    {plan.label}
-                  </SelectItem>
-                );
-              })}
+              {filteredPlans.map((plan) => (
+                <SelectItem key={plan.value} value={plan.value}>
+                  {plan.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
