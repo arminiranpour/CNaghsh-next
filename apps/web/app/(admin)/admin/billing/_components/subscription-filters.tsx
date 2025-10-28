@@ -62,10 +62,10 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
   const [status, setStatus] = useState<string | undefined>(() =>
-    normalizeSelectValue(defaultValues.status)
+    normalizeSelectValue(defaultValues.status),
   );
   const [planId, setPlanId] = useState<string | undefined>(() =>
-    normalizeSelectValue(defaultValues.planId)
+    normalizeSelectValue(defaultValues.planId),
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -157,11 +157,18 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_OPTION_VALUE}>همه پلن‌ها</SelectItem>
-              {filteredPlans.map((plan) => (
-                <SelectItem key={plan.value} value={plan.value}>
-                  {plan.label}
-                </SelectItem>
-              ))}
+              {filteredPlans.map((plan) => {
+                const value = normalizeOptionValue(plan.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {plan.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
