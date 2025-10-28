@@ -36,6 +36,29 @@ function getParam(params: SearchParams, key: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function normalizeString(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeSelectParam(value?: string): string | undefined {
+  const normalized = normalizeString(value);
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized === ALL_SELECT_OPTION_VALUE || normalized === "all") {
+    return undefined;
+  }
+
+  return normalized;
+}
+
 function parseDate(value?: string): Date | undefined {
   if (!value) {
     return undefined;
@@ -48,12 +71,17 @@ function parseDate(value?: string): Date | undefined {
 }
 
 function parseFilters(searchParams: SearchParams): ParsedFilters {
-  const q = getParam(searchParams, "q") ?? undefined;
-  const statusRaw = getParam(searchParams, "status") ?? undefined;
-  const planId = getParam(searchParams, "planId") ?? undefined;
-  const dateFromRaw = getParam(searchParams, "dateFrom") ?? undefined;
-  const dateToRaw = getParam(searchParams, "dateTo") ?? undefined;
+  const qRaw = getParam(searchParams, "q");
+  const statusRaw = getParam(searchParams, "status");
+  const planIdRaw = getParam(searchParams, "planId");
+  const dateFromRaw = getParam(searchParams, "dateFrom");
+  const dateToRaw = getParam(searchParams, "dateTo");
   const pageRaw = getParam(searchParams, "page") ?? "1";
+
+  const q = normalizeString(qRaw);
+  const planId = normalizeSelectParam(planIdRaw);
+  const dateFromValue = normalizeString(dateFromRaw);
+  const dateToValue = normalizeString(dateToRaw);
 
   const page = Number.parseInt(pageRaw, 10);
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
@@ -63,22 +91,25 @@ function parseFilters(searchParams: SearchParams): ParsedFilters {
     status = statusRaw;
   }
 
-  const dateFrom = parseDate(dateFromRaw ?? undefined);
-  const dateTo = parseDate(dateToRaw ?? undefined);
+  const dateFrom = parseDate(dateFromValue);
+  const dateTo = parseDate(dateToValue);
+
+  const resolvedDateFrom = dateFrom ? dateFromValue ?? undefined : undefined;
+  const resolvedDateTo = dateTo ? dateToValue ?? undefined : undefined;
 
   return {
-    q: q?.trim() ? q.trim() : undefined,
+    q,
     status,
-    planId: planId?.trim() ? planId.trim() : undefined,
+    planId,
     dateFrom,
     dateTo,
     page: safePage,
     raw: {
       q: q ?? undefined,
-      status: statusRaw ?? undefined,
+      status: status ?? undefined,
       planId: planId ?? undefined,
-      dateFrom: dateFromRaw ?? undefined,
-      dateTo: dateToRaw ?? undefined,
+      dateFrom: resolvedDateFrom,
+      dateTo: resolvedDateTo,
     },
   };
 }
