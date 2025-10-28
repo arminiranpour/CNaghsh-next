@@ -7,10 +7,18 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navItems = [
+  { href: "/admin/billing" as Route, label: "نمای کلی" },
+  { href: "/admin/billing/subscriptions" as Route, label: "اشتراک‌ها" },
+  { href: "/admin/billing/payments" as Route, label: "پرداخت‌ها" },
+  { href: "/admin/billing/invoices" as Route, label: "فاکتورها" },
+  { href: "/admin/billing/entitlements" as Route, label: "دسترسی‌ها" },
+  { href: "/admin/billing/webhooks" as Route, label: "وب‌هوک‌ها" },
+  { href: "/admin/billing/exports" as Route, label: "خروجی‌ها" },
+  { href: "/admin/billing/activity" as Route, label: "گزارش عملیات" },
   { href: "/admin/billing/products" as Route, label: "محصولات" },
   { href: "/admin/billing/plans" as Route, label: "پلن‌ها" },
   { href: "/admin/billing/prices" as Route, label: "قیمت‌ها" },
-];
+] as const;
 
 export function SidebarNav({ className }: { className?: string }) {
   const pathname = usePathname();

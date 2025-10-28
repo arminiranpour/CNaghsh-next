@@ -25,9 +25,10 @@ export const PaymentStatus = {
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 export const InvoiceStatus = {
-  OPEN: "OPEN",
+  DRAFT: "DRAFT",
   PAID: "PAID",
   VOID: "VOID",
+  REFUNDED: "REFUNDED",
 } as const;
 
 export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus];
