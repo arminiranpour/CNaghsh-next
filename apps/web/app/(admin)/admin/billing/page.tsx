@@ -1,4 +1,4 @@
-import { SubscriptionStatus, PaymentStatus, InvoiceType } from "@prisma/client";
+import { SubscriptionStatus, PaymentStatus, InvoiceType, Prisma } from "@prisma/client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
@@ -7,17 +7,50 @@ import { AdminBillingTabs } from "./_components/admin-billing-tabs";
 
 export const dynamic = "force-dynamic";
 
-async function getOverview() {
-  const [activeSubscriptions, totalPayments, refundedPayments, refundInvoices] = await Promise.all([
-    prisma.subscription.count({
-      where: { status: { in: [SubscriptionStatus.active, SubscriptionStatus.renewing] } },
-    }),
-    prisma.payment.count({ where: { status: PaymentStatus.PAID } }),
-    prisma.payment.count({ where: { status: PaymentStatus.REFUNDED } }),
-    prisma.invoice.count({ where: { type: InvoiceType.REFUND } }),
-  ]);
+const EMPTY_OVERVIEW = {
+  activeSubscriptions: 0,
+  totalPayments: 0,
+  refundedPayments: 0,
+  refundInvoices: 0,
+};
 
-  return { activeSubscriptions, totalPayments, refundedPayments, refundInvoices };
+function isDatabaseUnavailableError(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return ["P1000", "P1001", "P1002", "P1010"].includes(error.code);
+  }
+
+  return false;
+}
+
+function logDatabaseUnavailable(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn("[admin][billing] Database unavailable, showing empty overview.", message);
+}
+
+export async function getOverview() {
+  try {
+    const [activeSubscriptions, totalPayments, refundedPayments, refundInvoices] = await Promise.all([
+      prisma.subscription.count({
+        where: { status: { in: [SubscriptionStatus.active, SubscriptionStatus.renewing] } },
+      }),
+      prisma.payment.count({ where: { status: PaymentStatus.PAID } }),
+      prisma.payment.count({ where: { status: PaymentStatus.REFUNDED } }),
+      prisma.invoice.count({ where: { type: InvoiceType.REFUND } }),
+    ]);
+
+    return { activeSubscriptions, totalPayments, refundedPayments, refundInvoices };
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      logDatabaseUnavailable(error);
+      return EMPTY_OVERVIEW;
+    }
+
+    throw error;
+  }
 }
 
 export default async function AdminBillingOverviewPage() {
