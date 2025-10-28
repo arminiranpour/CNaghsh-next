@@ -15,6 +15,15 @@ import {
 
 const ALL_OPTION_VALUE = "all";
 
+function normalizeOptionValue(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 const PROVIDER_OPTIONS = [
   { value: ALL_OPTION_VALUE, label: "همه ارائه‌دهندگان" },
   { value: "zarinpal", label: "Zarinpal" },
@@ -29,8 +38,6 @@ const STATUS_OPTIONS = [
   { value: "FAILED", label: "Failed" },
   { value: "REFUNDED", label: "Refunded" },
 ] as const;
-
-const isValidOption = (option: { value: string }) => option.value.trim().length > 0;
 
 type Props = {
   defaultValues: {
@@ -48,14 +55,10 @@ export function PaymentFilters({ defaultValues }: Props) {
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
   const [provider, setProvider] = useState(
-    defaultValues.provider && defaultValues.provider.length > 0
-      ? defaultValues.provider
-      : ALL_OPTION_VALUE
+    normalizeOptionValue(defaultValues.provider) ?? ALL_OPTION_VALUE
   );
   const [status, setStatus] = useState(
-    defaultValues.status && defaultValues.status.length > 0
-      ? defaultValues.status
-      : ALL_OPTION_VALUE
+    normalizeOptionValue(defaultValues.status) ?? ALL_OPTION_VALUE
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -116,11 +119,18 @@ export function PaymentFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {PROVIDER_OPTIONS.filter(isValidOption).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {PROVIDER_OPTIONS.map((option) => {
+                const value = normalizeOptionValue(option.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -131,11 +141,18 @@ export function PaymentFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.filter(isValidOption).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {STATUS_OPTIONS.map((option) => {
+                const value = normalizeOptionValue(option.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

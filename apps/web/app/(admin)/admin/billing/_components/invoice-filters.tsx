@@ -15,7 +15,14 @@ import {
 
 const ALL_OPTION_VALUE = "all";
 
-const isValidOption = (option: { value: string }) => option.value.trim().length > 0;
+function normalizeOptionValue(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
 type Props = {
   defaultValues: {
@@ -46,14 +53,10 @@ export function InvoiceFilters({ defaultValues }: Props) {
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
   const [type, setType] = useState(
-    defaultValues.type && defaultValues.type.length > 0
-      ? defaultValues.type
-      : ALL_OPTION_VALUE
+    normalizeOptionValue(defaultValues.type) ?? ALL_OPTION_VALUE
   );
   const [status, setStatus] = useState(
-    defaultValues.status && defaultValues.status.length > 0
-      ? defaultValues.status
-      : ALL_OPTION_VALUE
+    normalizeOptionValue(defaultValues.status) ?? ALL_OPTION_VALUE
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -114,11 +117,18 @@ export function InvoiceFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {TYPE_OPTIONS.filter(isValidOption).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {TYPE_OPTIONS.map((option) => {
+                const value = normalizeOptionValue(option.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -129,11 +139,18 @@ export function InvoiceFilters({ defaultValues }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.filter(isValidOption).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {STATUS_OPTIONS.map((option) => {
+                const value = normalizeOptionValue(option.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

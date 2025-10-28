@@ -15,6 +15,15 @@ import {
 
 const ALL_OPTION_VALUE = "all";
 
+function normalizeOptionValue(value?: string): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 const STATUS_OPTIONS = [
   { value: ALL_OPTION_VALUE, label: "همه وضعیت‌ها" },
   { value: "active", label: "Active" },
@@ -22,8 +31,6 @@ const STATUS_OPTIONS = [
   { value: "expired", label: "Expired" },
   { value: "canceled", label: "Canceled" },
 ] as const;
-
-const isValidOption = (option: { value: string }) => option.value.trim().length > 0;
 
 type Option = { value: string; label: string };
 
@@ -42,11 +49,33 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const filteredPlans = plans.filter(isValidOption);
+  const filteredPlans = plans.reduce<Option[]>((acc, plan) => {
+    const value = normalizeOptionValue(plan.value);
+    if (!value) {
+      return acc;
+    }
+
+    acc.push({ ...plan, value });
+    return acc;
+  }, []);
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [status, setStatus] = useState(defaultValues.status ?? "");
-  const [planId, setPlanId] = useState(defaultValues.planId ?? "");
+  const [status, setStatus] = useState(() => {
+    const normalized = normalizeOptionValue(defaultValues.status);
+    if (!normalized || normalized === ALL_OPTION_VALUE) {
+      return "";
+    }
+
+    return normalized;
+  });
+  const [planId, setPlanId] = useState(() => {
+    const normalized = normalizeOptionValue(defaultValues.planId);
+    if (!normalized || normalized === ALL_OPTION_VALUE) {
+      return "";
+    }
+
+    return normalized;
+  });
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
 
@@ -109,11 +138,18 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.filter(isValidOption).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
+              {STATUS_OPTIONS.map((option) => {
+                const value = normalizeOptionValue(option.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {option.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
