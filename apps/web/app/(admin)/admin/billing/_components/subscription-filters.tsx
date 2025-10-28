@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
-const ALL_OPTION_VALUE = "all";
+const ALL_OPTION_VALUE = ALL_SELECT_OPTION_VALUE;
 
 function normalizeOptionValue(value?: string): string | undefined {
   if (!value) {
@@ -60,22 +61,12 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
   }, []);
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [status, setStatus] = useState(() => {
-    const normalized = normalizeOptionValue(defaultValues.status);
-    if (!normalized || normalized === ALL_OPTION_VALUE) {
-      return "";
-    }
-
-    return normalized;
-  });
-  const [planId, setPlanId] = useState(() => {
-    const normalized = normalizeOptionValue(defaultValues.planId);
-    if (!normalized || normalized === ALL_OPTION_VALUE) {
-      return "";
-    }
-
-    return normalized;
-  });
+  const [status, setStatus] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.status)
+  );
+  const [planId, setPlanId] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.planId)
+  );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
 
@@ -84,11 +75,13 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
     if (search.trim()) {
       params.set("q", search.trim());
     }
-    if (status) {
-      params.set("status", status);
+    const normalizedStatus = normalizeSelectValue(status);
+    if (normalizedStatus) {
+      params.set("status", normalizedStatus);
     }
-    if (planId) {
-      params.set("planId", planId);
+    const normalizedPlanId = normalizeSelectValue(planId);
+    if (normalizedPlanId) {
+      params.set("planId", normalizedPlanId);
     }
     if (dateFrom) {
       params.set("dateFrom", dateFrom);
@@ -105,8 +98,8 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
 
   const handleReset = () => {
     setSearch("");
-    setStatus("");
-    setPlanId("");
+    setStatus(undefined);
+    setPlanId(undefined);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -131,8 +124,8 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">وضعیت</label>
           <Select
-            value={status || ALL_OPTION_VALUE}
-            onValueChange={(value) => setStatus(value === ALL_OPTION_VALUE ? "" : value)}
+            value={status ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setStatus(normalizeSelectValue(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
@@ -156,8 +149,8 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">پلن</label>
           <Select
-            value={planId || ALL_OPTION_VALUE}
-            onValueChange={(value) => setPlanId(value === ALL_OPTION_VALUE ? "" : value)}
+            value={planId ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setPlanId(normalizeSelectValue(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="همه" />

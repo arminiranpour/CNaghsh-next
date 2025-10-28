@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
-const ALL_OPTION_VALUE = "all";
+const ALL_OPTION_VALUE = ALL_SELECT_OPTION_VALUE;
 
 function normalizeOptionValue(value?: string): string | undefined {
   if (!value) {
@@ -52,11 +53,11 @@ export function InvoiceFilters({ defaultValues }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [type, setType] = useState(
-    normalizeOptionValue(defaultValues.type) ?? ALL_OPTION_VALUE
+  const [type, setType] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.type)
   );
-  const [status, setStatus] = useState(
-    normalizeOptionValue(defaultValues.status) ?? ALL_OPTION_VALUE
+  const [status, setStatus] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.status)
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -66,11 +67,13 @@ export function InvoiceFilters({ defaultValues }: Props) {
     if (search.trim()) {
       params.set("q", search.trim());
     }
-    if (type && type !== ALL_OPTION_VALUE) {
-      params.set("type", type);
+    const normalizedType = normalizeSelectValue(type);
+    if (normalizedType) {
+      params.set("type", normalizedType);
     }
-    if (status && status !== ALL_OPTION_VALUE) {
-      params.set("status", status);
+    const normalizedStatus = normalizeSelectValue(status);
+    if (normalizedStatus) {
+      params.set("status", normalizedStatus);
     }
     if (dateFrom) {
       params.set("dateFrom", dateFrom);
@@ -87,8 +90,8 @@ export function InvoiceFilters({ defaultValues }: Props) {
 
   const reset = () => {
     setSearch("");
-    setType(ALL_OPTION_VALUE);
-    setStatus(ALL_OPTION_VALUE);
+    setType(undefined);
+    setStatus(undefined);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -112,7 +115,10 @@ export function InvoiceFilters({ defaultValues }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">نوع</label>
-          <Select value={type} onValueChange={setType}>
+          <Select
+            value={type ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setType(normalizeSelectValue(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
@@ -134,7 +140,10 @@ export function InvoiceFilters({ defaultValues }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">وضعیت</label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select
+            value={status ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setStatus(normalizeSelectValue(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>

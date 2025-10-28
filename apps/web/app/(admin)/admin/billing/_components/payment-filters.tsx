@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ALL_SELECT_OPTION_VALUE, normalizeSelectValue } from "@/lib/select";
 
-const ALL_OPTION_VALUE = "all";
+const ALL_OPTION_VALUE = ALL_SELECT_OPTION_VALUE;
 
 function normalizeOptionValue(value?: string): string | undefined {
   if (!value) {
@@ -54,11 +55,11 @@ export function PaymentFilters({ defaultValues }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [provider, setProvider] = useState(
-    normalizeOptionValue(defaultValues.provider) ?? ALL_OPTION_VALUE
+  const [provider, setProvider] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.provider)
   );
-  const [status, setStatus] = useState(
-    normalizeOptionValue(defaultValues.status) ?? ALL_OPTION_VALUE
+  const [status, setStatus] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.status)
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -68,11 +69,13 @@ export function PaymentFilters({ defaultValues }: Props) {
     if (search.trim()) {
       params.set("q", search.trim());
     }
-    if (provider && provider !== ALL_OPTION_VALUE) {
-      params.set("provider", provider);
+    const normalizedProvider = normalizeSelectValue(provider);
+    if (normalizedProvider) {
+      params.set("provider", normalizedProvider);
     }
-    if (status && status !== ALL_OPTION_VALUE) {
-      params.set("status", status);
+    const normalizedStatus = normalizeSelectValue(status);
+    if (normalizedStatus) {
+      params.set("status", normalizedStatus);
     }
     if (dateFrom) {
       params.set("dateFrom", dateFrom);
@@ -89,8 +92,8 @@ export function PaymentFilters({ defaultValues }: Props) {
 
   const reset = () => {
     setSearch("");
-    setProvider(ALL_OPTION_VALUE);
-    setStatus(ALL_OPTION_VALUE);
+    setProvider(undefined);
+    setStatus(undefined);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -114,7 +117,10 @@ export function PaymentFilters({ defaultValues }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">ارائه‌دهنده</label>
-          <Select value={provider} onValueChange={setProvider}>
+          <Select
+            value={provider ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setProvider(normalizeSelectValue(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
@@ -136,7 +142,10 @@ export function PaymentFilters({ defaultValues }: Props) {
         </div>
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">وضعیت</label>
-          <Select value={status} onValueChange={setStatus}>
+          <Select
+            value={status ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setStatus(normalizeSelectValue(value))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
