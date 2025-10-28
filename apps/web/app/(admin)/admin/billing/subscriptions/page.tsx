@@ -7,6 +7,7 @@ import { PaginationControls } from "../_components/pagination-controls";
 import { SubscriptionFilters } from "../_components/subscription-filters";
 import { SubscriptionTable, type SubscriptionRow } from "../_components/subscription-table";
 import { listSubscriptions } from "@/lib/admin/billingQueries";
+import { ALL_SELECT_OPTION_VALUE } from "@/lib/select";
 import { prisma } from "@/lib/prisma";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -101,6 +102,20 @@ export default async function AdminBillingSubscriptionsPage({ searchParams }: { 
     }),
   ]);
 
+  const planOptions = plans.reduce<Array<{ value: string; label: string }>>((acc, plan) => {
+    const trimmedId = plan.id.trim();
+
+    if (!trimmedId || trimmedId === ALL_SELECT_OPTION_VALUE) {
+      return acc;
+    }
+
+    const trimmedName = plan.name.trim();
+
+    acc.push({ value: trimmedId, label: trimmedName.length > 0 ? trimmedName : plan.name });
+
+    return acc;
+  }, []);
+
   const now = new Date();
   const rows: SubscriptionRow[] = subscriptionResult.rows.map((item) => {
     const entitlement = item.user.entitlements[0] ?? null;
@@ -138,7 +153,7 @@ export default async function AdminBillingSubscriptionsPage({ searchParams }: { 
           dateFrom: filters.raw.dateFrom,
           dateTo: filters.raw.dateTo,
         }}
-        plans={plans.map((plan) => ({ value: plan.id, label: plan.name }))}
+        plans={planOptions}
       />
       <SubscriptionTable rows={rows} />
       <PaginationControls
