@@ -61,11 +61,11 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
   }, []);
 
   const [search, setSearch] = useState(defaultValues.q ?? "");
-  const [status, setStatus] = useState<string>(
-    () => normalizeSelectValue(defaultValues.status) ?? ALL_OPTION_VALUE,
+  const [status, setStatus] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.status),
   );
-  const [planId, setPlanId] = useState<string>(
-    () => normalizeSelectValue(defaultValues.planId) ?? ALL_OPTION_VALUE,
+  const [planId, setPlanId] = useState<string | undefined>(() =>
+    normalizeSelectValue(defaultValues.planId),
   );
   const [dateFrom, setDateFrom] = useState(defaultValues.dateFrom ?? "");
   const [dateTo, setDateTo] = useState(defaultValues.dateTo ?? "");
@@ -98,8 +98,8 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
 
   const handleReset = () => {
     setSearch("");
-    setStatus(ALL_OPTION_VALUE);
-    setPlanId(ALL_OPTION_VALUE);
+    setStatus(undefined);
+    setPlanId(undefined);
     setDateFrom("");
     setDateTo("");
     startTransition(() => {
@@ -124,10 +124,8 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">وضعیت</label>
           <Select
-            value={status}
-            onValueChange={(value) =>
-              setStatus(normalizeOptionValue(value) ?? ALL_OPTION_VALUE)
-            }
+            value={status ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setStatus(normalizeSelectValue(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
@@ -151,21 +149,26 @@ export function SubscriptionFilters({ defaultValues, plans }: Props) {
         <div>
           <label className="mb-2 block text-xs font-medium text-muted-foreground">پلن</label>
           <Select
-            value={planId}
-            onValueChange={(value) =>
-              setPlanId(normalizeOptionValue(value) ?? ALL_OPTION_VALUE)
-            }
+            value={planId ?? ALL_OPTION_VALUE}
+            onValueChange={(value) => setPlanId(normalizeSelectValue(value))}
           >
             <SelectTrigger>
               <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_OPTION_VALUE}>همه پلن‌ها</SelectItem>
-              {filteredPlans.map((plan) => (
-                <SelectItem key={plan.value} value={plan.value}>
-                  {plan.label}
-                </SelectItem>
-              ))}
+              {filteredPlans.map((plan) => {
+                const value = normalizeOptionValue(plan.value);
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <SelectItem key={value} value={value}>
+                    {plan.label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
