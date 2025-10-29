@@ -48,7 +48,7 @@ function toUrlSearchParams(searchParams: Record<string, string | string[] | unde
 }
 
 const statusOptions = [
-  { value: "", label: "همه وضعیت‌ها" },
+  { value: "all", label: "همه وضعیت‌ها" },
   { value: SubscriptionStatus.active, label: "فعال" },
   { value: SubscriptionStatus.renewing, label: "در حال تمدید" },
   { value: SubscriptionStatus.canceled, label: "لغو شده" },
@@ -56,7 +56,7 @@ const statusOptions = [
 ];
 
 const cancelOptions = [
-  { value: "", label: "وضعیت لغو" },
+  { value: "all", label: "وضعیت لغو" },
   { value: "true", label: "فعال" },
   { value: "false", label: "غیرفعال" },
 ];
@@ -147,13 +147,13 @@ export default async function SubscriptionsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">وضعیت</Label>
-            <Select name="status" defaultValue={statusParam ?? ""}>
+            <Select name="status" defaultValue={statusParam ?? "all"}>
               <SelectTrigger id="status">
                 <SelectValue placeholder="همه وضعیت‌ها" />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
-                  <SelectItem key={option.value || "all"} value={option.value ?? ""}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
@@ -162,12 +162,12 @@ export default async function SubscriptionsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="plan">پلن</Label>
-            <Select name="plan" defaultValue={planParam ?? ""}>
+            <Select name="plan" defaultValue={planParam ?? "all"}>
               <SelectTrigger id="plan">
                 <SelectValue placeholder="همه پلن‌ها" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">همه پلن‌ها</SelectItem>
+                <SelectItem value="all">همه پلن‌ها</SelectItem>
                 {plans.map((plan) => (
                   <SelectItem key={plan.id} value={plan.id}>
                     {plan.name}
@@ -178,12 +178,12 @@ export default async function SubscriptionsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="provider">درگاه پرداخت</Label>
-            <Select name="provider" defaultValue={providerParam ?? ""}>
+            <Select name="provider" defaultValue={providerParam ?? "all"}>
               <SelectTrigger id="provider">
                 <SelectValue placeholder="همه درگاه‌ها" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">همه درگاه‌ها</SelectItem>
+                <SelectItem value="all">همه درگاه‌ها</SelectItem>
                 {Object.values(Provider).map((provider) => (
                   <SelectItem key={provider} value={provider}>
                     {provider}
@@ -194,13 +194,13 @@ export default async function SubscriptionsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="cancel">لغو در پایان دوره</Label>
-            <Select name="cancel" defaultValue={cancelParam ?? ""}>
+            <Select name="cancel" defaultValue={cancelParam ?? "all"}>
               <SelectTrigger id="cancel">
                 <SelectValue placeholder="وضعیت لغو" />
               </SelectTrigger>
               <SelectContent>
                 {cancelOptions.map((option) => (
-                  <SelectItem key={option.value || "all"} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
