@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -22,11 +23,16 @@ const navItems = [
 
 export function SidebarNav({ className }: { className?: string }) {
   const pathname = usePathname();
+  const [activePath, setActivePath] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActivePath(pathname ?? null);
+  }, [pathname]);
 
   return (
     <nav className={cn("space-y-2 text-sm", className)}>
       {navItems.map((item) => {
-        const isActive = pathname?.startsWith(item.href);
+        const isActive = activePath?.startsWith(item.href);
         return (
           <Link
             key={item.href}
