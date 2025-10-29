@@ -9,6 +9,7 @@ export const CACHE_TAGS = {
   jobsListPayType: (payType: string) => `jobs:list:payType:${payType}`,
   jobsListSort: (sort: string) => `jobs:list:sort:${sort}`,
   jobViews: (jobId: string) => `job:${jobId}:views`,
+  jobCredits: (userId: string) => `entitlements:jobCredits:${userId}`,
 } as const;
 
 export const CACHE_REVALIDATE = {

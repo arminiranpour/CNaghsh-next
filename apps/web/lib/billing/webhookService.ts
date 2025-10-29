@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
 import { applyPaymentToSubscription } from "./paymentToSubscription";
+import { applyPaymentToJobCredits } from "./paymentToJobCredits";
 
 type JsonPayload = Prisma.InputJsonValue;
 
@@ -141,6 +142,12 @@ export const processWebhook = async (
       await applyPaymentToSubscription({ paymentId: result.payment.id });
     } catch (error) {
       console.error("applyPaymentToSubscription", error);
+    }
+
+    try {
+      await applyPaymentToJobCredits({ paymentId: result.payment.id });
+    } catch (error) {
+      console.error("applyPaymentToJobCredits", error);
     }
   }
 

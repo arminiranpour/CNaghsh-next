@@ -3,6 +3,14 @@ import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { afterAll, describe, beforeEach, expect, it, vi } from "vitest";
 
+const applyPaymentToJobCreditsMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue({ applied: false as const, reason: "NOT_JOB_PRODUCT" as const }),
+);
+
+vi.mock("@/lib/billing/paymentToJobCredits", () => ({
+  applyPaymentToJobCredits: applyPaymentToJobCreditsMock,
+}));
+
 type ProviderName = "zarinpal" | "idpay" | "nextpay";
 
 function createTestPrisma() {
@@ -347,6 +355,11 @@ describe("billing webhooks", () => {
     process.env.ZARINPAL_WEBHOOK_SECRET = "secret";
     process.env.IDPAY_WEBHOOK_SECRET = "idsecret";
     process.env.NEXTPAY_WEBHOOK_SECRET = "nextsecret";
+    applyPaymentToJobCreditsMock.mockReset();
+    applyPaymentToJobCreditsMock.mockResolvedValue({
+      applied: false,
+      reason: "NOT_JOB_PRODUCT",
+    });
   });
 
   const seedSession = (provider: ProviderName, amount = 5000) => {
