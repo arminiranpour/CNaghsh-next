@@ -1,4 +1,12 @@
-import { Prisma, type InvoiceStatus, type InvoiceType, type PaymentStatus, type Provider, type SubscriptionStatus } from "@prisma/client";
+import {
+  EntitlementKey,
+  Prisma,
+  type InvoiceStatus,
+  type InvoiceType,
+  type PaymentStatus,
+  type Provider,
+  type SubscriptionStatus,
+} from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 
@@ -329,6 +337,12 @@ type EntitlementListArgs = {
   sort?: { field: EntitlementSortField; direction: SortDirection };
 };
 
+const ENTITLEMENT_KEYS = new Set<EntitlementKey>(Object.values(EntitlementKey));
+
+const isEntitlementKey = (value: string): value is EntitlementKey => {
+  return ENTITLEMENT_KEYS.has(value as EntitlementKey);
+};
+
 export async function listEntitlements({ filters, pagination, sort }: EntitlementListArgs) {
   const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
   const pageSize = pagination?.pageSize && pagination.pageSize > 0 ? pagination.pageSize : DEFAULT_PAGE_SIZE;
@@ -336,7 +350,9 @@ export async function listEntitlements({ filters, pagination, sort }: Entitlemen
   const where: Prisma.UserEntitlementWhereInput = {};
 
   if (filters.key) {
-    where.key = filters.key as Prisma.Enumerable<string> & string;
+    if (isEntitlementKey(filters.key)) {
+      where.key = filters.key;
+    }
   }
 
   if (typeof filters.active === "boolean") {

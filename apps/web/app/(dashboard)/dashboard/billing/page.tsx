@@ -51,9 +51,10 @@ const getUserId = (value: string | string[] | undefined): string | null => {
 
 const invoiceBadgeVariant: Record<InvoiceStatus, "success" | "outline" | "secondary">
   = {
-    [InvoiceStatus.OPEN]: "outline",
+    [InvoiceStatus.DRAFT]: "outline",
     [InvoiceStatus.PAID]: "success",
     [InvoiceStatus.VOID]: "secondary",
+    [InvoiceStatus.REFUNDED]: "outline",
   };
 
 export default async function BillingPage({
