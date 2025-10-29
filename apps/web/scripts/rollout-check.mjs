@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const baseUrl =
+  process.env.PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.BASE_URL ??
+  process.env.NEXTAUTH_URL;
+
+if (!baseUrl) {
+  throw new Error("PUBLIC_BASE_URL (or equivalent) must be configured before running rollout checks.");
+}
 
 function parseFlags(value) {
   if (!value) return [];

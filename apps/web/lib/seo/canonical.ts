@@ -1,11 +1,10 @@
+import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { normalizeSearchParams } from "@/lib/url/normalizeSearchParams";
 
 type CanonicalParams = Record<string, unknown>;
 
-const DEFAULT_BASE_URL = "http://localhost:3000";
-
 export function buildCanonical(pathname: string, params: CanonicalParams): string {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+  const baseUrl = getBaseUrl();
   const url = new URL(pathname, `${baseUrl}/`);
 
   const normalized = normalizeSearchParams(normalizeInput(params));

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
-import { describe, beforeEach, expect, it, vi } from "vitest";
+import { afterAll, describe, beforeEach, expect, it, vi } from "vitest";
 
 type ProviderName = "zarinpal" | "idpay" | "nextpay";
 
@@ -283,10 +283,55 @@ const testDb = vi.hoisted(createTestPrisma);
 
 vi.mock("@/lib/prisma", () => ({ prisma: testDb.prisma }));
 
+const ORIGINAL_WEBHOOK_BASE_URL = process.env.PUBLIC_BASE_URL;
+
+if (!process.env.PUBLIC_BASE_URL) {
+  const fallbackBaseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    process.env.BASE_URL ??
+    process.env.NEXTAUTH_URL ??
+    undefined;
+
+  if (fallbackBaseUrl) {
+    process.env.PUBLIC_BASE_URL = fallbackBaseUrl;
+  }
+
+  if (!process.env.PUBLIC_BASE_URL) {
+    throw new Error("PUBLIC_BASE_URL (or equivalent) must be set before running webhook tests.");
+  }
+}
+
+afterAll(() => {
+  if (ORIGINAL_WEBHOOK_BASE_URL === undefined) {
+    delete process.env.PUBLIC_BASE_URL;
+  } else {
+    process.env.PUBLIC_BASE_URL = ORIGINAL_WEBHOOK_BASE_URL;
+  }
+});
+
 const { runWebhookSimulation, handleWebhook } = await import("@/app/api/webhooks/shared");
 
+const getWebhookBaseUrl = () => {
+  const baseUrl =
+    process.env.PUBLIC_BASE_URL ??
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    process.env.BASE_URL ??
+    process.env.NEXTAUTH_URL;
+
+  if (!baseUrl) {
+    throw new Error("PUBLIC_BASE_URL (or equivalent) must be defined for webhook tests.");
+  }
+
+  return baseUrl;
+};
+
 const buildRequest = (payload: unknown, signature: string) => {
-  return new NextRequest("http://localhost/api/webhooks/zarinpal", {
+  const requestUrl = new URL(
+    "/api/webhooks/zarinpal",
+    `${getWebhookBaseUrl().replace(/\/+$/, "")}/`,
+  ).toString();
+
+  return new NextRequest(requestUrl, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: new Headers({

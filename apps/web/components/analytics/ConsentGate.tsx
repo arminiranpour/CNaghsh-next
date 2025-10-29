@@ -16,15 +16,21 @@ const ANALYTICS_FLAG = "analytics";
 const analyticsEnabled = isEnabled(ANALYTICS_FLAG);
 
 function resolveAnalyticsDomain(): string {
-  const fallbackUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const analyticsBaseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.PUBLIC_BASE_URL ??
+    process.env.BASE_URL ??
+    process.env.NEXTAUTH_URL;
 
-  try {
-    const parsed = new URL(fallbackUrl);
-    return parsed.hostname;
-  } catch (error) {
-    console.warn("[analytics] Failed to parse NEXT_PUBLIC_APP_URL", error);
-    return "localhost";
+  if (!analyticsBaseUrl) {
+    throw new Error(
+      "[analytics] NEXT_PUBLIC_BASE_URL (or equivalent) must be configured to enable analytics.",
+    );
   }
+
+  const parsed = new URL(analyticsBaseUrl);
+  return parsed.hostname;
 }
 
 type ConsentState = "unknown" | "granted" | "denied";

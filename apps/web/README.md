@@ -33,8 +33,12 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 
 | Variable | Required | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string used by Prisma. |
-| `PUBLIC_BASE_URL` | ✅ | Absolute origin without a trailing slash (e.g. `http://localhost:3000`). |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string used by Prisma (defaults to `127.0.0.1:5432`). |
+| `SHADOW_DATABASE_URL` | ✅ (Prisma migrate) | Shadow database Prisma uses during `migrate dev`. |
+| `BASE_URL` | ✅ | Canonical application origin for server-rendered URLs. |
+| `PUBLIC_BASE_URL` | ✅ | Public-facing origin without a trailing slash. |
+| `NEXT_PUBLIC_BASE_URL` | ✅ | Client-exposed origin for analytics helpers. |
+| `NEXTAUTH_URL` | ✅ | Absolute origin consumed by NextAuth callbacks. |
 | `WEBHOOK_SHARED_SECRET` | ❌ | Optional sandbox secret; omit locally to bypass signature checks. |
 
 > Prisma CLI commands launched through `pnpm --filter @app/web prisma …` load environment variables
@@ -50,7 +54,6 @@ The Next.js app relies on `apps/web/lib/env.ts` for typed configuration. Populat
 - **Commands**
   - Apply migration: `pnpm --filter @app/web prisma migrate dev`
   - Regenerate client: `pnpm --filter @app/web prisma generate`
-- No new environment variables are required for this phase.
 
 Refer to `docs/jobs-handbook.md` for the moderation UX, notification triggers, cache tags, and
 security rules that back the new jobs experiences.
@@ -58,8 +61,12 @@ security rules that back the new jobs experiences.
 Example:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+BASE_URL="http://localhost:3000"
 PUBLIC_BASE_URL="http://localhost:3000"
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting_shadow?schema=public"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
 
@@ -92,7 +99,7 @@ pnpm --filter @app/web user:create [optional-email@example.com]
 
 Pre-flight checklist:
 
-1. `.env.local` contains `DATABASE_URL` and `PUBLIC_BASE_URL` (plus `WEBHOOK_SHARED_SECRET` if you want signature checks).
+1. `.env.local` contains the base URLs (`BASE_URL`, `PUBLIC_BASE_URL`, `NEXT_PUBLIC_BASE_URL`, `NEXTAUTH_URL`) and database strings (`DATABASE_URL`, `SHADOW_DATABASE_URL`). Include `WEBHOOK_SHARED_SECRET` if you want signature checks.
 2. The dev server is running (`pnpm --filter @app/web dev`).
 3. Run the seed. Confirm the console output lists both product bundles.
 4. Create a user with `pnpm --filter @app/web user:create` and note the returned `USER_ID`.

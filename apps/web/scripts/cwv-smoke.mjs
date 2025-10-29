@@ -1,6 +1,19 @@
+const baseUrl =
+  process.env.PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.BASE_URL ??
+  process.env.NEXTAUTH_URL;
+
+if (!baseUrl) {
+  throw new Error("PUBLIC_BASE_URL (or equivalent) must be configured before running the CWV smoke script.");
+}
+
+const normalizedBaseUrl = `${baseUrl.replace(/\/+$/, "")}/`;
+
 const TARGETS = [
-  "http://localhost:3000/profiles",
-  "http://localhost:3000/jobs",
+  new URL("/profiles", normalizedBaseUrl).toString(),
+  new URL("/jobs", normalizedBaseUrl).toString(),
 ];
 
 async function main() {

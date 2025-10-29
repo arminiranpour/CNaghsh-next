@@ -9,14 +9,24 @@ const {
   SMTP_PASS,
   MAIL_FROM,
   NEXTAUTH_URL,
+  BASE_URL,
+  PUBLIC_BASE_URL,
 } = process.env;
 
-const DEFAULT_APP_URL = "http://localhost:3000";
-
 function getBaseUrl(): string {
-  return NEXTAUTH_URL && NEXTAUTH_URL.trim().length > 0
-    ? NEXTAUTH_URL
-    : DEFAULT_APP_URL;
+  const candidate =
+    (BASE_URL && BASE_URL.trim().length > 0 && BASE_URL.trim()) ||
+    (NEXTAUTH_URL && NEXTAUTH_URL.trim().length > 0 && NEXTAUTH_URL.trim()) ||
+    (PUBLIC_BASE_URL && PUBLIC_BASE_URL.trim().length > 0 && PUBLIC_BASE_URL.trim());
+
+  if (!candidate) {
+    throw new Error(
+      "[email] BASE_URL (or NEXTAUTH_URL/PUBLIC_BASE_URL) must be configured to build absolute links.",
+    );
+  }
+
+  const parsed = new URL(candidate);
+  return parsed.origin;
 }
 
 export function isEmailConfigured(): boolean {
@@ -31,7 +41,7 @@ export function isEmailConfigured(): boolean {
 }
 
 function buildHtmlBody(content: string): string {
-  const dashboardUrl = `${getBaseUrl()}/dashboard/notifications`;
+  const dashboardUrl = new URL("/dashboard/notifications", `${getBaseUrl()}/`).toString();
   return `<!DOCTYPE html>
 <html lang="fa-IR" dir="rtl">
   <head>

@@ -6,6 +6,7 @@ dist
 .env*
 !.env.example
 !apps/web/.env
+!apps/web/.env.local
 !apps/web/.env.example
 !apps/web/prisma/.env
 !apps/web/prisma/.env.example

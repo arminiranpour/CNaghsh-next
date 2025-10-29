@@ -24,9 +24,10 @@ const navigation = [
 ] satisfies NavigationItem[];
 
 const isStaging = process.env.NEXT_PUBLIC_ENV === "staging";
+const appBaseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(appBaseUrl),
   title: SITE_NAME,
   description: SITE_DESCRIPTION,
   openGraph: {
@@ -57,7 +58,7 @@ export default function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = appBaseUrl;
   const organizationJsonLd = siteOrganizationJsonLd({
     name: SITE_NAME,
     url: baseUrl,

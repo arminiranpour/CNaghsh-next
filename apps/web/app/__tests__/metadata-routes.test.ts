@@ -1,17 +1,34 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import robots from "../robots";
-import sitemap from "../sitemap";
+let robots: typeof import("../robots").default;
+let sitemap: typeof import("../sitemap").default;
 
-const ORIGINAL_ENV = process.env.NEXT_PUBLIC_APP_URL;
+const ORIGINAL_PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
+const ORIGINAL_NEXT_PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 describe("metadata routes", () => {
-  beforeEach(() => {
-    process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
+  beforeEach(async () => {
+    process.env.PUBLIC_BASE_URL = "https://example.com";
+    process.env.NEXT_PUBLIC_BASE_URL = "https://example.com";
+    vi.resetModules();
+    ({ default: robots } = await import("../robots"));
+    ({ default: sitemap } = await import("../sitemap"));
   });
 
   afterEach(() => {
-    process.env.NEXT_PUBLIC_APP_URL = ORIGINAL_ENV;
+    if (ORIGINAL_PUBLIC_BASE_URL === undefined) {
+      delete process.env.PUBLIC_BASE_URL;
+    } else {
+      process.env.PUBLIC_BASE_URL = ORIGINAL_PUBLIC_BASE_URL;
+    }
+
+    if (ORIGINAL_NEXT_PUBLIC_BASE_URL === undefined) {
+      delete process.env.NEXT_PUBLIC_BASE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_NEXT_PUBLIC_BASE_URL;
+    }
+
+    vi.resetModules();
   });
 
   it("builds robots.txt configuration", () => {

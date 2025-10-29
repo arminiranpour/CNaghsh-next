@@ -7,9 +7,22 @@ const { launch } = await import("chrome-launcher");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPORT_DIR = path.resolve(__dirname, "../docs/seo/reports/baseline");
+const baseUrl =
+  process.env.PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.BASE_URL ??
+  process.env.NEXTAUTH_URL;
+
+if (!baseUrl) {
+  throw new Error("PUBLIC_BASE_URL (or equivalent) must be configured before running the Lighthouse baseline.");
+}
+
+const normalizedBaseUrl = `${baseUrl.replace(/\/+$/, "")}/`;
+
 const TARGETS = [
-  { name: "profiles", url: "http://localhost:3001/profiles" },
-  { name: "jobs", url: "http://localhost:3001/jobs" },
+  { name: "profiles", url: new URL("/profiles", normalizedBaseUrl).toString() },
+  { name: "jobs", url: new URL("/jobs", normalizedBaseUrl).toString() },
 ];
 
 async function main() {

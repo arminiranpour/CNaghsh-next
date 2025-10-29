@@ -86,9 +86,10 @@ type ParseState =
 const fallbackBaseUrl =
   process.env.PUBLIC_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
   (process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : `http://localhost:${process.env.PORT ?? "3000"}`);
+    : undefined);
 
 const rawEnv = {
   DATABASE_URL: process.env.DATABASE_URL,
