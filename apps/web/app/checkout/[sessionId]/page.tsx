@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { runDevPaymentSyncForSession } from "@/lib/billing/devPaymentSync";
 import { prisma } from "@/lib/prisma";
 
 import { GatewayRedirect } from "./redirect-client";
@@ -78,6 +79,8 @@ export default async function CheckoutStatusPage({
 
   let qaUserId: string | null = null;
   if (session.status === "SUCCESS") {
+    await runDevPaymentSyncForSession(sessionId);
+
     const dbSession = await prisma.checkoutSession.findUnique({
       where: { id: sessionId },
       select: { userId: true },

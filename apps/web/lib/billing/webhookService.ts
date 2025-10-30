@@ -137,6 +137,14 @@ export const processWebhook = async (
     return { payment, invoiceId } as const;
   });
 
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[DEBUG:webhook] paymentStatus", {
+      paymentStatus,
+      paymentId: result.payment.id,
+      provider: input.provider,
+    });
+  }
+
   if (paymentStatus === PaymentStatus.PAID) {
     try {
       await applyPaymentToSubscription({ paymentId: result.payment.id });
@@ -148,6 +156,12 @@ export const processWebhook = async (
       await applyPaymentToJobCredits({ paymentId: result.payment.id });
     } catch (error) {
       console.error("applyPaymentToJobCredits", error);
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[DEBUG:webhook] applied_benefits", {
+        paymentId: result.payment.id,
+      });
     }
   }
 

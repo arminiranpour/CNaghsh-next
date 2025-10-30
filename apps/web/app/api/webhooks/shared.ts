@@ -154,12 +154,30 @@ export const handleWebhook = async (
     return badRequest("Invalid payload");
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[DEBUG:webhook] incoming", {
+      provider,
+      payload,
+    });
+  }
+
   try {
     const result = await executeWebhook({
       provider,
       payload,
       signature: request.headers.get("x-webhook-signature"),
     });
+
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[DEBUG:webhook] result from processWebhook", {
+        provider,
+        status: result.status,
+        idempotent: result.idempotent,
+        paymentId: result.paymentId,
+        invoiceId: result.invoiceId,
+      });
+    }
+
     if (result.idempotent) {
       return ok({ ok: true, idempotent: true });
     }
