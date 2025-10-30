@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { providers } from "@/lib/billing/providerAdapters";
+import type { ProviderAdapter } from "@/lib/billing/providerAdapters/types";
 import { ProviderName } from "@/lib/billing/providerAdapters/types";
 import { prisma } from "@/lib/db";
 import { badRequest, ok, safeJson, serverError } from "@/lib/http";
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid JSON");
   }
   const adapter = providers[provider];
-    if (!adapter) {
+  if (!adapter) {
     return badRequest("Invalid JSON");
   }
 
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
     fallbackPath,
   );
 
-  let startResult;
+  let startResult: Awaited<ReturnType<ProviderAdapter["start"]>>;
   try {
-    startResult = adapter.start({
+    startResult = await adapter.start({
       sessionId: session.id,
       amount: price.amount,
       currency: "IRR",

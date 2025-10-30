@@ -23,6 +23,6 @@ type ParseFailure = {
 export type ProviderName = "zarinpal" | "idpay" | "nextpay";
 
 export type ProviderAdapter = {
-  start: (args: StartArgs) => StartResult;
+  start: (args: StartArgs) => Promise<StartResult> | StartResult;
   parseWebhook: (payload: unknown) => ParseSuccess | ParseFailure;
 };
