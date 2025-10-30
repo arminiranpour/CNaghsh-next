@@ -22,6 +22,7 @@ model User {
   moderationEvents    ModerationEvent[]    @relation("ModerationActor")
   notifications       Notification[]
   payments            Payment[]
+  jobCreditGrants     JobCreditGrant[]
   subscriptions       Subscription[]
   moderatedProfiles   Profile[]            @relation("ProfileModerators")
   profile             Profile?
