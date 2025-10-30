@@ -86,8 +86,8 @@ export function ActionDialog<T extends Record<string, unknown>>({
       <Button variant={variant} size="sm" onClick={() => setOpen(true)} disabled={isPending}>
         {triggerLabel}
       </Button>
-      <DialogContent dir="rtl" asChild>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogContent dir="rtl">
+        <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>{description}</DialogDescription>
