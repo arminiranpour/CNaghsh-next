@@ -186,12 +186,24 @@ export function PricingContent({
           priceId: selectedPrice.id,
         }),
       });
-      const data = (await response.json()) as
-        | CheckoutStartSuccess
-        | CheckoutStartError;
+      const isJsonResponse = response.headers
+        .get("content-type")
+        ?.toLowerCase()
+        .includes("application/json");
 
-      if (!response.ok || !("sessionId" in data) || !("redirectUrl" in data)) {
-        const errorMessage = "error" in data && data.error
+      const data = isJsonResponse
+        ? ((await response.json()) as
+            | CheckoutStartSuccess
+            | CheckoutStartError)
+        : null;
+
+      if (
+        !response.ok ||
+        !data ||
+        !("sessionId" in data) ||
+        !("redirectUrl" in data)
+      ) {
+        const errorMessage = data && "error" in data && data.error
           ? data.error
           : "خطا در شروع فرایند پرداخت";
         throw new Error(errorMessage);
