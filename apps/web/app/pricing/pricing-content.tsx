@@ -191,11 +191,17 @@ export function PricingContent({
         ?.toLowerCase()
         .includes("application/json");
 
-      const data = isJsonResponse
-        ? ((await response.json()) as
+      let data: CheckoutStartSuccess | CheckoutStartError | null = null;
+      if (isJsonResponse) {
+        try {
+          data = (await response.json()) as
             | CheckoutStartSuccess
-            | CheckoutStartError)
-        : null;
+            | CheckoutStartError;
+        } catch (error) {
+          console.error("Failed to parse checkout response", error);
+          data = null;
+        }
+      }
 
       if (
         !response.ok ||
