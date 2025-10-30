@@ -52,36 +52,14 @@ export const metadata: Metadata = {
     : undefined,
 };
 
-export default function RootLayout({
-  children
-}: {
-  children: ReactNode;
-}) {
-  const baseUrl = getBaseUrl();
-  const organizationJsonLd = siteOrganizationJsonLd({
-    name: SITE_NAME,
-    url: baseUrl,
-    logoUrl: `${baseUrl}${SITE_LOGO_PATH}`,
-  });
+import "./globals.css";
+import { iransans } from "./fonts";
 
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fa-IR" dir="rtl" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ThemeProvider>
-          <div className="flex min-h-screen flex-col bg-background">
-            <Header navigation={navigation} />
-            <ConsentGate />
-            <main className="flex-1">{children}</main>
-            <JsonLd data={organizationJsonLd} />
-            <footer className="border-t border-border bg-card/50">
-              <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
-                <span>ساخته شده برای اسپرینت صفر</span>
-              </div>
-            </footer>
-          </div>
-          <Toaster />
-        </ThemeProvider>
+    <html lang="fa" dir="rtl">
+      <body className={`${iransans.variable} font-iransans antialiased`}>
+        {children}
       </body>
     </html>
   );
