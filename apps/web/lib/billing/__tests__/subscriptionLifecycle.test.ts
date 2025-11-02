@@ -79,6 +79,7 @@ function createTestPrisma() {
   const subscriptions = new Map<string, SubscriptionRecord>();
   const subscriptionsByUser = new Map<string, string>();
   const userEntitlements = new Map<string, UserEntitlementRecord>();
+  const auditLogs: Array<Record<string, any>> = [];
 
   const clone = <T extends Record<string, any>>(record: T) => ({
     ...record,
@@ -278,6 +279,13 @@ function createTestPrisma() {
         return clone(created);
       },
     },
+    auditLog: {
+      create: async ({ data }: any) => {
+        const created = { id: nextId("audit"), ...clone(data) };
+        auditLogs.push(created);
+        return created;
+      },
+    },
     $transaction: async (callback: (tx: any) => Promise<any>) =>
       callback({
         ...prismaMock,
@@ -296,6 +304,7 @@ function createTestPrisma() {
       subscriptions.clear();
       subscriptionsByUser.clear();
       userEntitlements.clear();
+      auditLogs.length = 0;
       idCounter = 1;
     },
     helpers: {

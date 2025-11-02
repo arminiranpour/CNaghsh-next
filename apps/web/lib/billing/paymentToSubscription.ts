@@ -116,7 +116,8 @@ export const applyPaymentToSubscription = async ({
 
     if (
       existingEntitlement?.expiresAt &&
-      existingEntitlement.expiresAt.getTime() === currentSubscriptionEndsAt
+      existingEntitlement.expiresAt.getTime() === currentSubscriptionEndsAt &&
+      subscription.providerRef === payment.providerRef
     ) {
       await logDuplicateGuard(payment);
       return { applied: false, reason: "ALREADY_GRANTED" };
