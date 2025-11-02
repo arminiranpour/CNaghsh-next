@@ -4,6 +4,7 @@ import FeaturedHeader from "@/components/Home/FeaturedHeader";
 import FeaturedCard from "@/components/Home/FeaturedCard";
 import AgeGenderCategories from "@/components/Home/AgeGenderCategories";
 import CommunityBanner from "@/components/Home/CommunityBanner";
+import Footer from "@/components/Footer";
 import Image from "next/image";
 
 const CARD_H = 392;
@@ -41,6 +42,7 @@ export default function HomePage() {
 
         <AgeGenderCategories />
         <CommunityBanner />
+        <Footer />
 
       </div>
 
