@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode, type FormEvent } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useState,
+  useTransition,
+  type FormEvent,
+  type MouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +36,11 @@ type ActionDialogProps<T extends Record<string, unknown>> = {
   reasonPlaceholder?: string;
   input: T;
   reasonLabel?: string;
+  trigger?: ReactElement<{
+    disabled?: boolean;
+    onClick?: (event: MouseEvent<HTMLElement>) => void;
+    "aria-disabled"?: boolean;
+  }>;
   children?: (params: {
     values: Record<string, unknown>;
     onChange: (patch: Record<string, unknown>) => void;
@@ -43,6 +58,7 @@ export function ActionDialog<T extends Record<string, unknown>>({
   variant = "outline",
   input,
   reasonLabel = "دلیل عملیات",
+  trigger,
   children,
   onSubmit,
 }: ActionDialogProps<T>) {
@@ -81,11 +97,50 @@ export function ActionDialog<T extends Record<string, unknown>>({
     });
   };
 
+  const defaultTrigger = (
+    <Button variant={variant} size="sm" type="button">
+      {triggerLabel}
+    </Button>
+  );
+
+  const triggerElement = trigger ?? defaultTrigger;
+
+  if (!isValidElement(triggerElement)) {
+    throw new Error("ActionDialog trigger must be a single React element.");
+  }
+
+  const triggerProps = triggerElement.props ?? {};
+  const originalOnClick = (triggerProps as { onClick?: (event: MouseEvent<HTMLElement>) => void }).onClick;
+  const currentDisabledValue = Boolean(
+    (triggerProps as { disabled?: boolean; "aria-disabled"?: boolean }).disabled ??
+      (triggerProps as { disabled?: boolean; "aria-disabled"?: boolean })["aria-disabled"],
+  );
+
+  const handleTriggerClick = (event: MouseEvent<HTMLElement>) => {
+    originalOnClick?.(event);
+    if (event.defaultPrevented) {
+      return;
+    }
+    setOpen(true);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant={variant} size="sm" onClick={() => setOpen(true)} disabled={isPending}>
-        {triggerLabel}
-      </Button>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (isPending && nextOpen) {
+          return;
+        }
+        setOpen(nextOpen);
+      }}
+    >
+      {cloneElement(triggerElement, {
+        onClick: handleTriggerClick,
+        "aria-haspopup": "dialog",
+        "aria-expanded": open,
+        disabled: isPending || currentDisabledValue,
+        "aria-disabled": isPending || currentDisabledValue,
+      })}
       <DialogContent dir="rtl">
         <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>
