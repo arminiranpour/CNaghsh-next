@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -134,8 +135,12 @@ export function SubscriptionsTable({ rows }: Props) {
                       description="اشتراک بلافاصله لغو می‌شود و دسترسی کاربر جمع‌آوری خواهد شد."
                       triggerLabel="لغو فوری"
                       confirmLabel="تایید لغو"
-                      variant="destructive"
                       input={{}}
+                      trigger={
+                        <Button variant="destructive" size="sm" type="button">
+                          لغو فوری
+                        </Button>
+                      }
                       onSubmit={async (payload) =>
                         cancelNowAction({
                           id: row.id,
@@ -158,6 +163,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       triggerLabel={row.cancelAtPeriodEnd ? "حذف پرچم" : "لغو در پایان"}
                       confirmLabel="ثبت"
                       input={{}}
+                      trigger={
+                        <Button variant="outline" size="sm" type="button">
+                          {row.cancelAtPeriodEnd ? "حذف پرچم" : "لغو در پایان"}
+                        </Button>
+                      }
                       onSubmit={(payload) =>
                         cancelAtPeriodEndAction({
                           id: row.id,
@@ -173,6 +183,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       triggerLabel="تغییر پایان"
                       confirmLabel="ذخیره تغییر"
                       input={{ newEndsAt: row.endsAt }}
+                      trigger={
+                        <Button variant="outline" size="sm" type="button">
+                          تغییر پایان
+                        </Button>
+                      }
                       onSubmit={(payload) =>
                         adjustEndsAtAction({
                           id: row.id,
@@ -206,6 +221,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       triggerLabel="بازسازی"
                       confirmLabel="اجرای بازسازی"
                       input={{}}
+                      trigger={
+                        <Button variant="outline" size="sm" type="button">
+                          بازسازی
+                        </Button>
+                      }
                       onSubmit={(payload) =>
                         recomputeEntitlementsAction({
                           userId: row.userId,
