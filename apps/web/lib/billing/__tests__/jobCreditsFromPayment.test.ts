@@ -49,6 +49,24 @@ type GrantRecord = {
   reason: string;
 };
 
+type PrismaMock = {
+  payment: {
+    findUnique: ({ where, include }: any) => Promise<any>;
+  };
+  jobCreditGrant: {
+    create: ({ data }: { data: Omit<GrantRecord, "id"> }) => Promise<GrantRecord>;
+  };
+  auditLog: {
+    create: ({ data }: { data: any }) => Promise<any>;
+  };
+  userEntitlement: {
+    findFirst: ({ where }: any) => Promise<EntitlementRecord | null>;
+    update: ({ where, data, select }: any) => Promise<any>;
+    create: ({ data, select }: any) => Promise<any>;
+  };
+  $transaction<T>(callback: (tx: PrismaMock) => Promise<T>): Promise<T>;
+};
+
 function createTestPrisma() {
   let idCounter = 1;
   const nextId = (prefix: string) => `${prefix}_${idCounter++}`;
@@ -62,7 +80,7 @@ function createTestPrisma() {
   const grantsByPayment = new Map<string, GrantRecord>();
   const auditLogs: any[] = [];
 
-  const prismaMock = {
+  const prismaMock: PrismaMock = {
     payment: {
       findUnique: async ({ where, include }: any) => {
         const record = payments.get(where.id);
@@ -168,9 +186,8 @@ function createTestPrisma() {
           : { ...created };
       },
     },
-    $transaction: async (callback: (tx: typeof prismaMock) => Promise<any>) =>
-      callback(prismaMock),
-  } as const;
+    $transaction: async (callback) => callback(prismaMock),
+  };
 
   const helpers = {
     createProduct: (values: Partial<ProductRecord> = {}) => {

@@ -48,6 +48,14 @@ type ActionDialogProps<T extends Record<string, unknown>> = {
   onSubmit: SubmitHandler<T>;
 };
 
+type TriggerElementProps = {
+  disabled?: boolean;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  "aria-disabled"?: boolean;
+  "aria-haspopup"?: string;
+  "aria-expanded"?: boolean;
+};
+
 export function ActionDialog<T extends Record<string, unknown>>({
   title,
   description,
@@ -103,7 +111,7 @@ export function ActionDialog<T extends Record<string, unknown>>({
     </Button>
   );
 
-  const triggerElement = trigger ?? defaultTrigger;
+  const triggerElement = (trigger ?? defaultTrigger) as ReactElement<TriggerElementProps>;
 
   if (!isValidElement(triggerElement)) {
     throw new Error("ActionDialog trigger must be a single React element.");
@@ -134,13 +142,16 @@ export function ActionDialog<T extends Record<string, unknown>>({
         setOpen(nextOpen);
       }}
     >
-      {cloneElement(triggerElement, {
-        onClick: handleTriggerClick,
-        "aria-haspopup": "dialog",
-        "aria-expanded": open,
-        disabled: isPending || currentDisabledValue,
-        "aria-disabled": isPending || currentDisabledValue,
-      })}
+      {cloneElement(
+        triggerElement,
+        {
+          onClick: handleTriggerClick,
+          "aria-haspopup": "dialog",
+          "aria-expanded": open,
+          disabled: isPending || currentDisabledValue,
+          "aria-disabled": isPending || currentDisabledValue,
+        } satisfies TriggerElementProps,
+      )}
       <DialogContent dir="rtl">
         <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>
