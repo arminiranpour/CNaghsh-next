@@ -165,6 +165,38 @@ function createTestPrisma() {
         paymentsById.set(created.id, created);
         return { ...created };
       },
+      findUnique: async ({ where, include }: any) => {
+        const record = paymentsById.get(where.id);
+        if (!record) {
+          return null;
+        }
+
+        const base: any = { ...record };
+
+        if (include?.session) {
+          const session = sessions.get(record.checkoutSessionId) ?? null;
+
+          if (!session) {
+            base.session = null;
+          } else {
+            const sessionResult: any = { ...session };
+
+            if (include.session.include?.price) {
+              const price = prices.get(session.priceId) ?? null;
+              if (!price) {
+                sessionResult.price = null;
+              } else {
+                const priceResult: any = { ...price };
+                sessionResult.price = priceResult;
+              }
+            }
+
+            base.session = sessionResult;
+          }
+        }
+
+        return base;
+      },
     },
     invoice: {
       findUnique: async ({ where }: { where: { paymentId: string } }) => {

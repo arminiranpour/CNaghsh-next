@@ -35,6 +35,27 @@ type ApplyPaymentArgs = {
   paymentId: string;
 };
 
+const logDuplicateGuard = async (payment: { id: string; userId: string }) => {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        actorId: payment.userId,
+        actorEmail: null,
+        resourceType: "payment",
+        resourceId: payment.id,
+        action: "SUBSCRIPTION_DUPLICATE_GUARD",
+        reason: SUBSCRIPTION_REASON,
+        before: Prisma.DbNull,
+        after: Prisma.DbNull,
+        metadata: { status: "duplicate" },
+        idempotencyKey: `subscription:${payment.id}:duplicate`,
+      },
+    });
+  } catch (error) {
+    console.error("[billing.subscription] audit_duplicate_failed", error);
+  }
+};
+
 export const applyPaymentToSubscription = async ({
   paymentId,
 }: ApplyPaymentArgs): Promise<ApplyPaymentToSubscriptionResult> => {
@@ -80,6 +101,27 @@ export const applyPaymentToSubscription = async ({
   }
 
   const subscription = await getSubscription(payment.userId);
+
+  if (subscription?.endsAt) {
+    const currentSubscriptionEndsAt = new Date(subscription.endsAt).getTime();
+
+    const existingEntitlement = await prisma.userEntitlement.findFirst({
+      where: {
+        userId: payment.userId,
+        key: CAN_PUBLISH_PROFILE,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { expiresAt: "desc" },
+    });
+
+    if (
+      existingEntitlement?.expiresAt &&
+      existingEntitlement.expiresAt.getTime() === currentSubscriptionEndsAt
+    ) {
+      await logDuplicateGuard(payment);
+      return { applied: false, reason: "ALREADY_GRANTED" };
+    }
+  }
 
   const nextSubscription = subscription
     ? await renew({ userId: payment.userId, providerRef: payment.providerRef })
@@ -146,24 +188,7 @@ export const applyPaymentToSubscription = async ({
   });
 
   if (entitlementResult.status === "duplicate") {
-    try {
-      await prisma.auditLog.create({
-        data: {
-          actorId: payment.userId,
-          actorEmail: null,
-          resourceType: "payment",
-          resourceId: payment.id,
-          action: "SUBSCRIPTION_DUPLICATE_GUARD",
-          reason: SUBSCRIPTION_REASON,
-          before: Prisma.DbNull,
-          after: Prisma.DbNull,
-          metadata: { status: "duplicate" },
-          idempotencyKey: `subscription:${payment.id}:duplicate`,
-        },
-      });
-    } catch (error) {
-      console.error("[billing.subscription] audit_duplicate_failed", error);
-    }
+    await logDuplicateGuard(payment);
 
     return { applied: false, reason: "ALREADY_GRANTED" };
   }
