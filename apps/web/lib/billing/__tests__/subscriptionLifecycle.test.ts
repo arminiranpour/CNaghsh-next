@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  PaymentStatus,
   PlanCycle,
   ProductType,
   SubscriptionStatus,
@@ -45,6 +46,7 @@ function createTestPrisma() {
   type PaymentRecord = {
     id: string;
     userId: string;
+    status: PaymentStatus;
     providerRef: string;
     checkoutSessionId: string;
   };
@@ -302,15 +304,23 @@ function createTestPrisma() {
       createPayment: ({
         id = nextId("pay"),
         userId,
+        status = PaymentStatus.PAID,
         providerRef = nextId("ref"),
         checkoutSessionId,
       }: {
         id?: string;
         userId: string;
+        status?: PaymentStatus;
         providerRef?: string;
         checkoutSessionId: string;
       }) => {
-        const payment: PaymentRecord = { id, userId, providerRef, checkoutSessionId };
+        const payment: PaymentRecord = {
+          id,
+          userId,
+          status,
+          providerRef,
+          checkoutSessionId,
+        };
         payments.set(id, payment);
         return payment;
       },
