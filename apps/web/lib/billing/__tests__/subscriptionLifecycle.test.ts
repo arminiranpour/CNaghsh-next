@@ -63,6 +63,14 @@ function createTestPrisma() {
     providerRef?: string | null;
   };
 
+  type UserEntitlementRecord = {
+    id: string;
+    userId: string;
+    key: string;
+    expiresAt: Date;
+    remainingCredits: number | null;
+  };
+
   const products = new Map<string, ProductRecord>();
   const plans = new Map<string, PlanRecord>();
   const prices = new Map<string, PriceRecord>();
@@ -70,6 +78,7 @@ function createTestPrisma() {
   const payments = new Map<string, PaymentRecord>();
   const subscriptions = new Map<string, SubscriptionRecord>();
   const subscriptionsByUser = new Map<string, string>();
+  const userEntitlements = new Map<string, UserEntitlementRecord>();
 
   const clone = <T extends Record<string, any>>(record: T) => ({
     ...record,
@@ -223,7 +232,57 @@ function createTestPrisma() {
         return payload;
       },
     },
-    $transaction: async (callback: (tx: any) => Promise<any>) => callback(prismaMock),
+    userEntitlement: {
+      findFirst: async ({ where, orderBy }: any) => {
+        const records = Array.from(userEntitlements.values()).filter((record) => {
+          if (record.userId !== where.userId) {
+            return false;
+          }
+          if (where.key && record.key !== where.key) {
+            return false;
+          }
+          if (where.expiresAt?.gt && !(record.expiresAt > where.expiresAt.gt)) {
+            return false;
+          }
+          return true;
+        });
+
+        if (orderBy?.expiresAt === "desc") {
+          records.sort((a, b) => b.expiresAt.getTime() - a.expiresAt.getTime());
+        }
+
+        const found = records[0];
+        return found ? clone(found) : null;
+      },
+      update: async ({ where, data }: any) => {
+        const existing = userEntitlements.get(where.id);
+        if (!existing) {
+          throw new Error("ENTITLEMENT_NOT_FOUND");
+        }
+        const updated: UserEntitlementRecord = {
+          ...existing,
+          ...data,
+        };
+        userEntitlements.set(existing.id, updated);
+        return clone(updated);
+      },
+      create: async ({ data }: any) => {
+        const created: UserEntitlementRecord = {
+          id: nextId("ent"),
+          userId: data.userId,
+          key: data.key,
+          expiresAt: data.expiresAt,
+          remainingCredits: data.remainingCredits ?? null,
+        };
+        userEntitlements.set(created.id, created);
+        return clone(created);
+      },
+    },
+    $transaction: async (callback: (tx: any) => Promise<any>) =>
+      callback({
+        ...prismaMock,
+        userEntitlement: prismaMock.userEntitlement,
+      }),
   } as const;
 
   return {
@@ -236,6 +295,7 @@ function createTestPrisma() {
       payments.clear();
       subscriptions.clear();
       subscriptionsByUser.clear();
+      userEntitlements.clear();
       idCounter = 1;
     },
     helpers: {
