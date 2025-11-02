@@ -103,20 +103,33 @@ export function SubscriptionsTable({ rows }: Props) {
                     <div className="font-mono text-xs text-muted-foreground">{row.userEmail}</div>
                   </div>
                 </TableCell>
+
                 <TableCell>{row.planName}</TableCell>
+
                 <TableCell>
-                  <Badge variant={row.status === "active" || row.status === "renewing" ? "success" : "secondary"}>
+                  <Badge
+                    variant={
+                      row.status === "active" || row.status === "renewing"
+                        ? "success"
+                        : "secondary"
+                    }
+                  >
                     {statusLabels[row.status] ?? row.status}
                   </Badge>
                 </TableCell>
+
                 <TableCell>{formatJalaliDate(row.startedAt)}</TableCell>
                 <TableCell>{formatJalaliDate(row.endsAt)}</TableCell>
-                <TableCell>{row.renewalAt ? formatJalaliDate(row.renewalAt) : "—"}</TableCell>
+                <TableCell>
+                  {row.renewalAt ? formatJalaliDate(row.renewalAt) : "—"}
+                </TableCell>
+
                 <TableCell>
                   <Badge variant={row.cancelAtPeriodEnd ? "secondary" : "outline"}>
                     {cancelLabels[String(row.cancelAtPeriodEnd)]}
                   </Badge>
                 </TableCell>
+
                 <TableCell>
                   <div className="space-y-1">
                     <div>{lastPaymentLabel}</div>
@@ -128,8 +141,10 @@ export function SubscriptionsTable({ rows }: Props) {
                     ) : null}
                   </div>
                 </TableCell>
+
                 <TableCell>
                   <div className="flex flex-wrap gap-2" dir="rtl">
+                    {/* لغو فوری */}
                     <ActionDialog
                       title="لغو فوری اشتراک"
                       description="اشتراک بلافاصله لغو می‌شود و دسترسی کاربر جمع‌آوری خواهد شد."
@@ -137,7 +152,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       confirmLabel="تایید لغو"
                       input={{}}
                       trigger={
-                        <Button variant="destructive" size="sm" type="button">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          type="button"
+                        >
                           لغو فوری
                         </Button>
                       }
@@ -153,19 +172,33 @@ export function SubscriptionsTable({ rows }: Props) {
                         })
                       }
                     />
+
+                    {/* لغو در پایان دوره / حذف پرچم */}
                     <ActionDialog
-                      title={row.cancelAtPeriodEnd ? "حذف لغو در پایان دوره" : "لغو در پایان دوره"}
+                      title={
+                        row.cancelAtPeriodEnd
+                          ? "حذف لغو در پایان دوره"
+                          : "لغو در پایان دوره"
+                      }
                       description={
                         row.cancelAtPeriodEnd
                           ? "پرچم لغو در پایان دوره حذف خواهد شد."
                           : "اشتراک پس از پایان دوره جاری تمدید نمی‌شود."
                       }
-                      triggerLabel={row.cancelAtPeriodEnd ? "حذف پرچم" : "لغو در پایان"}
+                      triggerLabel={
+                        row.cancelAtPeriodEnd ? "حذف پرچم" : "لغو در پایان"
+                      }
                       confirmLabel="ثبت"
                       input={{}}
                       trigger={
-                        <Button variant="outline" size="sm" type="button">
-                          {row.cancelAtPeriodEnd ? "حذف پرچم" : "لغو در پایان"}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                        >
+                          {row.cancelAtPeriodEnd
+                            ? "حذف پرچم"
+                            : "لغو در پایان"}
                         </Button>
                       }
                       onSubmit={(payload) =>
@@ -177,6 +210,8 @@ export function SubscriptionsTable({ rows }: Props) {
                         })
                       }
                     />
+
+                    {/* تغییر پایان */}
                     <ActionDialog
                       title="تنظیم تاریخ پایان"
                       description="تاریخ جدید پایان اشتراک را مشخص کنید."
@@ -184,7 +219,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       confirmLabel="ذخیره تغییر"
                       input={{ newEndsAt: row.endsAt }}
                       trigger={
-                        <Button variant="outline" size="sm" type="button">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                        >
                           تغییر پایان
                         </Button>
                       }
@@ -193,13 +232,18 @@ export function SubscriptionsTable({ rows }: Props) {
                           id: row.id,
                           reason: payload.reason,
                           updatedAt: row.updatedAt,
-                          newEndsAt: String(payload.newEndsAt ?? row.endsAt),
+                          newEndsAt: String(
+                            payload.newEndsAt ?? row.endsAt,
+                          ),
                         })
                       }
                     >
                       {({ values, onChange }) => (
                         <div className="space-y-2">
-                          <label className="text-sm font-medium" htmlFor={`ends-${row.id}`}>
+                          <label
+                            className="text-sm font-medium"
+                            htmlFor={`ends-${row.id}`}
+                          >
                             تاریخ پایان جدید (ISO)
                           </label>
                           <Input
@@ -207,7 +251,11 @@ export function SubscriptionsTable({ rows }: Props) {
                             dir="ltr"
                             value={(values.newEndsAt as string) ?? ""}
                             onChange={(event) =>
-                              onChange({ newEndsAt: event.target.value ? event.target.value : undefined })
+                              onChange({
+                                newEndsAt: event.target.value
+                                  ? event.target.value
+                                  : undefined,
+                              })
                             }
                             placeholder="2025-12-31T20:30:00.000Z"
                             required
@@ -215,6 +263,8 @@ export function SubscriptionsTable({ rows }: Props) {
                         </div>
                       )}
                     </ActionDialog>
+
+                    {/* بازسازی دسترسی‌ها */}
                     <ActionDialog
                       title="بازسازی دسترسی‌ها"
                       description="هماهنگی دسترسی‌های کاربر با وضعیت اشتراک انجام می‌شود."
@@ -222,7 +272,11 @@ export function SubscriptionsTable({ rows }: Props) {
                       confirmLabel="اجرای بازسازی"
                       input={{}}
                       trigger={
-                        <Button variant="outline" size="sm" type="button">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                        >
                           بازسازی
                         </Button>
                       }
