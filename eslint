@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+const path = require("path");
+const registerTs = require("./tools/register-ts");
+
+registerTs();
+
+const { runRadixCheck } = require("./tools/radix-slot-check");
+
+const args = process.argv.slice(2);
+const include = [];
+let fix = false;
+
+for (let i = 0; i < args.length; i += 1) {
+  const arg = args[i];
+  if (arg === "--fix") {
+    fix = true;
+    continue;
+  }
+  if (arg === "--rulesdir" || arg === "--resolve-plugins-relative-to") {
+    i += 1;
+    continue;
+  }
+  if (arg === "--rule" || arg === "--ext") {
+    i += 1;
+    continue;
+  }
+  if (arg === "--format" || arg === "-f" || arg === "--config" || arg === "-c") {
+    i += 1;
+    continue;
+  }
+  if (arg.startsWith("-")) {
+    continue;
+  }
+  include.push(arg);
+}
+
+try {
+  const result = runRadixCheck({
+    include: include.length > 0 ? include : undefined,
+    fix,
+    jsonPath: path.join(process.cwd(), "reports", "radix-slot-eslint.json"),
+  });
+
+  if (result.errors.length === 0) {
+    console.log("No Radix Slot violations detected.");
+  } else {
+    console.log(`${result.errors.length} Radix Slot violation(s) detected:`);
+    console.log(formatTableForCli(result.errors));
+  }
+
+  process.exit(result.errors.length > 0 ? 1 : 0);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
+function formatTableForCli(violations) {
+  if (violations.length === 0) {
+    return "";
+  }
+  const rows = violations.map((violation) => {
+    return `${violation.filePath}:${violation.line}  ${violation.triggerLabel}  ${violation.childKind}`;
+  });
+  return rows.join("\n");
+}

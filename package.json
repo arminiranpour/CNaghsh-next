@@ -10,7 +10,9 @@
     "db:reset": "pnpm prisma migrate reset --force && pnpm prisma generate",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "qa:radix-slot": "./tsx tools/radix-slot-check.ts",
+    "lint:radix": "./eslint --ext .ts,.tsx apps --rulesdir eslint-local --rule 'local/radix-single-child:error'"
   },
   "prisma": {
     "schema": "apps/web/prisma/schema.prisma"
