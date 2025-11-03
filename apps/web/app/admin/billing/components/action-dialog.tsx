@@ -20,6 +20,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
@@ -127,9 +128,8 @@ export function ActionDialog<T extends Record<string, unknown>>({
   const handleTriggerClick = (event: MouseEvent<HTMLElement>) => {
     originalOnClick?.(event);
     if (event.defaultPrevented) {
-      return;
+      event.preventDefault();
     }
-    setOpen(true);
   };
 
   return (
@@ -142,16 +142,18 @@ export function ActionDialog<T extends Record<string, unknown>>({
         setOpen(nextOpen);
       }}
     >
-      {cloneElement(
-        triggerElement,
-        {
-          onClick: handleTriggerClick,
-          "aria-haspopup": "dialog",
-          "aria-expanded": open,
-          disabled: isPending || currentDisabledValue,
-          "aria-disabled": isPending || currentDisabledValue,
-        } satisfies TriggerElementProps,
-      )}
+      <DialogTrigger asChild>
+        {cloneElement(
+          triggerElement,
+          {
+            onClick: handleTriggerClick,
+            "aria-haspopup": "dialog",
+            "aria-expanded": open,
+            disabled: isPending || currentDisabledValue,
+            "aria-disabled": isPending || currentDisabledValue,
+          } satisfies TriggerElementProps,
+        )}
+      </DialogTrigger>
       <DialogContent dir="rtl">
         <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>
