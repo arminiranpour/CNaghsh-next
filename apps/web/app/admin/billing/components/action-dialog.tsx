@@ -20,6 +20,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
@@ -131,11 +132,16 @@ export function ActionDialog<T extends Record<string, unknown>>({
     sanitizedProps.disabled ?? (sanitizedProps as { "aria-disabled"?: boolean })["aria-disabled"],
   );
 
-  const handleTriggerClick = (event: MouseEvent<HTMLElement>) => {
-    originalOnClick?.(event);
-    if (event.defaultPrevented) return;
-    setOpen(true);
-  };
+  const triggerNode = cloneElement(triggerElement, {
+    ...sanitizedProps,
+    onClick: (event: MouseEvent<HTMLElement>) => {
+      originalOnClick?.(event);
+    },
+    "aria-haspopup": "dialog" as const,
+    "aria-expanded": open,
+    disabled: isPending || currentDisabledValue,
+    "aria-disabled": isPending || currentDisabledValue,
+  });
 
   return (
     <Dialog
@@ -145,14 +151,9 @@ export function ActionDialog<T extends Record<string, unknown>>({
         setOpen(nextOpen);
       }}
     >
-      {cloneElement(triggerElement, {
-        ...sanitizedProps,
-        onClick: handleTriggerClick,
-        "aria-haspopup": "dialog",
-        "aria-expanded": open,
-        disabled: isPending || currentDisabledValue,
-        "aria-disabled": isPending || currentDisabledValue,
-      })}
+      <DialogTrigger asChild>
+        {triggerNode}
+      </DialogTrigger>
       <DialogContent dir="rtl">
         <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>
