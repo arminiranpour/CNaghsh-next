@@ -20,7 +20,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,6 +40,7 @@ type ActionDialogProps<T extends Record<string, unknown>> = {
     disabled?: boolean;
     onClick?: (event: MouseEvent<HTMLElement>) => void;
     "aria-disabled"?: boolean;
+    asChild?: boolean;
   }>;
   children?: (params: {
     values: Record<string, unknown>;
@@ -55,6 +55,7 @@ type TriggerElementProps = {
   "aria-disabled"?: boolean;
   "aria-haspopup"?: string;
   "aria-expanded"?: boolean;
+  asChild?: boolean;
 };
 
 export function ActionDialog<T extends Record<string, unknown>>({
@@ -118,42 +119,40 @@ export function ActionDialog<T extends Record<string, unknown>>({
     throw new Error("ActionDialog trigger must be a single React element.");
   }
 
-  const triggerProps = triggerElement.props ?? {};
-  const originalOnClick = (triggerProps as { onClick?: (event: MouseEvent<HTMLElement>) => void }).onClick;
+  // Sanitize trigger props: if a caller passes <Button asChild>, force it off to avoid nested Slot usage.
+  const triggerProps = (triggerElement.props ?? {}) as TriggerElementProps;
+  const sanitizedProps: TriggerElementProps = { ...triggerProps };
+  if ("asChild" in sanitizedProps) {
+    sanitizedProps.asChild = false;
+  }
+
+  const originalOnClick = sanitizedProps.onClick;
   const currentDisabledValue = Boolean(
-    (triggerProps as { disabled?: boolean; "aria-disabled"?: boolean }).disabled ??
-      (triggerProps as { disabled?: boolean; "aria-disabled"?: boolean })["aria-disabled"],
+    sanitizedProps.disabled ?? (sanitizedProps as { "aria-disabled"?: boolean })["aria-disabled"],
   );
 
   const handleTriggerClick = (event: MouseEvent<HTMLElement>) => {
     originalOnClick?.(event);
-    if (event.defaultPrevented) {
-      event.preventDefault();
-    }
+    if (event.defaultPrevented) return;
+    setOpen(true);
   };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (isPending && nextOpen) {
-          return;
-        }
+        if (isPending && nextOpen) return;
         setOpen(nextOpen);
       }}
     >
-      <DialogTrigger asChild>
-        {cloneElement(
-          triggerElement,
-          {
-            onClick: handleTriggerClick,
-            "aria-haspopup": "dialog",
-            "aria-expanded": open,
-            disabled: isPending || currentDisabledValue,
-            "aria-disabled": isPending || currentDisabledValue,
-          } satisfies TriggerElementProps,
-        )}
-      </DialogTrigger>
+      {cloneElement(triggerElement, {
+        ...sanitizedProps,
+        onClick: handleTriggerClick,
+        "aria-haspopup": "dialog",
+        "aria-expanded": open,
+        disabled: isPending || currentDisabledValue,
+        "aria-disabled": isPending || currentDisabledValue,
+      })}
       <DialogContent dir="rtl">
         <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
           <DialogHeader>

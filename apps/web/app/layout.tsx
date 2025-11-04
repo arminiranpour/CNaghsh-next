@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
+import ClientProviders from "./_client-providers";
 
 const navigation = [
   { href: "/", label: "خانه" },
@@ -22,6 +23,8 @@ const navigation = [
     label: "کاربران",
   },
 ] satisfies NavigationItem[];
+
+
 
 const isStaging = process.env.NEXT_PUBLIC_ENV === "staging";
 const appBaseUrl = getBaseUrl();
