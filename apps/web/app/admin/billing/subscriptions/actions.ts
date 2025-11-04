@@ -17,6 +17,11 @@ const reasonSchema = z
   .trim()
   .min(5, "دلیل باید حداقل ۵ کاراکتر باشد.")
   .max(2000, "حداکثر ۲۰۰۰ کاراکتر مجاز است.");
+const shortReasonSchema = z
+  .string({ invalid_type_error: "لطفاً دلیل را به صورت متن وارد کنید." })
+  .trim()
+  .min(3, "دلیل باید حداقل ۳ کاراکتر باشد.")
+  .max(2000, "حداکثر ۲۰۰۰ کاراکتر مجاز است.");
 const timestampSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), "زمان نامعتبر است.");
@@ -351,6 +356,70 @@ export async function adjustEndsAtAction(input: {
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
     await syncSingleUser(result.subscription.userId);
+
+    return success();
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reactivateNowAction(input: {
+  id: string;
+  reason: string;
+  updatedAt: string;
+  newEndsAt: string;
+}) {
+  try {
+    const admin = await requireAdmin();
+    const parsed = {
+      id: idSchema.parse(input.id),
+      reason: shortReasonSchema.parse(input.reason),
+      updatedAt: timestampSchema.parse(input.updatedAt),
+      newEndsAt: dateSchema.parse(input.newEndsAt),
+    };
+
+    const newEndsAt = new Date(parsed.newEndsAt);
+    if (newEndsAt <= new Date()) {
+      throw new Error("تاریخ پایان باید در آینده باشد.");
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const subscription = await tx.subscription.findUnique({ where: { id: parsed.id } });
+      if (!subscription) {
+        throw new Error("اشتراک یافت نشد.");
+      }
+
+      assertFreshness(subscription.updatedAt, parsed.updatedAt);
+
+      const updated = await tx.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          status: SubscriptionStatus.active,
+          cancelAtPeriodEnd: false,
+          endsAt: newEndsAt,
+        },
+      });
+
+      return { subscription, updated };
+    });
+
+    await recordAuditLog({
+      actor: admin,
+      resource: { type: "subscription", id: result.subscription.id },
+      action: "ADMIN_REACTIVATE_NOW",
+      reason: parsed.reason,
+      before: { subscription: mapSubscriptionSnapshot(result.subscription) },
+      after: { subscription: mapSubscriptionSnapshot(result.updated) },
+      idempotencyKey: null,
+    });
+
+    await recomputeEntitlementsAction({
+      userId: result.subscription.userId,
+      subscriptionId: result.subscription.id,
+      reason: `reactivate: ${parsed.reason}`,
+    });
+
+    await revalidatePath(SUBSCRIPTIONS_PATH);
 
     return success();
   } catch (error) {

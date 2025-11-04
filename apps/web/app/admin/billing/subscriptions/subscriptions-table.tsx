@@ -22,6 +22,7 @@ import {
   cancelNowAction,
   adjustEndsAtAction,
   recomputeEntitlementsAction,
+  reactivateNowAction,
 } from "./actions";
 
 const statusLabels: Record<string, string> = {
@@ -264,7 +265,56 @@ export function SubscriptionsTable({ rows }: Props) {
                       )}
                     </ActionDialog>
 
-                    {/* بازسازی دسترسی‌ها */}
+                    <ActionDialog
+                      title="بازفعال‌سازی فوری"
+                      description="برای فعال‌کردن دوباره اشتراک، تاریخ پایان جدید را تعیین کنید."
+                      triggerLabel="بازفعال‌سازی"
+                      confirmLabel="فعال کن"
+                      input={{ newEndsAt: row.endsAt }}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                        >
+                          بازفعال‌سازی
+                        </Button>
+                      }
+                      onSubmit={(payload) =>
+                        reactivateNowAction({
+                          id: row.id,
+                          updatedAt: row.updatedAt,
+                          newEndsAt: String(payload.newEndsAt ?? row.endsAt),
+                          reason: payload.reason,
+                        })
+                      }
+                    >
+                      {({ values, onChange }) => (
+                        <div className="space-y-2">
+                          <label
+                            className="text-sm font-medium"
+                            htmlFor={`reactivate-${row.id}`}
+                          >
+                            تاریخ پایان جدید (ISO)
+                          </label>
+                          <Input
+                            id={`reactivate-${row.id}`}
+                            dir="ltr"
+                            value={(values.newEndsAt as string) ?? ""}
+                            onChange={(event) =>
+                              onChange({
+                                newEndsAt: event.target.value
+                                  ? event.target.value
+                                  : undefined,
+                              })
+                            }
+                            placeholder="2026-01-15T12:00:00.000Z"
+                            required
+                          />
+                        </div>
+                      )}
+                    </ActionDialog>
+
                     <ActionDialog
                       title="بازسازی دسترسی‌ها"
                       description="هماهنگی دسترسی‌های کاربر با وضعیت اشتراک انجام می‌شود."
