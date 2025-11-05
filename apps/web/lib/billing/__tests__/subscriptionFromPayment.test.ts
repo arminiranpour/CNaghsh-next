@@ -55,6 +55,18 @@ type SubscriptionRecord = {
   providerRef: string | null;
 };
 
+type SubscriptionCreateInput = {
+  id?: string;
+  userId: string;
+  planId: string;
+  status?: SubscriptionStatus;
+  startedAt: Date | string;
+  endsAt: Date | string;
+  renewalAt?: Date | string | null;
+  cancelAtPeriodEnd?: boolean;
+  providerRef?: string | null;
+};
+
 type EntitlementRecord = {
   id: string;
   userId: string;
@@ -67,6 +79,96 @@ type AuditLogRecord = {
   id: string;
   action: string;
   reason: string;
+};
+
+type PlanInclude =
+  | true
+  | {
+      include?: {
+        product?: boolean;
+      };
+    };
+
+type PlanIncludeNormalized = {
+  include?: {
+    product?: boolean;
+  };
+};
+
+type PlanWithProduct = PlanRecord & { product?: ProductRecord | null };
+
+type SubscriptionInclude = {
+  plan?: PlanInclude;
+};
+
+type SubscriptionIncludeNormalized = {
+  plan?: PlanIncludeNormalized;
+};
+
+type PriceInclude =
+  | true
+  | {
+      include?: {
+        plan?: PlanInclude;
+        product?: boolean;
+      };
+    };
+
+type PriceIncludeNormalized = {
+  include?: {
+    plan?: PlanIncludeNormalized;
+    product?: boolean;
+  };
+};
+
+type SessionInclude =
+  | true
+  | {
+      include?: {
+        price?: PriceInclude;
+      };
+    };
+
+type SessionIncludeNormalized = {
+  include?: {
+    price?: PriceIncludeNormalized;
+  };
+};
+
+type PaymentInclude = {
+  session?: SessionInclude;
+};
+
+type PriceWithRelations = PriceRecord & {
+  plan?: PlanWithProduct | null;
+  product?: ProductRecord | null;
+};
+
+type SessionWithRelations = SessionRecord & {
+  price?: PriceWithRelations | null;
+};
+
+type PaymentWithRelations = PaymentRecord & {
+  session?: SessionWithRelations | null;
+};
+
+type PlanSelect = Partial<Record<keyof PlanRecord, boolean>>;
+type ProductSelect = Partial<Record<keyof ProductRecord, boolean>>;
+
+type EntitlementWhere = {
+  userId: string;
+  key: string;
+  expiresAt?: { gt: Date } | null;
+};
+
+type EntitlementOrderBy = {
+  expiresAt?: "asc" | "desc";
+};
+
+type AuditLogCreateData = {
+  action: string;
+  reason: string;
+  [key: string]: unknown;
 };
 
 function createTestPrisma() {
@@ -87,7 +189,59 @@ function createTestPrisma() {
     ...record,
   });
 
-  const attachPlan = (planId: string | null, include: any) => {
+  const normalizePlanInclude = (include?: PlanInclude): PlanIncludeNormalized | undefined => {
+    if (!include) {
+      return undefined;
+    }
+    if (include === true) {
+      return { include: {} };
+    }
+    return include;
+  };
+
+  const normalizeSubscriptionInclude = (
+    include?: SubscriptionInclude,
+  ): SubscriptionIncludeNormalized | undefined => {
+    if (!include) {
+      return undefined;
+    }
+    return {
+      plan: normalizePlanInclude(include.plan),
+    };
+  };
+
+  const normalizePriceInclude = (include?: PriceInclude): PriceIncludeNormalized | undefined => {
+    if (!include) {
+      return undefined;
+    }
+    if (include === true) {
+      return { include: {} };
+    }
+    return {
+      include: {
+        plan: normalizePlanInclude(include.include?.plan),
+        product: include.include?.product ?? false,
+      },
+    };
+  };
+
+  const normalizeSessionInclude = (
+    include?: SessionInclude,
+  ): SessionIncludeNormalized | undefined => {
+    if (!include) {
+      return undefined;
+    }
+    if (include === true) {
+      return { include: {} };
+    }
+    return {
+      include: {
+        price: normalizePriceInclude(include.include?.price),
+      },
+    };
+  };
+
+  const attachPlan = (planId: string | null, include?: PlanIncludeNormalized): PlanWithProduct | null => {
     if (!planId) {
       return null;
     }
@@ -96,7 +250,7 @@ function createTestPrisma() {
       return null;
     }
 
-    const result: any = clone(plan);
+    const result: PlanWithProduct = clone(plan);
     if (include?.include?.product) {
       const product = products.get(plan.productId) ?? null;
       result.product = product ? clone(product) : null;
@@ -105,44 +259,47 @@ function createTestPrisma() {
     return result;
   };
 
-  const attachSubscription = (record: SubscriptionRecord, include: any) => {
-    const base: any = clone(record);
+  const attachSubscription = (
+    record: SubscriptionRecord,
+    include?: SubscriptionIncludeNormalized,
+  ): SubscriptionRecord & { plan?: PlanWithProduct | null } => {
+    const base: SubscriptionRecord & { plan?: PlanWithProduct | null } = clone(record);
     if (include?.plan) {
-      base.plan = attachPlan(record.planId, include.plan === true ? { include: {} } : include.plan);
+      base.plan = attachPlan(record.planId, include.plan);
     }
     return base;
   };
 
   const prismaMock = {
     payment: {
-      findUnique: async ({ where, include }: any) => {
+      findUnique: async ({ where, include }: { where: { id: string }; include?: PaymentInclude }) => {
         const record = payments.get(where.id);
         if (!record) {
           return null;
         }
 
-        const base: any = clone(record);
-        if (include?.session) {
+        const base: PaymentWithRelations = clone(record);
+        const sessionInclude = normalizeSessionInclude(include?.session);
+        if (sessionInclude) {
           const session = record.checkoutSessionId
             ? sessions.get(record.checkoutSessionId) ?? null
             : null;
           if (!session) {
             base.session = null;
           } else {
-            const sessionResult: any = clone(session);
-            if (include.session.include?.price) {
+            const sessionResult: SessionWithRelations = clone(session);
+            const priceInclude = sessionInclude.include?.price;
+            if (priceInclude) {
               const price = session.priceId ? prices.get(session.priceId) ?? null : null;
               if (!price) {
                 sessionResult.price = null;
               } else {
-                const priceResult: any = clone(price);
-                if (include.session.include.price.include?.plan) {
-                  priceResult.plan = attachPlan(
-                    price.planId,
-                    include.session.include.price.include.plan,
-                  );
+                const priceResult: PriceWithRelations = clone(price);
+                const planInclude = priceInclude.include?.plan;
+                if (planInclude) {
+                  priceResult.plan = attachPlan(price.planId, planInclude);
                 }
-                if (include.session.include.price.include?.product) {
+                if (priceInclude.include?.product) {
                   const product = price.productId
                     ? products.get(price.productId) ?? null
                     : null;
@@ -159,7 +316,7 @@ function createTestPrisma() {
       },
     },
     plan: {
-      findUnique: async ({ where, select }: any) => {
+      findUnique: async ({ where, select }: { where: { id: string }; select?: PlanSelect }) => {
         const plan = plans.get(where.id);
         if (!plan) {
           return null;
@@ -167,17 +324,17 @@ function createTestPrisma() {
         if (!select) {
           return clone(plan);
         }
-        const picked: Record<string, unknown> = {};
-        for (const key of Object.keys(select)) {
+        const picked: Partial<PlanRecord> = {};
+        for (const key of Object.keys(select) as (keyof PlanRecord)[]) {
           if (select[key]) {
-            picked[key] = (plan as any)[key];
+            picked[key] = plan[key];
           }
         }
         return picked;
       },
     },
     product: {
-      findUnique: async ({ where, select }: any) => {
+      findUnique: async ({ where, select }: { where: { id: string }; select?: ProductSelect }) => {
         const product = products.get(where.id);
         if (!product) {
           return null;
@@ -185,17 +342,23 @@ function createTestPrisma() {
         if (!select) {
           return clone(product);
         }
-        const picked: Record<string, unknown> = {};
-        for (const key of Object.keys(select)) {
+        const picked: Partial<ProductRecord> = {};
+        for (const key of Object.keys(select) as (keyof ProductRecord)[]) {
           if (select[key]) {
-            picked[key] = (product as any)[key];
+            picked[key] = product[key];
           }
         }
         return picked;
       },
     },
     subscription: {
-      findUnique: async ({ where, include }: any) => {
+      findUnique: async ({
+        where,
+        include,
+      }: {
+        where: { id?: string; userId?: string };
+        include?: SubscriptionInclude;
+      }) => {
         let record: SubscriptionRecord | undefined;
         if (where.id) {
           record = subscriptions.get(where.id);
@@ -206,9 +369,15 @@ function createTestPrisma() {
         if (!record) {
           return null;
         }
-        return attachSubscription(record, include ?? {});
+        return attachSubscription(record, normalizeSubscriptionInclude(include));
       },
-      create: async ({ data, include }: any) => {
+      create: async ({
+        data,
+        include,
+      }: {
+        data: SubscriptionCreateInput;
+        include?: SubscriptionInclude;
+      }) => {
         const created: SubscriptionRecord = {
           id: data.id ?? nextId("sub"),
           userId: data.userId,
@@ -216,15 +385,32 @@ function createTestPrisma() {
           status: data.status ?? SubscriptionStatus.active,
           startedAt: new Date(data.startedAt),
           endsAt: new Date(data.endsAt),
-          renewalAt: data.renewalAt ? new Date(data.renewalAt) : null,
+          renewalAt:
+            data.renewalAt === undefined
+              ? null
+              : data.renewalAt
+                ? new Date(data.renewalAt)
+                : null,
           cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
           providerRef: data.providerRef ?? null,
         };
         subscriptions.set(created.id, created);
         subscriptionsByUser.set(created.userId, created.id);
-        return attachSubscription(created, include ?? {});
+        return attachSubscription(created, normalizeSubscriptionInclude(include));
       },
-      update: async ({ where, data, include }: any) => {
+      update: async ({
+        where,
+        data,
+        include,
+      }: {
+        where: { id: string };
+        data: Partial<SubscriptionRecord> & {
+          startedAt?: string | Date;
+          endsAt?: string | Date;
+          renewalAt?: string | Date | null;
+        };
+        include?: SubscriptionInclude;
+      }) => {
         const record = subscriptions.get(where.id);
         if (!record) {
           throw new Error("Subscription not found");
@@ -238,11 +424,17 @@ function createTestPrisma() {
         };
         subscriptions.set(updated.id, updated);
         subscriptionsByUser.set(updated.userId, updated.id);
-        return attachSubscription(updated, include ?? {});
+        return attachSubscription(updated, normalizeSubscriptionInclude(include));
       },
     },
     userEntitlement: {
-      findFirst: async ({ where, orderBy }: any) => {
+      findFirst: async ({
+        where,
+        orderBy,
+      }: {
+        where: EntitlementWhere;
+        orderBy?: EntitlementOrderBy;
+      }) => {
         const filtered = Array.from(entitlements.values()).filter((item) => {
           if (item.userId !== where.userId) {
             return false;
@@ -270,7 +462,16 @@ function createTestPrisma() {
         const found = filtered[0];
         return found ? clone(found) : null;
       },
-      update: async ({ where, data }: any) => {
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: {
+          expiresAt?: Date | string | null;
+          remainingCredits?: number | null;
+        };
+      }) => {
         const record = entitlements.get(where.id);
         if (!record) {
           throw new Error("Entitlement not found");
@@ -286,7 +487,16 @@ function createTestPrisma() {
         entitlements.set(updated.id, updated);
         return clone(updated);
       },
-      create: async ({ data }: any) => {
+      create: async ({
+        data,
+      }: {
+        data: {
+          userId: string;
+          key: string;
+          expiresAt?: Date | string | null;
+          remainingCredits?: number | null;
+        };
+      }) => {
         const created: EntitlementRecord = {
           id: nextId("ent"),
           userId: data.userId,
@@ -300,7 +510,7 @@ function createTestPrisma() {
       },
     },
     auditLog: {
-      create: async ({ data }: any) => {
+      create: async ({ data }: { data: AuditLogCreateData }) => {
         const record: AuditLogRecord = {
           id: nextId("audit"),
           action: data.action,
@@ -310,7 +520,7 @@ function createTestPrisma() {
         return record;
       },
     },
-    $transaction: async (callback: (tx: any) => Promise<any>, _options?: any) =>
+    $transaction: async <T>(callback: (tx: typeof prismaMock) => Promise<T>) =>
       callback(prismaMock),
   } as const;
 
