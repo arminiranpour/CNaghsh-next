@@ -61,6 +61,31 @@ function wrapInSpan(
   return <span {...wrapperProps}>{children}</span>;
 }
 
+type NamedElementType = React.ElementType & {
+  displayName?: string;
+  name?: string;
+};
+
+const describeElement = (element: React.ReactElement): string => {
+  const elementType = element.type as NamedElementType;
+  return elementType.displayName ?? elementType.name ?? "element";
+};
+
+const describeNode = (node: React.ReactNode): string => {
+  if (typeof node === "string") {
+    return node.slice(0, 80);
+  }
+  if (Array.isArray(node)) {
+    return Children.toArray(node)
+      .map((child) => (isValidElement(child) ? describeElement(child) : typeof child))
+      .join(", ");
+  }
+  if (isValidElement(node)) {
+    return describeElement(node);
+  }
+  return String(node);
+};
+
 /**
  * Ensure Slot receives exactly one *element*. If we get text, a Fragment, or multiple nodes,
  * wrap them in a <span>. In dev, log a helpful warning to locate the caller.
@@ -93,16 +118,9 @@ function coerceToSingleElement(
           typeof children === "string"
             ? children.slice(0, 80)
             : Array.isArray(children)
-              ? Children.toArray(children).map((c) =>
-                  typeof c === "string"
-                    ? c.slice(0, 20)
-                    : isValidElement(c)
-                      ? // try to show component name
-                        ((c.type as any)?.displayName || (c.type as any)?.name || "element")
-                      : typeof c
-                )
+              ? Children.toArray(children).map(describeNode)
               : isValidElement(children)
-                ? ((children.type as any)?.displayName || (children.type as any)?.name || "element")
+                ? describeElement(children)
                 : String(children),
       }
     );
@@ -122,7 +140,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
       return (
         <Slot
-          ref={ref as any}
+          ref={ref as React.Ref<HTMLElement>}
           className={cn(buttonVariants({ variant, size, className }))}
           {...props}
         >

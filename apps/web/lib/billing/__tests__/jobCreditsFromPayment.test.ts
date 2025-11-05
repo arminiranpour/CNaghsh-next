@@ -49,22 +49,177 @@ type GrantRecord = {
   reason: string;
 };
 
+type ProductInclude =
+  | true
+  | {
+      include?: {
+        product?: boolean;
+      };
+    };
+
+type SessionInclude =
+  | true
+  | {
+      include?: {
+        price?: ProductInclude;
+      };
+    };
+
+type PaymentInclude = {
+  session?: SessionInclude;
+};
+
+type PriceWithProduct = PriceRecord & { product?: ProductRecord | null };
+
+type SessionWithRelations = SessionRecord & { price?: PriceWithProduct | null };
+
+type PaymentWithRelations = PaymentRecord & { session?: SessionWithRelations | null };
+
+type AuditLogData = {
+  actorId: string;
+  actorEmail: string | null;
+  resourceType: string;
+  resourceId: string;
+  action: string;
+  reason: string;
+  before: unknown;
+  after: unknown;
+  metadata: unknown;
+  idempotencyKey: string;
+};
+
+type AuditLogRecord = AuditLogData & { id: string };
+
+type EntitlementSelect = {
+  id?: boolean;
+  remainingCredits?: boolean;
+};
+
+type EntitlementUpdateArgs = {
+  where: { id: string };
+  data: {
+    remainingCredits?: { increment?: number };
+  };
+  select?: EntitlementSelect;
+};
+
+type EntitlementCreateArgs = {
+  data: {
+    userId: string;
+    key: string;
+    remainingCredits?: number;
+    expiresAt?: Date | null;
+  };
+  select?: EntitlementSelect;
+};
+
+type EntitlementFindFirstArgs = {
+  where: {
+    userId: string;
+    key: string;
+    expiresAt?: Date | null;
+  };
+  select?: EntitlementSelect;
+};
+
+type EntitlementResult<Select extends EntitlementSelect | undefined> = Select extends undefined
+  ? EntitlementRecord
+  : {
+      [Key in keyof EntitlementRecord as Key extends keyof Select
+        ? Select[Key] extends true
+          ? Key
+          : never
+        : never]: EntitlementRecord[Key];
+    } extends infer Picked
+    ? keyof Picked extends never
+      ? EntitlementRecord
+      : Picked
+    : never;
+
 type PrismaMock = {
   payment: {
-    findUnique: ({ where, include }: any) => Promise<any>;
+    findUnique: ({
+      where,
+      include,
+    }: {
+      where: { id: string };
+      include?: PaymentInclude;
+    }) => Promise<PaymentWithRelations | null>;
   };
   jobCreditGrant: {
     create: ({ data }: { data: Omit<GrantRecord, "id"> }) => Promise<GrantRecord>;
   };
   auditLog: {
-    create: ({ data }: { data: any }) => Promise<any>;
+    create: ({ data }: { data: AuditLogData }) => Promise<AuditLogRecord>;
   };
   userEntitlement: {
-    findFirst: ({ where }: any) => Promise<EntitlementRecord | null>;
-    update: ({ where, data, select }: any) => Promise<any>;
-    create: ({ data, select }: any) => Promise<any>;
+    findFirst: <Select extends EntitlementSelect | undefined>(args: EntitlementFindFirstArgs & {
+      select?: Select;
+    }) => Promise<EntitlementResult<Select> | null>;
+    update: <Select extends EntitlementSelect | undefined>(args: EntitlementUpdateArgs & {
+      select?: Select;
+    }) => Promise<EntitlementResult<Select>>;
+    create: <Select extends EntitlementSelect | undefined>(args: EntitlementCreateArgs & {
+      select?: Select;
+    }) => Promise<EntitlementResult<Select>>;
   };
   $transaction<T>(callback: (tx: PrismaMock) => Promise<T>): Promise<T>;
+};
+
+const normalizeSessionInclude = (
+  include?: SessionInclude,
+): {
+  include?: {
+    price?: {
+      include?: {
+        product?: boolean;
+      };
+    };
+  };
+} | undefined => {
+  if (!include) {
+    return undefined;
+  }
+  if (include === true) {
+    return { include: {} };
+  }
+  return include;
+};
+
+const normalizePriceInclude = (
+  include?: ProductInclude,
+): {
+  include?: {
+    product?: boolean;
+  };
+} | undefined => {
+  if (!include) {
+    return undefined;
+  }
+  if (include === true) {
+    return { include: {} };
+  }
+  return include;
+};
+
+const applyEntitlementSelect = <Select extends EntitlementSelect | undefined>(
+  record: EntitlementRecord,
+  select: Select,
+): EntitlementResult<Select> => {
+  if (!select || Object.keys(select).length === 0) {
+    return { ...record } as EntitlementResult<Select>;
+  }
+  const selection: Partial<EntitlementRecord> = {};
+  if (select.id) {
+    selection.id = record.id;
+  }
+  if (select.remainingCredits) {
+    selection.remainingCredits = record.remainingCredits;
+  }
+  if (Object.keys(selection).length === 0) {
+    return { ...record } as EntitlementResult<Select>;
+  }
+  return selection as EntitlementResult<Select>;
 };
 
 function createTestPrisma() {
@@ -78,31 +233,35 @@ function createTestPrisma() {
   const entitlements = new Map<string, EntitlementRecord>();
   const grants = new Map<string, GrantRecord>();
   const grantsByPayment = new Map<string, GrantRecord>();
-  const auditLogs: any[] = [];
+  const auditLogs: AuditLogRecord[] = [];
 
   const prismaMock: PrismaMock = {
     payment: {
-      findUnique: async ({ where, include }: any) => {
+      findUnique: async ({ where, include }) => {
         const record = payments.get(where.id);
         if (!record) {
           return null;
         }
 
-        const base: any = { ...record };
+        const base: PaymentWithRelations = { ...record };
+        const sessionInclude = normalizeSessionInclude(include?.session);
 
-        if (include?.session) {
+        if (sessionInclude) {
           const session = sessions.get(record.checkoutSessionId) ?? null;
           if (!session) {
             base.session = null;
           } else {
-            const sessionResult: any = { ...session };
-            if (include.session.include?.price) {
+            const sessionResult: SessionWithRelations = { ...session };
+            const priceInclude = normalizePriceInclude(sessionInclude.include?.price);
+
+            if (priceInclude) {
               const price = session.priceId ? prices.get(session.priceId) ?? null : null;
               if (!price) {
                 sessionResult.price = null;
               } else {
-                const priceResult: any = { ...price };
-                if (include.session.include.price.include?.product) {
+                const priceResult: PriceWithProduct = { ...price };
+                const includeProduct = priceInclude.include?.product ?? false;
+                if (includeProduct) {
                   priceResult.product = price.productId
                     ? products.get(price.productId) ?? null
                     : null;
@@ -110,6 +269,7 @@ function createTestPrisma() {
                 sessionResult.price = priceResult;
               }
             }
+
             base.session = sessionResult;
           }
         }
@@ -118,7 +278,7 @@ function createTestPrisma() {
       },
     },
     jobCreditGrant: {
-      create: async ({ data }: { data: Omit<GrantRecord, "id"> }) => {
+      create: async ({ data }) => {
         if (grantsByPayment.has(data.paymentId)) {
           const error = new Prisma.PrismaClientKnownRequestError(
             "Unique constraint failed",
@@ -133,31 +293,34 @@ function createTestPrisma() {
       },
     },
     auditLog: {
-      create: async ({ data }: { data: any }) => {
-        const record = { ...data, id: nextId("audit") };
+      create: async ({ data }) => {
+        const record: AuditLogRecord = { ...data, id: nextId("audit") };
         auditLogs.push(record);
         return record;
       },
     },
     userEntitlement: {
-      findFirst: async ({ where }: any) => {
-        const candidates = Array.from(entitlements.values());
-        return (
-          candidates.find((item) => {
+      findFirst: async ({ where, select }) => {
+        const result =
+          Array.from(entitlements.values()).find((item) => {
             if (item.userId !== where.userId) {
               return false;
             }
             if (item.key !== where.key) {
               return false;
             }
-            if (typeof where.expiresAt === "object" || where.expiresAt === undefined) {
-              return where.expiresAt === null ? item.expiresAt === null : true;
+            if (where.expiresAt === undefined) {
+              return true;
             }
             return item.expiresAt === where.expiresAt;
-          }) ?? null
-        );
+          }) ?? null;
+
+        if (!result) {
+          return null;
+        }
+        return applyEntitlementSelect(result, select);
       },
-      update: async ({ where, data, select }: any) => {
+      update: async ({ where, data, select }) => {
         const record = entitlements.get(where.id);
         if (!record) {
           throw new Error("Entitlement not found");
@@ -168,11 +331,9 @@ function createTestPrisma() {
           remainingCredits: record.remainingCredits + increment,
         };
         entitlements.set(updated.id, updated);
-        return select?.remainingCredits
-          ? { remainingCredits: updated.remainingCredits }
-          : { ...updated };
+        return applyEntitlementSelect(updated, select);
       },
-      create: async ({ data, select }: any) => {
+      create: async ({ data, select }) => {
         const created: EntitlementRecord = {
           id: nextId("entitlement"),
           userId: data.userId,
@@ -181,9 +342,7 @@ function createTestPrisma() {
           expiresAt: data.expiresAt ?? null,
         };
         entitlements.set(created.id, created);
-        return select?.remainingCredits
-          ? { remainingCredits: created.remainingCredits }
-          : { ...created };
+        return applyEntitlementSelect(created, select);
       },
     },
     $transaction: async (callback) => callback(prismaMock),
