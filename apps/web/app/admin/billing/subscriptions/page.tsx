@@ -1,6 +1,9 @@
 import { Provider, SubscriptionStatus } from "@prisma/client";
 import type { Route } from "next";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

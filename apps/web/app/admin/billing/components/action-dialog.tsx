@@ -11,6 +11,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -78,6 +79,7 @@ export function ActionDialog<T extends Record<string, unknown>>({
   const [values, setValues] = useState<Record<string, unknown>>(input);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     if (open) {
@@ -96,15 +98,23 @@ export function ActionDialog<T extends Record<string, unknown>>({
     }
 
     startTransition(async () => {
-      const result = await onSubmit({ ...(values as T), reason: trimmedReason });
-      if (!result?.ok) {
-        toast({ variant: "destructive", description: result?.error ?? "خطا در انجام عملیات." });
-        return;
-      }
+      try {
+        const result = await onSubmit({ ...(values as T), reason: trimmedReason });
+        if (!result?.ok) {
+          toast({
+            variant: "destructive",
+            description: result?.error ?? "خطا در انجام عملیات.",
+          });
+          return;
+        }
 
-      toast({ description: "عملیات با موفقیت ثبت شد." });
-      setOpen(false);
-      setReason("");
+        router.refresh();
+        toast({ description: "عملیات با موفقیت ثبت شد." });
+        setOpen(false);
+        setReason("");
+      } catch {
+        toast({ variant: "destructive", description: "خطا در انجام عملیات." });
+      }
     });
   };
 

@@ -12,6 +12,10 @@ vi.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: vi.fn(), dismiss: vi.fn() }),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 afterEach(() => {
   document.body.innerHTML = "";
 });
