@@ -2,6 +2,7 @@ import { EntitlementKey, InvoiceStatus } from "@prisma/client";
 
 import type { Route } from "next";
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { SandboxUserIdPrompt } from "@/components/sandbox-user-id";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,9 @@ import {
 import { formatRials } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth/session";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const trackedEntitlements: EntitlementKey[] = [
   EntitlementKey.CAN_PUBLISH_PROFILE,
@@ -62,6 +66,9 @@ export default async function BillingPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
+  noStore();
+  console.info("[dashboard.billing] noStore applied for billing view");
+
   const session = await getServerAuthSession();
   const sessionUserId = session?.user?.id ?? null;
   const userId = getUserId(searchParams?.userId) ?? sessionUserId;
@@ -115,6 +122,26 @@ export default async function BillingPage({
     );
     const expiryLabel = isProfileActive ? formatDate(expiresAt) ?? "—" : "—";
     const remainingCredits = jobCreditEntitlement?.remainingCredits ?? 0;
+
+    console.info("[dashboard.billing] rendering entitlements", {
+      timestamp: now.toISOString(),
+      userId,
+      profile: profileEntitlement
+        ? {
+            id: profileEntitlement.id,
+            expiresAt: profileEntitlement.expiresAt,
+            updatedAt: profileEntitlement.updatedAt,
+            isProfileActive,
+          }
+        : null,
+      jobCredits: jobCreditEntitlement
+        ? {
+            id: jobCreditEntitlement.id,
+            remainingCredits,
+            updatedAt: jobCreditEntitlement.updatedAt,
+          }
+        : null,
+    });
 
     return (
       <div className="space-y-6">

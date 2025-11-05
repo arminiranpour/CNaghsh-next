@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 import type { Route } from "next";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { DashboardSidebarNav } from "./_components/sidebar-nav";
 import { NotificationsBell } from "./_components/notifications-bell";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const dashboardNav = [
   { href: "/dashboard/profile" as Route, label: "پروفایل" },
@@ -17,6 +21,8 @@ export default function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
+  noStore();
+
   return (
     <div className="min-h-screen bg-muted/20" dir="rtl">
       <div className="flex min-h-screen flex-row-reverse">
