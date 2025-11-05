@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   PaymentStatus,
   PlanCycle,
@@ -310,8 +311,7 @@ function createTestPrisma() {
         return record;
       },
     },
-    $transaction: async (callback: (tx: any) => Promise<any>, _options?: any) =>
-      callback(prismaMock),
+    $transaction: async (callback: (tx: any) => Promise<any>) => callback(prismaMock),
   } as const;
 
   const helpers = {

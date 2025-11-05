@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PaymentStatus, Prisma, ProductType } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

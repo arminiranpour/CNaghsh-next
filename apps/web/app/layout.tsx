@@ -10,8 +10,6 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
-import ClientProviders from "./_client-providers";
-
 const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },

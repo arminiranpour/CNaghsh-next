@@ -1,9 +1,16 @@
 "use client";
 import React from "react";
 
-export class RootErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  componentDidCatch(error: any, info: any) {
+type RootErrorBoundaryProps = { children: React.ReactNode };
+type RootErrorBoundaryState = { hasError: boolean };
+
+export class RootErrorBoundary extends React.Component<
+  RootErrorBoundaryProps,
+  RootErrorBoundaryState
+> {
+  state: RootErrorBoundaryState = { hasError: false };
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     // eslint-disable-next-line no-console
     console.error("💥 Caught error:", error);
     // eslint-disable-next-line no-console

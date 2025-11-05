@@ -41,6 +41,25 @@ export interface ButtonProps
 
 /* -------------------- helpers to guarantee a single element for Radix Slot -------------------- */
 
+type NamedComponent = {
+  displayName?: string;
+  name?: string;
+};
+
+const getElementDisplayName = (element: React.ReactElement): string | undefined => {
+  const { type } = element;
+  if (typeof type === "string") {
+    return type;
+  }
+
+  if (typeof type === "function" || (typeof type === "object" && type !== null)) {
+    const named = type as NamedComponent;
+    return named.displayName ?? named.name;
+  }
+
+  return undefined;
+};
+
 function isFragmentEl(node: unknown): node is React.ReactElement {
   return isValidElement(node) && node.type === Fragment;
 }
@@ -56,8 +75,8 @@ function hasExactlyOneChildElement(node: React.ReactNode): node is React.ReactEl
 
 function wrapInSpan(
   children: React.ReactNode,
-  wrapperProps?: React.HTMLAttributes<HTMLSpanElement>
-) {
+  wrapperProps?: React.HTMLAttributes<HTMLSpanElement>,
+): React.ReactElement<HTMLSpanElement> {
   return <span {...wrapperProps}>{children}</span>;
 }
 
@@ -93,16 +112,17 @@ function coerceToSingleElement(
           typeof children === "string"
             ? children.slice(0, 80)
             : Array.isArray(children)
-              ? Children.toArray(children).map((c) =>
-                  typeof c === "string"
-                    ? c.slice(0, 20)
-                    : isValidElement(c)
-                      ? // try to show component name
-                        ((c.type as any)?.displayName || (c.type as any)?.name || "element")
-                      : typeof c
-                )
+              ? Children.toArray(children).map((child) => {
+                  if (typeof child === "string") {
+                    return child.slice(0, 20);
+                  }
+                  if (isValidElement(child)) {
+                    return getElementDisplayName(child) ?? "element";
+                  }
+                  return typeof child;
+                })
               : isValidElement(children)
-                ? ((children.type as any)?.displayName || (children.type as any)?.name || "element")
+                ? getElementDisplayName(children) ?? "element"
                 : String(children),
       }
     );
@@ -121,11 +141,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       });
 
       return (
-        <Slot
-          ref={ref as any}
-          className={cn(buttonVariants({ variant, size, className }))}
-          {...props}
-        >
+        <Slot ref={ref} className={cn(buttonVariants({ variant, size, className }))} {...props}>
           {coercedChild}
         </Slot>
       );
