@@ -1,3 +1,5 @@
+"use server";
+
 import { revalidatePath } from "next/cache";
 
 import { getBillingDashboardData, startRenewalCheckout } from "@/lib/billing/dashboard";
@@ -32,7 +34,6 @@ type BillingActionResult<T> = { ok: true; data: T } | { ok: false; error: string
 type DashboardData = Awaited<ReturnType<typeof getBillingDashboardData>>;
 
 export async function refreshBillingDataAction(): Promise<BillingActionResult<DashboardData>> {
-  "use server";
   try {
     const userId = await ensureUserId();
     const data = await getBillingDashboardData(userId);
@@ -46,7 +47,6 @@ export async function refreshBillingDataAction(): Promise<BillingActionResult<Da
 export async function setCancelAtPeriodEndAction(
   flag: boolean,
 ): Promise<BillingActionResult<DashboardData>> {
-  "use server";
   let userId: string;
 
   try {
@@ -79,7 +79,6 @@ export async function setCancelAtPeriodEndAction(
 export async function renewSubscriptionAction(): Promise<
   BillingActionResult<StartCheckoutSessionResult>
 > {
-  "use server";
   let userId: string;
 
   try {
