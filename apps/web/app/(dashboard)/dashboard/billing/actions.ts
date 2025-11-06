@@ -10,8 +10,6 @@ import {
 } from "@/lib/billing/subscriptionService";
 import { getServerAuthSession } from "@/lib/auth/session";
 import type { StartCheckoutSessionResult } from "@/lib/billing/checkout";
-import { env } from "@/lib/env";
-
 const DASHBOARD_PATH = "/dashboard/billing";
 
 const GENERIC_ERROR = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
@@ -92,7 +90,7 @@ export async function renewSubscriptionAction(): Promise<
     const result = await startRenewalCheckout({
       userId,
       provider: "zarinpal",
-      returnUrl: `${env.PUBLIC_BASE_URL}${DASHBOARD_PATH}?renewal=success`,
+      returnUrl: `${DASHBOARD_PATH}?renewal=success`,
     });
     emitBillingTelemetry("billing_renew_now_clicked", {
       userId,
