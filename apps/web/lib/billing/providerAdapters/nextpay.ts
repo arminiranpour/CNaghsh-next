@@ -1,3 +1,5 @@
+import "server-only";
+
 import { buildAbsoluteUrl } from "@/lib/url";
 
 import { ProviderAdapter } from "./types";

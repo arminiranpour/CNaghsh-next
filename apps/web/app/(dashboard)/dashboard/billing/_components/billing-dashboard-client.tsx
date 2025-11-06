@@ -39,7 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import type { BillingDashboardData } from "@/lib/billing/dashboard";
+import type { BillingDashboardData } from "@/lib/billing/dashboard.types";
 import { emitBillingTelemetry } from "@/lib/billing/telemetry";
 import { formatJalaliDate, formatJalaliDateTime } from "@/lib/datetime/jalali";
 import { formatRials } from "@/lib/money";

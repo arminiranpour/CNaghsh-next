@@ -1,74 +1,19 @@
-import {
-  EntitlementKey,
-  InvoiceStatus,
-  PaymentStatus,
-  PlanCycle,
-  SubscriptionStatus,
-} from "@prisma/client";
+import "server-only";
+
+import { EntitlementKey, PlanCycle } from "@prisma/client";
 
 import type { ProviderName } from "@/lib/billing/providerAdapters/types";
 import { startCheckoutSession } from "@/lib/billing/checkout";
 import { prisma } from "@/lib/prisma";
 
-export type BillingSubscriptionPlan = {
-  id: string;
-  name: string;
-  cycle: PlanCycle;
-  activePrice: { id: string; amount: number; currency: string } | null;
-};
-
-export type BillingSubscription = {
-  id: string;
-  status: SubscriptionStatus;
-  cancelAtPeriodEnd: boolean;
-  startedAt: string;
-  endsAt: string;
-  renewalAt: string | null;
-  providerRef: string | null;
-  plan: BillingSubscriptionPlan;
-};
-
-export type BillingEntitlements = {
-  canPublishProfile: {
-    active: boolean;
-    expiresAt: string | null;
-    updatedAt: string | null;
-  };
-};
-
-export type BillingPayment = {
-  id: string;
-  amount: number;
-  currency: string;
-  status: PaymentStatus;
-  provider: string;
-  providerRef: string;
-  createdAt: string;
-  invoice: { id: string; number: string } | null;
-};
-
-export type BillingInvoice = {
-  id: string;
-  number: string;
-  status: InvoiceStatus;
-  total: number;
-  currency: string;
-  issuedAt: string;
-  provider: string | null;
-  providerRef: string | null;
-  paymentStatus: PaymentStatus | null;
-  pdfUrl: string | null;
-};
-
-export type BillingDashboardData = {
-  userId: string;
-  now: string;
-  subscription: BillingSubscription | null;
-  entitlements: BillingEntitlements;
-  payments: BillingPayment[];
-  invoices: BillingInvoice[];
-  latestFailedPayment: BillingPayment | null;
-};
+import type {
+  BillingDashboardData,
+  BillingEntitlements,
+  BillingInvoice,
+  BillingPayment,
+  BillingSubscription,
+  BillingSubscriptionPlan,
+} from "./dashboard.types";
 
 const selectActivePrice = (prices: Array<{ id: string; amount: number; currency: string }>): {
   id: string;
@@ -196,7 +141,7 @@ export async function getBillingDashboardData(
   }));
 
   const latestFailedPayment =
-    paymentPayload.find((item) => item.status === PaymentStatus.FAILED) ?? null;
+    paymentPayload.find((item) => item.status === "FAILED") ?? null;
 
   return {
     userId,
@@ -254,3 +199,12 @@ export async function startRenewalCheckout({
     returnUrl,
   });
 }
+
+export type {
+  BillingDashboardData,
+  BillingEntitlements,
+  BillingInvoice,
+  BillingPayment,
+  BillingSubscription,
+  BillingSubscriptionPlan,
+} from "./dashboard.types";

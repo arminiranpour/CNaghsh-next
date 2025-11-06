@@ -1,3 +1,5 @@
+import "server-only";
+
 import { idpay } from "./idpay";
 import { nextpay } from "./nextpay";
 import { ProviderAdapter, ProviderName } from "./types";
