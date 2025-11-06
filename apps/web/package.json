@@ -34,7 +34,7 @@
     "qa:sprint": "tsx scripts/sprint-verification.mjs"
   },
   "dependencies": {
-    "@acme/ui": "file:../../packages/ui",
+    "@acme/ui": "file:./vendor/ui",
     "@fontsource/vazirmatn": "^5.0.21",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-select": "^2.2.6",
