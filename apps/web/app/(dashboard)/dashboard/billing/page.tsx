@@ -4,6 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getBillingDashboardData } from "@/lib/billing/dashboard";
 import { getServerAuthSession } from "@/lib/auth/session";
 
+import {
+  renewSubscriptionAction,
+  setCancelAtPeriodEndAction,
+} from "./actions";
+
 import { BillingDashboardClient } from "./_components/billing-dashboard-client";
 
 export const dynamic = "force-dynamic";
@@ -35,5 +40,13 @@ export default async function BillingPage() {
 
   const data = await getBillingDashboardData(session.user.id);
 
-  return <BillingDashboardClient initialData={data} />;
+  return (
+    <BillingDashboardClient
+      initialData={data}
+      actions={{
+        setCancelAtPeriodEnd: setCancelAtPeriodEndAction,
+        renewSubscription: renewSubscriptionAction,
+      }}
+    />
+  );
 }

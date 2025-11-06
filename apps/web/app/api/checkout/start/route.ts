@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 
 import { startCheckoutSession } from "@/lib/billing/checkout";
-import { ProviderName } from "@/lib/billing/providerAdapters/types";
+import { ProviderName } from "@/lib/billing/provider.types";
 import { badRequest, ok, safeJson, serverError } from "@/lib/http";
 
 const isProviderName = (value: string): value is ProviderName => {

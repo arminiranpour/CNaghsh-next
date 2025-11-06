@@ -1,3 +1,7 @@
+import "server-only";
+
+import type { ProviderName } from "../provider.types";
+
 type StartArgs = {
   sessionId: string;
   amount: number;
@@ -20,9 +24,9 @@ type ParseFailure = {
   reason: string;
 };
 
-export type ProviderName = "zarinpal" | "idpay" | "nextpay";
-
 export type ProviderAdapter = {
   start: (args: StartArgs) => Promise<StartResult> | StartResult;
   parseWebhook: (payload: unknown) => ParseSuccess | ParseFailure;
 };
+
+export type { ProviderName };

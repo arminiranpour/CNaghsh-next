@@ -39,12 +39,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import type { BillingDashboardData } from "@/lib/billing/dashboard.types";
+import type {
+  BillingDashboardActions,
+  BillingDashboardData,
+} from "@/lib/billing/dashboard.types";
 import { emitBillingTelemetry } from "@/lib/billing/telemetry";
 import { formatJalaliDate, formatJalaliDateTime } from "@/lib/datetime/jalali";
 import { formatRials } from "@/lib/money";
-
-import { renewSubscriptionAction, setCancelAtPeriodEndAction } from "../actions";
 
 const statusLabels: Record<string, string> = {
   active: "فعال",
@@ -173,6 +174,7 @@ const matchesDateRange = (iso: string, from: string, to: string): boolean => {
 
 type BillingDashboardClientProps = {
   initialData: BillingDashboardData;
+  actions: BillingDashboardActions;
 };
 
 type DateFilters = { from: string; to: string };
@@ -186,7 +188,10 @@ type NotificationState = {
   action?: { label: string; onClick: () => void };
 };
 
-export function BillingDashboardClient({ initialData }: BillingDashboardClientProps) {
+export function BillingDashboardClient({
+  initialData,
+  actions,
+}: BillingDashboardClientProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [data, setData] = useState(initialData);
@@ -281,7 +286,7 @@ export function BillingDashboardClient({ initialData }: BillingDashboardClientPr
     }
 
     startCancelTransition(async () => {
-      const result = await setCancelAtPeriodEndAction(flag);
+      const result = await actions.setCancelAtPeriodEnd(flag);
       if (!result.ok) {
         toast({
           title: "عدم موفقیت",
@@ -308,7 +313,7 @@ export function BillingDashboardClient({ initialData }: BillingDashboardClientPr
     }
 
     startRenewTransition(async () => {
-      const result = await renewSubscriptionAction();
+      const result = await actions.renewSubscription();
       if (!result.ok) {
         toast({
           title: "خطا در شروع تمدید",

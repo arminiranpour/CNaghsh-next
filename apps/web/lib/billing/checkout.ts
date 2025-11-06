@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ProviderName } from "@/lib/billing/providerAdapters/types";
+import type { ProviderName } from "@/lib/billing/provider.types";
 import { providers } from "@/lib/billing/providerAdapters";
 import { prisma } from "@/lib/db";
 import { CheckoutStatus, Provider } from "@/lib/prismaEnums";

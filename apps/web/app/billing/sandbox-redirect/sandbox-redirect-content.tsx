@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import type { ProviderName } from "@/lib/billing/providerAdapters/types";
+import type { ProviderName } from "@/lib/billing/provider.types";
 import { formatRials } from "@/lib/money";
 
 type SandboxRedirectContentProps = {

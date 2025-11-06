@@ -2,7 +2,7 @@ import "server-only";
 
 import { EntitlementKey } from "@prisma/client";
 
-import type { ProviderName } from "@/lib/billing/providerAdapters/types";
+import type { ProviderName } from "@/lib/billing/provider.types";
 import { startCheckoutSession } from "@/lib/billing/checkout";
 import { prisma } from "@/lib/prisma";
 

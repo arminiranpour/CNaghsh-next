@@ -69,3 +69,22 @@ export type BillingDashboardData = {
   invoices: BillingInvoice[];
   latestFailedPayment: BillingPayment | null;
 };
+
+export type BillingActionResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
+
+export type BillingRenewalCheckoutResult = {
+  sessionId: string;
+  redirectUrl: string;
+  returnUrl: string;
+};
+
+export type BillingDashboardActions = {
+  setCancelAtPeriodEnd: (
+    flag: boolean,
+  ) => Promise<BillingActionResult<BillingDashboardData>>;
+  renewSubscription: () => Promise<
+    BillingActionResult<BillingRenewalCheckoutResult>
+  >;
+};
