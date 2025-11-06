@@ -1,7 +1,7 @@
 {
   "name": "cnaghsh-next",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "npm@10",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d",
