@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EntitlementKey, PlanCycle } from "@prisma/client";
+import { EntitlementKey } from "@prisma/client";
 
 import type { ProviderName } from "@/lib/billing/providerAdapters/types";
 import { startCheckoutSession } from "@/lib/billing/checkout";
@@ -12,7 +12,6 @@ import type {
   BillingInvoice,
   BillingPayment,
   BillingSubscription,
-  BillingSubscriptionPlan,
 } from "./dashboard.types";
 
 const selectActivePrice = (prices: Array<{ id: string; amount: number; currency: string }>): {
