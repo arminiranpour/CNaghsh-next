@@ -50,6 +50,10 @@ export async function startCheckoutSession({
   const fallbackPath = `/checkout/${session.id}/success`;
   const resolvedReturnUrl = sanitizeReturnUrl(returnUrl, fallbackPath);
 
+  if (price.currency !== "IRR") {
+    throw new Error("UNSUPPORTED_CURRENCY");
+  }
+
   const startResult = await adapter.start({
     sessionId: session.id,
     amount: price.amount,
