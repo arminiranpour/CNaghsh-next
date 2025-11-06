@@ -6,6 +6,8 @@ import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
 import { applyPaymentToSubscription } from "./paymentToSubscription";
 import { applyPaymentToJobCredits } from "./paymentToJobCredits";
+import { assignInvoiceNumber } from "./invoiceNumber";
+import { sendInvoiceFinalizedEmail } from "./invoiceNotifications";
 
 type JsonPayload = Prisma.InputJsonValue;
 
@@ -119,9 +121,14 @@ export const processWebhook = async (
             status: InvoiceStatus.PAID,
             type: "SALE",
             providerRef: input.providerRef,
+            issuedAt: new Date(),
           },
-        });
+        } as any);
         invoiceId = invoice.id;
+      }
+
+      if (invoiceId) {
+        await assignInvoiceNumber({ invoiceId, tx });
       }
     }
 
@@ -147,7 +154,10 @@ export const processWebhook = async (
 
   if (paymentStatus === PaymentStatus.PAID) {
     try {
-      await applyPaymentToSubscription({ paymentId: result.payment.id });
+      await applyPaymentToSubscription({
+        paymentId: result.payment.id,
+        invoiceId: result.invoiceId ?? undefined,
+      });
     } catch (error) {
       console.error("applyPaymentToSubscription", error);
     }
@@ -163,6 +173,13 @@ export const processWebhook = async (
         paymentId: result.payment.id,
       });
     }
+  }
+
+  if (result.invoiceId) {
+    await sendInvoiceFinalizedEmail({
+      invoiceId: result.invoiceId,
+      userId: input.userId,
+    });
   }
 
   return {

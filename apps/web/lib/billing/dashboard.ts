@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EntitlementKey } from "@prisma/client";
+import { EntitlementKey, InvoiceStatus } from "@prisma/client";
 
 import type { ProviderName } from "@/lib/billing/provider.types";
 import { startCheckoutSession } from "@/lib/billing/checkout";
@@ -122,13 +122,13 @@ export async function getBillingDashboardData(
     providerRef: payment.providerRef,
     createdAt: payment.createdAt.toISOString(),
     invoice: payment.invoice
-      ? { id: payment.invoice.id, number: payment.invoice.number }
+      ? { id: payment.invoice.id, number: payment.invoice.number ?? null }
       : null,
   }));
 
   const invoicePayload: BillingInvoice[] = invoices.map((invoice) => ({
     id: invoice.id,
-    number: invoice.number,
+    number: invoice.number ?? null,
     status: invoice.status,
     total: invoice.total,
     currency: invoice.currency,
@@ -136,7 +136,14 @@ export async function getBillingDashboardData(
     provider: invoice.payment?.provider ?? null,
     providerRef: invoice.payment?.providerRef ?? null,
     paymentStatus: invoice.payment?.status ?? null,
-    pdfUrl: null,
+    pdfUrl:
+      invoice.status === InvoiceStatus.DRAFT
+        ? null
+        : `/api/invoices/${invoice.id}/pdf`,
+    planName: invoice.planName ?? null,
+    planCycle: invoice.planCycle ?? null,
+    periodStart: invoice.periodStart ? invoice.periodStart.toISOString() : null,
+    periodEnd: invoice.periodEnd ? invoice.periodEnd.toISOString() : null,
   }));
 
   const latestFailedPayment =

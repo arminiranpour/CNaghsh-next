@@ -37,6 +37,17 @@ function createTestPrisma() {
     status: string;
     type: string;
     providerRef?: string | null;
+    number?: string | null;
+    issuedAt: Date;
+    relatedInvoiceId?: string | null;
+    planId?: string | null;
+    planName?: string | null;
+    planCycle?: string | null;
+    periodStart?: Date | null;
+    periodEnd?: Date | null;
+    unitAmount?: number | null;
+    quantity?: number | null;
+    notes?: string | null;
   };
 
   type SessionRecord = {
@@ -199,32 +210,87 @@ function createTestPrisma() {
       },
     },
     invoice: {
-      findUnique: async ({ where }: { where: { paymentId: string } }) => {
-        for (const record of invoices.values()) {
-          if (record.paymentId === where.paymentId) {
-            return { ...record };
+      findUnique: async ({ where, select }: { where: { paymentId?: string; id?: string }; select?: Record<string, boolean> }) => {
+        let record: InvoiceRecord | undefined;
+        if (where.id) {
+          record = invoices.get(where.id);
+        } else if (where.paymentId) {
+          record = Array.from(invoices.values()).find((item) => item.paymentId === where.paymentId);
+        }
+        if (!record) {
+          return null;
+        }
+        if (!select) {
+          return { ...record };
+        }
+        const result: Record<string, unknown> = {};
+        for (const key of Object.keys(select)) {
+          if (select[key]) {
+            result[key] = (record as any)[key];
           }
         }
-        return null;
+        return result;
+      },
+      findFirst: async ({ where }: { where: { relatedInvoiceId?: string; type?: string } }) => {
+        const match = Array.from(invoices.values()).find((item) => {
+          if (where.relatedInvoiceId && item.relatedInvoiceId !== where.relatedInvoiceId) {
+            return false;
+          }
+          if (where.type && item.type !== where.type) {
+            return false;
+          }
+          return true;
+        });
+        return match ? { ...match } : null;
       },
       create: async ({ data }: { data: any }) => {
         for (const record of invoices.values()) {
-          if (record.paymentId === data.paymentId) {
+          if (record.paymentId && data.paymentId && record.paymentId === data.paymentId) {
             throw uniqueError();
           }
         }
         const created: InvoiceRecord = {
           id: nextId("inv"),
-          paymentId: data.paymentId,
+          paymentId: data.paymentId ?? "",
           userId: data.userId,
           total: data.total,
           currency: data.currency,
           status: data.status,
           type: data.type,
-          providerRef: data.providerRef,
+          providerRef: data.providerRef ?? null,
+          issuedAt: data.issuedAt ? new Date(data.issuedAt) : new Date(),
+          number: data.number ?? null,
+          relatedInvoiceId: data.relatedInvoiceId ?? null,
+          planId: data.planId ?? null,
+          planName: data.planName ?? null,
+          planCycle: data.planCycle ?? null,
+          periodStart: data.periodStart ? new Date(data.periodStart) : null,
+          periodEnd: data.periodEnd ? new Date(data.periodEnd) : null,
+          unitAmount: data.unitAmount ?? null,
+          quantity: data.quantity ?? null,
+          notes: data.notes ?? null,
         };
         invoices.set(created.id, created);
         return { ...created };
+      },
+      update: async ({ where, data }: { where: { id: string }; data: any }) => {
+        const existing = invoices.get(where.id);
+        if (!existing) {
+          throw new Error("Invoice not found");
+        }
+        const updated: InvoiceRecord = {
+          ...existing,
+          ...data,
+          issuedAt: data.issuedAt ? new Date(data.issuedAt) : existing.issuedAt,
+          periodStart: data.periodStart ? new Date(data.periodStart) : existing.periodStart ?? null,
+          periodEnd: data.periodEnd ? new Date(data.periodEnd) : existing.periodEnd ?? null,
+          number: data.number ?? existing.number ?? null,
+          unitAmount: typeof data.unitAmount === "number" ? data.unitAmount : existing.unitAmount ?? null,
+          quantity: typeof data.quantity === "number" ? data.quantity : existing.quantity ?? null,
+          notes: data.notes ?? existing.notes ?? null,
+        };
+        invoices.set(updated.id, updated);
+        return { ...updated };
       },
     },
     checkoutSession: {
@@ -254,6 +320,7 @@ function createTestPrisma() {
         return record ? { ...record } : null;
       },
     },
+    $queryRaw: async () => [{ counter: invoices.size + 1 }],
     $transaction: async (callback: (tx: any) => Promise<any>) => callback(prismaMock),
   };
 

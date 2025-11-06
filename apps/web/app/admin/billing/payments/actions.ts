@@ -10,6 +10,8 @@ import { prisma } from "@/lib/db";
 import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { emit } from "@/lib/billing/events";
+import { assignInvoiceNumber } from "@/lib/billing/invoiceNumber";
+import { sendInvoiceRefundedEmail } from "@/lib/billing/invoiceNotifications";
 
 const reasonSchema = z
   .string({ invalid_type_error: "لطفاً دلیل را به صورت متن وارد کنید." })
@@ -47,7 +49,7 @@ function mapInvoiceSnapshot(invoice: {
   status: InvoiceStatus;
   total: number;
   type: InvoiceType;
-  number: string;
+  number: string | null;
   issuedAt: Date;
 } | null) {
   if (!invoice) {
@@ -124,27 +126,46 @@ export async function refundPaymentAction(input: {
         where: { relatedInvoiceId: originalInvoice?.id ?? undefined, type: InvoiceType.REFUND },
       });
 
+      const refundPayload = {
+        userId: payment.userId,
+        paymentId: null,
+        total: -Math.abs(payment.amount),
+        currency: payment.currency,
+        type: InvoiceType.REFUND,
+        status: InvoiceStatus.REFUNDED,
+        relatedInvoiceId: originalInvoice?.id ?? null,
+        providerRef: payment.providerRef,
+        planId: originalInvoice?.planId ?? null,
+        planName: originalInvoice?.planName ?? null,
+        planCycle: originalInvoice?.planCycle ?? null,
+        periodStart: originalInvoice?.periodStart ?? null,
+        periodEnd: originalInvoice?.periodEnd ?? null,
+        unitAmount: originalInvoice?.unitAmount
+          ? -Math.abs(originalInvoice.unitAmount)
+          : -Math.abs(payment.amount),
+        quantity: originalInvoice?.quantity ?? 1,
+        notes: parsed.reason,
+      } as const;
+
       if (!refundInvoice) {
         refundInvoice = await tx.invoice.create({
-          data: {
-            userId: payment.userId,
-            paymentId: null,
-            total: -Math.abs(payment.amount),
-            currency: payment.currency,
-            type: InvoiceType.REFUND,
-            status: InvoiceStatus.REFUNDED,
-            relatedInvoiceId: originalInvoice?.id,
-            providerRef: payment.providerRef,
-          },
-        });
+          data: refundPayload,
+        } as any);
+      } else {
+        refundInvoice = await tx.invoice.update({
+          where: { id: refundInvoice.id },
+          data: refundPayload,
+        } as any);
       }
+
+      await assignInvoiceNumber({ invoiceId: refundInvoice.id, tx });
 
       let updatedOriginalInvoice = originalInvoice;
       if (originalInvoice && originalInvoice.status !== InvoiceStatus.REFUNDED) {
         updatedOriginalInvoice = await tx.invoice.update({
           where: { id: originalInvoice.id },
-          data: { status: InvoiceStatus.REFUNDED },
-        });
+          data: { status: InvoiceStatus.REFUNDED, notes: parsed.reason },
+        } as any);
       }
 
       let entitlementBefore = null;
@@ -209,6 +230,11 @@ export async function refundPaymentAction(input: {
         reconciliation,
       },
       idempotencyKey: input.idempotencyKey,
+    });
+
+    await sendInvoiceRefundedEmail({
+      invoiceId: result.refundInvoice.id,
+      userId: result.payment.userId,
     });
 
     await emit({

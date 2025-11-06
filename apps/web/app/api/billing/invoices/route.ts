@@ -40,9 +40,11 @@ export async function GET(request: NextRequest) {
       userId,
       invoices: invoices.map((invoice) => ({
         id: invoice.id,
+        number: invoice.number ?? null,
         status: invoice.status,
         total: invoice.total,
         currency: invoice.currency,
+        issuedAt: invoice.issuedAt.toISOString(),
         createdAt: invoice.createdAt.toISOString(),
         payment: invoice.payment
           ? {

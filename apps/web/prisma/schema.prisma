@@ -210,13 +210,21 @@ model Invoice {
   id               String        @id @default(cuid())
   userId           String
   paymentId        String?       @unique
-  number           String        @unique @default(dbgenerated("concat('INV-', to_char(now(), 'YYYYMMDD'), '-', lpad(nextval(format('%I', 'Invoice_number_seq'))::text, 6, '0'))"))
+  number           String?       @unique
   type             InvoiceType   @default(SALE)
   providerRef      String?
   issuedAt         DateTime      @default(now())
   total            Int
   currency         String        @default("IRR")
   status           InvoiceStatus
+  planId           String?
+  planName         String?
+  planCycle        PlanCycle?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  unitAmount       Int?
+  quantity         Int?          @default(1)
+  notes            String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   payment          Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
@@ -230,6 +238,13 @@ model Invoice {
   @@index([paymentId])
   @@index([status])
   @@index([type])
+}
+
+model InvoiceSequence {
+  sequenceDate DateTime @id
+  counter      Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model UserEntitlement {

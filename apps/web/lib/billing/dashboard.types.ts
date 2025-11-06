@@ -44,12 +44,12 @@ export type BillingPayment = {
   provider: string;
   providerRef: string;
   createdAt: string;
-  invoice: { id: string; number: string } | null;
+  invoice: { id: string; number: string | null } | null;
 };
 
 export type BillingInvoice = {
   id: string;
-  number: string;
+  number: string | null;
   status: BillingInvoiceStatus;
   total: number;
   currency: string;
@@ -58,6 +58,10 @@ export type BillingInvoice = {
   providerRef: string | null;
   paymentStatus: BillingPaymentStatus | null;
   pdfUrl: string | null;
+  planName?: string | null;
+  planCycle?: BillingPlanCycle | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
 };
 
 export type BillingDashboardData = {

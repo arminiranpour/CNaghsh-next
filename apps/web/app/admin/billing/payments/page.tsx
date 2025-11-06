@@ -109,7 +109,7 @@ export default async function PaymentsPage({
     invoice: payment.invoice
       ? {
           id: payment.invoice.id,
-          number: payment.invoice.number,
+          number: payment.invoice.number ?? null,
           status: payment.invoice.status,
           total: payment.invoice.total,
         }

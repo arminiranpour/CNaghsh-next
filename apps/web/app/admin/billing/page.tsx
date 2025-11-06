@@ -309,10 +309,11 @@ export default async function BillingOverviewPage() {
                     {recentInvoices.map((invoice) => {
                       const userName = invoice.user.name ?? invoice.user.email;
                       const issuedLabel = formatJalaliDateTime(invoice.issuedAt);
+                      const number = invoice.number ?? "—";
                       return (
                         <tr key={invoice.id} className="border-b border-border/60">
                           <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                            {invoice.number}
+                            {number}
                           </td>
                           <td className="px-3 py-2">
                             <div className="space-y-1">

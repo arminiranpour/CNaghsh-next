@@ -1,4 +1,4 @@
-import { PaymentStatus, Prisma, ProductType } from "@prisma/client";
+import { PaymentStatus, PlanCycle, Prisma, ProductType } from "@prisma/client";
 
 import { prisma } from "../prisma";
 
@@ -33,6 +33,61 @@ export type ApplyPaymentToSubscriptionResult =
 
 type ApplyPaymentArgs = {
   paymentId: string;
+  invoiceId?: string;
+};
+
+const cycleToMonths: Record<PlanCycle, number> = {
+  [PlanCycle.MONTHLY]: 1,
+  [PlanCycle.QUARTERLY]: 3,
+  [PlanCycle.YEARLY]: 12,
+};
+
+const subtractMonthsUtc = (date: Date, months: number) => {
+  return new Date(
+    Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth() - months,
+      date.getUTCDate(),
+      date.getUTCHours(),
+      date.getUTCMinutes(),
+      date.getUTCSeconds(),
+      date.getUTCMilliseconds(),
+    ),
+  );
+};
+
+const determineCoverageWindow = ({
+  planCycle,
+  previousEndsAt,
+  startedAt,
+  endsAt,
+}: {
+  planCycle: PlanCycle;
+  previousEndsAt?: Date | null;
+  startedAt?: Date | null;
+  endsAt?: Date | null;
+}): { start: Date | null; end: Date | null } => {
+  const end = endsAt ? new Date(endsAt) : null;
+  const startCandidates: Date[] = [];
+  if (startedAt) {
+    startCandidates.push(new Date(startedAt));
+  }
+  if (end) {
+    startCandidates.push(subtractMonthsUtc(end, cycleToMonths[planCycle]));
+  }
+  if (previousEndsAt) {
+    startCandidates.push(new Date(previousEndsAt));
+  }
+  if (startCandidates.length === 0) {
+    return { start: null, end };
+  }
+  const start = startCandidates.reduce((earliest, candidate) => {
+    if (!earliest) {
+      return candidate;
+    }
+    return candidate.getTime() < earliest.getTime() ? candidate : earliest;
+  }, null as Date | null);
+  return { start, end };
 };
 
 const logDuplicateGuard = async (payment: { id: string; userId: string }) => {
@@ -58,6 +113,7 @@ const logDuplicateGuard = async (payment: { id: string; userId: string }) => {
 
 export const applyPaymentToSubscription = async ({
   paymentId,
+  invoiceId,
 }: ApplyPaymentArgs): Promise<ApplyPaymentToSubscriptionResult> => {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
@@ -181,12 +237,36 @@ export const applyPaymentToSubscription = async ({
       },
     });
 
-    return {
+    const result = {
       status: "created" as const,
       entitlement: created,
       previousExpiresAt: null,
     };
+
+    return result;
   });
+
+  if (invoiceId) {
+    const coverage = determineCoverageWindow({
+      planCycle: plan.cycle,
+      previousEndsAt: subscription?.endsAt ?? null,
+      startedAt: nextSubscription.startedAt ?? null,
+      endsAt: nextSubscription.endsAt ?? null,
+    });
+
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        planId: plan.id,
+        planName: plan.name,
+        planCycle: plan.cycle,
+        periodStart: coverage.start,
+        periodEnd: coverage.end,
+        unitAmount: price.amount,
+        quantity: 1,
+      },
+    } as any);
+  }
 
   if (entitlementResult.status === "duplicate") {
     await logDuplicateGuard(payment);
