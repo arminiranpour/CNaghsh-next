@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 
 import { getServerAuthSession } from "@/lib/auth/session";
@@ -16,28 +18,41 @@ export async function GET(
   const user = session?.user;
 
   if (!user || typeof user.id !== "string") {
-    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } });
+    return NextResponse.json(
+      { error: "UNAUTHORIZED" },
+      { status: 401, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
   }
 
   const invoiceId = context.params.invoiceId;
 
   if (!invoiceId) {
-    return NextResponse.json({ error: "INVALID_INVOICE" }, { status: 400, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } });
+    return NextResponse.json(
+      { error: "INVALID_INVOICE" },
+      { status: 400, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
   }
 
   const invoice = await getInvoiceForPdf(invoiceId);
 
   if (!invoice) {
-    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } });
+    return NextResponse.json(
+      { error: "NOT_FOUND" },
+      { status: 404, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
   }
 
   const isOwner = invoice.userId === user.id;
-  const isAdmin = user.role === "ADMIN";
+  const isAdmin = (user as any).role === "ADMIN";
 
   if (!isOwner && !isAdmin) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } });
+    return NextResponse.json(
+      { error: "FORBIDDEN" },
+      { status: 403, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
   }
 
+  // generateInvoicePdf returns a Node Buffer (Uint8Array) — valid BodyInit for NextResponse
   const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
   const filename = `${invoice.number ?? invoice.id}.pdf`;
 
@@ -55,10 +70,9 @@ export async function GET(
       : CACHE_CONTROL_DRAFT,
   });
 
-  const arrayBuffer = pdfBuffer.buffer.slice(
-    pdfBuffer.byteOffset,
-    pdfBuffer.byteOffset + pdfBuffer.byteLength,
-  );
-
-  return new NextResponse(arrayBuffer, { status: 200, headers });
+  return new NextResponse(pdfBuffer, { status: 200, headers });
 }
+
+
+
+
