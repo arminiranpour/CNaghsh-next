@@ -5,7 +5,10 @@ import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { getInvoiceForPdf } from "@/lib/billing/invoiceQueries";
 import { generateInvoicePdf, type InvoicePdfRecord } from "@/lib/billing/invoicePdf";
-import { InvoiceStatus } from "@prisma/client";
+import {
+  InvoiceStatus as InvoiceStatusEnum,
+  type InvoiceStatus,
+} from "@/lib/prismaEnums";
 
 const CACHE_CONTROL_FINALIZED = "public, max-age=3600, stale-while-revalidate=86400";
 const CACHE_CONTROL_DRAFT = "no-store";
@@ -52,25 +55,29 @@ export async function GET(
     );
   }
 
-  // generateInvoicePdf returns a Node Buffer (Uint8Array) — valid BodyInit for NextResponse
+  // generateInvoicePdf returns a Node Buffer (Uint8Array) — convert to ArrayBuffer for NextResponse
   const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
+  const pdfArrayBuffer =
+    pdfBuffer instanceof Uint8Array
+      ? pdfBuffer.buffer.slice(pdfBuffer.byteOffset, pdfBuffer.byteOffset + pdfBuffer.byteLength)
+      : pdfBuffer;
   const filename = `${invoice.number ?? invoice.id}.pdf`;
 
   const finalizedStatuses = new Set<InvoiceStatus>([
-    InvoiceStatus.PAID,
-    InvoiceStatus.REFUNDED,
-    InvoiceStatus.VOID,
+    InvoiceStatusEnum.PAID,
+    InvoiceStatusEnum.REFUNDED,
+    InvoiceStatusEnum.VOID,
   ]);
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
     "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-    "Cache-Control": finalizedStatuses.has(invoice.status)
+    "Cache-Control": finalizedStatuses.has(invoice.status as InvoiceStatus)
       ? CACHE_CONTROL_FINALIZED
       : CACHE_CONTROL_DRAFT,
   });
 
-  return new NextResponse(pdfBuffer, { status: 200, headers });
+  return new NextResponse(pdfArrayBuffer, { status: 200, headers });
 }
 
 
