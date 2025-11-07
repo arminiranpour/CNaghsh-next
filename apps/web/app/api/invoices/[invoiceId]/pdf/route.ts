@@ -63,6 +63,7 @@ export async function GET(
       pdfBuffer.byteOffset + pdfBuffer.byteLength,
     ),
   );
+  const pdfArrayBuffer: ArrayBuffer = pdfBytes.buffer;
   const filename = `${invoice.number ?? invoice.id}.pdf`;
 
   const finalizedStatuses = new Set<InvoiceStatus>([
@@ -79,7 +80,7 @@ export async function GET(
       : CACHE_CONTROL_DRAFT,
   });
 
-  return new NextResponse(pdfBytes, { status: 200, headers });
+  return new NextResponse(pdfArrayBuffer, { status: 200, headers });
 }
 
 
