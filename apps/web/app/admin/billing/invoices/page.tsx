@@ -20,16 +20,18 @@ export const metadata: Metadata = {
   title: "مدیریت فاکتورها",
 };
 
-const STATUS_OPTIONS: Array<{ value: "" | InvoiceStatus; label: string }> = [
-  { value: "", label: "همه وضعیت‌ها" },
+const EMPTY_FILTER_VALUE = "all";
+
+const STATUS_OPTIONS: Array<{ value: typeof EMPTY_FILTER_VALUE | InvoiceStatus; label: string }> = [
+  { value: EMPTY_FILTER_VALUE, label: "همه وضعیت‌ها" },
   { value: InvoiceStatus.DRAFT, label: "پیش‌فاکتور" },
   { value: InvoiceStatus.PAID, label: "پرداخت‌شده" },
   { value: InvoiceStatus.VOID, label: "باطل‌شده" },
   { value: InvoiceStatus.REFUNDED, label: "بازپرداخت‌شده" },
 ];
 
-const TYPE_OPTIONS: Array<{ value: "" | InvoiceType; label: string }> = [
-  { value: "", label: "همه انواع" },
+const TYPE_OPTIONS: Array<{ value: typeof EMPTY_FILTER_VALUE | InvoiceType; label: string }> = [
+  { value: EMPTY_FILTER_VALUE, label: "همه انواع" },
   { value: InvoiceType.SALE, label: "فروش" },
   { value: InvoiceType.REFUND, label: "استرداد" },
 ];
@@ -42,8 +44,8 @@ const STATUS_BADGES: Record<InvoiceStatus, "outline" | "success" | "secondary" |
 };
 
 type SearchParams = {
-  status?: InvoiceStatus;
-  type?: InvoiceType;
+  status?: InvoiceStatus | typeof EMPTY_FILTER_VALUE;
+  type?: InvoiceType | typeof EMPTY_FILTER_VALUE;
   q?: string;
   page?: string;
   from?: string;
@@ -53,7 +55,7 @@ type SearchParams = {
 const PAGE_SIZE = 25;
 
 function buildSelectValue(value?: string | null) {
-  return value ?? "";
+  return value ?? EMPTY_FILTER_VALUE;
 }
 
 function buildStatusLabel(status: InvoiceStatus) {
@@ -133,7 +135,7 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
                 </SelectTrigger>
                 <SelectContent dir="rtl">
                   {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value || "all"} value={option.value}>
+                    <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
@@ -148,7 +150,7 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
                 </SelectTrigger>
                 <SelectContent dir="rtl">
                   {TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value || "all"} value={option.value}>
+                    <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}
