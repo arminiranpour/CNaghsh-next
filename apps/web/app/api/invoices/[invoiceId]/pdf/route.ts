@@ -56,7 +56,6 @@ export async function GET(
   });
 
   const uint8Array = pdfBuffer instanceof Uint8Array ? pdfBuffer : new Uint8Array(pdfBuffer);
-  const arrayBuffer = uint8Array.buffer.slice(uint8Array.byteOffset, uint8Array.byteOffset + uint8Array.byteLength);
 
-  return new NextResponse(arrayBuffer, { status: 200, headers });
+  return new NextResponse(uint8Array, { status: 200, headers });
 }
