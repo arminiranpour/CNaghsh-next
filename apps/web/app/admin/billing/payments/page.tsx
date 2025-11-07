@@ -49,7 +49,7 @@ function toSearchParams(searchParams: Record<string, string | string[] | undefin
 }
 
 const statusOptions = [
-  { value: "", label: "همه وضعیت‌ها" },
+  { value: "all", label: "همه وضعیت‌ها" },
   { value: PaymentStatus.PAID, label: "پرداخت شده" },
   { value: PaymentStatus.PENDING, label: "در انتظار" },
   { value: PaymentStatus.FAILED, label: "ناموفق" },
@@ -61,8 +61,10 @@ export default async function PaymentsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const statusParam = typeof searchParams.status === "string" ? searchParams.status : undefined;
-  const providerParam = typeof searchParams.provider === "string" ? searchParams.provider : undefined;
+  const statusParamRaw = typeof searchParams.status === "string" ? searchParams.status : undefined;
+  const providerParamRaw = typeof searchParams.provider === "string" ? searchParams.provider : undefined;
+  const statusParam = statusParamRaw === "all" ? undefined : statusParamRaw;
+  const providerParam = providerParamRaw === "all" ? undefined : providerParamRaw;
   const queryParam = typeof searchParams.q === "string" ? searchParams.q : undefined;
   const fromParam = typeof searchParams.from === "string" ? searchParams.from : undefined;
   const toParam = typeof searchParams.to === "string" ? searchParams.to : undefined;
@@ -117,7 +119,11 @@ export default async function PaymentsPage({
   }));
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
-  const params = toSearchParams(searchParams);
+  const params = toSearchParams({
+    ...searchParams,
+    status: statusParamRaw === "all" ? undefined : statusParamRaw,
+    provider: providerParamRaw === "all" ? undefined : providerParamRaw,
+  });
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -136,13 +142,13 @@ export default async function PaymentsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">وضعیت</Label>
-            <Select name="status" defaultValue={statusParam ?? ""}>
+            <Select name="status" defaultValue={statusParamRaw ?? "all"}>
               <SelectTrigger id="status">
                 <SelectValue placeholder="همه وضعیت‌ها" />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
-                  <SelectItem key={option.value || "all"} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
@@ -151,12 +157,12 @@ export default async function PaymentsPage({
           </div>
           <div className="space-y-2">
             <Label htmlFor="provider">درگاه</Label>
-            <Select name="provider" defaultValue={providerParam ?? ""}>
+            <Select name="provider" defaultValue={providerParamRaw ?? "all"}>
               <SelectTrigger id="provider">
                 <SelectValue placeholder="همه درگاه‌ها" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">همه درگاه‌ها</SelectItem>
+                <SelectItem value="all">همه درگاه‌ها</SelectItem>
                 {Object.values(Provider).map((provider) => (
                   <SelectItem key={provider} value={provider}>
                     {provider}
