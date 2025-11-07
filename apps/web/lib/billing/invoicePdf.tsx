@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -57,7 +57,7 @@ const registerFonts = () => {
       const local = localFontCandidates(weight).find((candidate) => existsSync(candidate));
       if (local) {
         return {
-          src: readFileSync(local),
+          src: local,
           fontWeight,
         } as const;
       }

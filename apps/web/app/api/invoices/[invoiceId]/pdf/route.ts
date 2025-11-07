@@ -55,5 +55,6 @@ export async function GET(
       : CACHE_CONTROL_DRAFT,
   });
 
-  return new NextResponse(pdfBuffer, { status: 200, headers });
+  const body = pdfBuffer instanceof Uint8Array ? pdfBuffer : new Uint8Array(pdfBuffer);
+  return new NextResponse(body, { status: 200, headers });
 }

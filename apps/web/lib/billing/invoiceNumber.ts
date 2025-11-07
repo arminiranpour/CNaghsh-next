@@ -65,14 +65,24 @@ export type AssignInvoiceNumberOptions = {
   force?: boolean;
 };
 
+const runWithTransaction = async <T>(
+  tx: TransactionClient | undefined,
+  callback: (transaction: TransactionClient) => Promise<T>,
+) => {
+  if (tx) {
+    return callback(tx);
+  }
+
+  return prisma.$transaction((transaction) => callback(transaction));
+};
+
 export async function assignInvoiceNumber({
   invoiceId,
   issuedAt,
   tx,
   force = false,
 }: AssignInvoiceNumberOptions): Promise<string> {
-  const executor = tx ?? prisma;
-  return executor.$transaction(async (transaction) => {
+  return runWithTransaction(tx, async (transaction) => {
     const invoice = await transaction.invoice.findUnique({
       where: { id: invoiceId },
       select: { id: true, number: true, issuedAt: true },

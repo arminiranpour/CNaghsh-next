@@ -33,9 +33,10 @@ function formatInvoiceSnapshot(invoice: {
   };
 }
 
-export async function resyncInvoiceNumberAction({ id }: { id: string }) {
+export async function resyncInvoiceNumberAction(formData: FormData) {
   const admin = await requireAdmin();
-  const parsedId = idSchema.parse(id);
+  const idValue = formData.get("id");
+  const parsedId = idSchema.parse(typeof idValue === "string" ? idValue : "");
 
   const result = await prisma.$transaction(async (tx) => {
     const invoice = await tx.invoice.findUnique({ where: { id: parsedId } });
@@ -62,7 +63,6 @@ export async function resyncInvoiceNumberAction({ id }: { id: string }) {
   });
 
   await revalidatePath(INVOICES_PATH);
-  return { ok: true } as const;
 }
 
 export async function voidInvoiceAction({ id, reason }: { id: string; reason: string }) {

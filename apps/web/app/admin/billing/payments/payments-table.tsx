@@ -38,7 +38,7 @@ type PaymentRow = {
   providerRef: string;
   createdAt: string;
   updatedAt: string;
-  invoice: { id: string; number: string; status: string; total: number } | null;
+  invoice: { id: string; number: string | null; status: string; total: number } | null;
 };
 
 type Props = {
