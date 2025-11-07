@@ -5,13 +5,12 @@ import { NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { getInvoiceForPdf } from "@/lib/billing/invoiceQueries";
 import { generateInvoicePdf, type InvoicePdfRecord } from "@/lib/billing/invoicePdf";
-import {
-  InvoiceStatus as InvoiceStatusEnum,
-  type InvoiceStatus,
-} from "@/lib/prismaEnums";
 
 const CACHE_CONTROL_FINALIZED = "public, max-age=3600, stale-while-revalidate=86400";
 const CACHE_CONTROL_DRAFT = "no-store";
+
+// Use string values to avoid enum width/overlap issues across layers
+const FINALIZED_STATUSES = new Set<string>(["PAID", "REFUNDED", "VOID"]);
 
 export async function GET(
   _request: Request,
@@ -28,7 +27,6 @@ export async function GET(
   }
 
   const invoiceId = context.params.invoiceId;
-
   if (!invoiceId) {
     return NextResponse.json(
       { error: "INVALID_INVOICE" },
@@ -37,7 +35,6 @@ export async function GET(
   }
 
   const invoice = await getInvoiceForPdf(invoiceId);
-
   if (!invoice) {
     return NextResponse.json(
       { error: "NOT_FOUND" },
@@ -47,7 +44,6 @@ export async function GET(
 
   const isOwner = invoice.userId === user.id;
   const isAdmin = (user as any).role === "ADMIN";
-
   if (!isOwner && !isAdmin) {
     return NextResponse.json(
       { error: "FORBIDDEN" },
@@ -55,34 +51,24 @@ export async function GET(
     );
   }
 
-  // generateInvoicePdf returns a Node Buffer (Uint8Array)
+  // Generate PDF as Node Buffer (Uint8Array)
   const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
-  const pdfBytes = new Uint8Array(
-    pdfBuffer.buffer.slice(
-      pdfBuffer.byteOffset,
-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
-    ),
-  );
-  const pdfArrayBuffer: ArrayBuffer = pdfBytes.buffer;
-  const filename = `${invoice.number ?? invoice.id}.pdf`;
 
-  const finalizedStatuses = new Set<InvoiceStatus>([
-    InvoiceStatusEnum.PAID,
-    InvoiceStatusEnum.REFUNDED,
-    InvoiceStatusEnum.VOID,
-  ]);
+  // ✅ Copy into a fresh Uint8Array to get a plain ArrayBuffer (not SharedArrayBuffer-like)
+  const bytes = new Uint8Array(pdfBuffer.byteLength);
+  bytes.set(pdfBuffer); // copies the Buffer's contents
+  const body: ArrayBuffer = bytes.buffer;
+
+  const filename = `${invoice.number ?? invoice.id}.pdf`;
+  const cacheControl = FINALIZED_STATUSES.has(String(invoice.status))
+    ? CACHE_CONTROL_FINALIZED
+    : CACHE_CONTROL_DRAFT;
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
     "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-    "Cache-Control": finalizedStatuses.has(invoice.status as InvoiceStatus)
-      ? CACHE_CONTROL_FINALIZED
-      : CACHE_CONTROL_DRAFT,
+    "Cache-Control": cacheControl,
   });
 
-  return new NextResponse(pdfArrayBuffer, { status: 200, headers });
+  return new NextResponse(body, { status: 200, headers });
 }
-
-
-
-
