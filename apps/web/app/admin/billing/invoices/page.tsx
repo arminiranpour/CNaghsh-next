@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 
 import { formatJalaliDateTime } from "@/lib/datetime/jalali";
@@ -109,6 +109,12 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
 
   const totalPages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
   const invoices = list.items;
+  const currentSearchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value) {
+      currentSearchParams.set(key, String(value));
+    }
+  }
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -228,7 +234,8 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
                                 دانلود PDF
                               </Link>
                             </Button>
-                            <form action={resyncInvoiceNumberAction.bind(null, { id: invoice.id })}>
+                            <form action={resyncInvoiceNumberAction}>
+                              <input type="hidden" name="id" value={invoice.id} />
                               <Button type="submit" variant="outline" size="sm">
                                 بازشماری شماره
                               </Button>
@@ -236,6 +243,7 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
                             <ActionDialog
                               title="ابطال فاکتور"
                               description="با ابطال فاکتور، وضعیت به باطل‌شده تغییر می‌کند."
+                              triggerLabel="ابطال"
                               confirmLabel="تایید ابطال"
                               variant="destructive"
                               input={{ id: invoice.id }}
@@ -260,7 +268,12 @@ async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
               </table>
             </div>
           )}
-          <Pagination page={page} totalPages={totalPages} />
+          <Pagination
+            basePath={"/admin/billing/invoices" as Route}
+            searchParams={currentSearchParams}
+            page={page}
+            totalPages={totalPages}
+          />
         </CardContent>
       </Card>
     </div>

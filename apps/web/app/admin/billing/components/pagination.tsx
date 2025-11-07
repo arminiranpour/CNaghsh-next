@@ -7,7 +7,7 @@ function buildUrl(basePath: Route, searchParams: URLSearchParams, page: number) 
   return `${basePath}?${nextParams.toString()}` as Route;
 }
 
-export function PaginationControls({
+export function Pagination({
   basePath,
   searchParams,
   page,
@@ -49,3 +49,5 @@ export function PaginationControls({
     </div>
   );
 }
+
+export { Pagination as PaginationControls };
