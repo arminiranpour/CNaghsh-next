@@ -43,7 +43,7 @@ export async function GET(
   }
 
   const isOwner = invoice.userId === user.id;
-  const isAdmin = (user as any).role === "ADMIN";
+  const isAdmin = user.role === "ADMIN";
   if (!isOwner && !isAdmin) {
     return NextResponse.json(
       { error: "FORBIDDEN" },

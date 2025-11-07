@@ -27,12 +27,7 @@ const startOfDayUtc = (date: Date): Date => {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 };
 
-type TransactionClient = Parameters<typeof prisma.$transaction>[0] extends (
-  callback: (tx: infer U) => any,
-  options?: any,
-) => any
-  ? U
-  : Prisma.TransactionClient;
+type TransactionClient = Prisma.TransactionClient;
 
 const nextSequenceValue = async (
   tx: TransactionClient,
@@ -108,7 +103,7 @@ export async function assignInvoiceNumber({
           where: { id: invoiceId },
           data: { number: candidate, issuedAt: finalIssuedAt },
           select: { number: true },
-        } as any);
+        });
 
         if (!updated.number) {
           throw new Error("INVOICE_NUMBER_NOT_ASSIGNED");

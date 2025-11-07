@@ -112,18 +112,20 @@ export const processWebhook = async (
       if (existingInvoice) {
         invoiceId = existingInvoice.id;
       } else {
+        const invoiceCreateData: Prisma.InvoiceUncheckedCreateInput = {
+          paymentId: payment.id,
+          userId: input.userId,
+          total: input.amount,
+          currency: input.currency,
+          status: InvoiceStatus.PAID,
+          type: "SALE",
+          providerRef: input.providerRef,
+          issuedAt: new Date(),
+        };
+
         const invoice = await tx.invoice.create({
-          data: {
-            paymentId: payment.id,
-            userId: input.userId,
-            total: input.amount,
-            currency: input.currency,
-            status: InvoiceStatus.PAID,
-            type: "SALE",
-            providerRef: input.providerRef,
-            issuedAt: new Date(),
-          },
-        } as any);
+          data: invoiceCreateData,
+        });
         invoiceId = invoice.id;
       }
 

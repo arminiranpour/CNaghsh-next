@@ -83,7 +83,7 @@ export async function voidInvoiceAction({ id, reason }: { id: string; reason: st
     const updated = await tx.invoice.update({
       where: { id: parsedId },
       data: { status: InvoiceStatus.VOID, notes: parsedReason },
-    } as any);
+    });
 
     return { before: invoice, after: updated };
   });

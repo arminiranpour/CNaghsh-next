@@ -254,18 +254,20 @@ export const applyPaymentToSubscription = async ({
       endsAt: nextSubscription.endsAt ?? null,
     });
 
+    const invoiceUpdateData: Prisma.InvoiceUncheckedUpdateInput = {
+      planId: plan.id,
+      planName: plan.name,
+      planCycle: plan.cycle,
+      periodStart: coverage.start,
+      periodEnd: coverage.end,
+      unitAmount: price.amount,
+      quantity: 1,
+    };
+
     await prisma.invoice.update({
       where: { id: invoiceId },
-      data: {
-        planId: plan.id,
-        planName: plan.name,
-        planCycle: plan.cycle,
-        periodStart: coverage.start,
-        periodEnd: coverage.end,
-        unitAmount: price.amount,
-        quantity: 1,
-      },
-    } as any);
+      data: invoiceUpdateData,
+    });
   }
 
   if (entitlementResult.status === "duplicate") {

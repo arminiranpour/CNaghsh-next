@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { InvoiceStatus, InvoiceType, PaymentStatus } from "@prisma/client";
+import { InvoiceStatus, InvoiceType, PaymentStatus, Prisma } from "@prisma/client";
 
 import { recordAuditLog } from "@/lib/admin/audit";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -126,7 +126,7 @@ export async function refundPaymentAction(input: {
         where: { relatedInvoiceId: originalInvoice?.id ?? undefined, type: InvoiceType.REFUND },
       });
 
-      const refundPayload = {
+      const refundCreatePayload: Prisma.InvoiceUncheckedCreateInput = {
         userId: payment.userId,
         paymentId: null,
         total: -Math.abs(payment.amount),
@@ -145,17 +145,21 @@ export async function refundPaymentAction(input: {
           : -Math.abs(payment.amount),
         quantity: originalInvoice?.quantity ?? 1,
         notes: parsed.reason,
-      } as const;
+      };
+
+      const refundUpdatePayload: Prisma.InvoiceUncheckedUpdateInput = {
+        ...refundCreatePayload,
+      };
 
       if (!refundInvoice) {
         refundInvoice = await tx.invoice.create({
-          data: refundPayload,
-        } as any);
+          data: refundCreatePayload,
+        });
       } else {
         refundInvoice = await tx.invoice.update({
           where: { id: refundInvoice.id },
-          data: refundPayload,
-        } as any);
+          data: refundUpdatePayload,
+        });
       }
 
       await assignInvoiceNumber({ invoiceId: refundInvoice.id, tx });
@@ -165,7 +169,7 @@ export async function refundPaymentAction(input: {
         updatedOriginalInvoice = await tx.invoice.update({
           where: { id: originalInvoice.id },
           data: { status: InvoiceStatus.REFUNDED, notes: parsed.reason },
-        } as any);
+        });
       }
 
       let entitlementBefore = null;
