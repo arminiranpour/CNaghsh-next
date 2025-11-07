@@ -55,8 +55,12 @@ export async function GET(
     );
   }
 
-  // generateInvoicePdf returns a Node Buffer (Uint8Array) that can be passed directly to NextResponse
+  // generateInvoicePdf returns a Node Buffer (Uint8Array)
   const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
+  const pdfArrayBuffer = pdfBuffer.buffer.slice(
+    pdfBuffer.byteOffset,
+    pdfBuffer.byteOffset + pdfBuffer.byteLength,
+  );
   const filename = `${invoice.number ?? invoice.id}.pdf`;
 
   const finalizedStatuses = new Set<InvoiceStatus>([
@@ -73,7 +77,7 @@ export async function GET(
       : CACHE_CONTROL_DRAFT,
   });
 
-  return new NextResponse(pdfBuffer, { status: 200, headers });
+  return new NextResponse(pdfArrayBuffer, { status: 200, headers });
 }
 
 
