@@ -73,7 +73,12 @@ export async function GET(
       pdfBuffer.byteLength,
     );
 
-    return new NextResponse(body, { status: 200, headers });
+    const arrayBuffer = body.buffer.slice(
+      body.byteOffset,
+      body.byteOffset + body.byteLength,
+    );
+
+    return new NextResponse(arrayBuffer, { status: 200, headers });
   } catch (error) {
     console.error("[invoice-pdf] Failed to render invoice PDF", {
       invoiceId,
