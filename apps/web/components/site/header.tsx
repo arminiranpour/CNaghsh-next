@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import { getServerSession } from "next-auth";
 
 import { getAuthConfig } from "@/lib/auth/config";
 import { prisma } from "@/lib/prisma";
+import { getSubscription } from "@/lib/billing/subscriptionService";
+import { formatJalaliDate } from "@/lib/datetime/jalali";
 
 import { UserMenu } from "./user-menu";
+import { Badge } from "@/components/ui/badge";
 
 function resolveNavigationHref(
   href: NavigationItem["href"]
@@ -98,7 +102,16 @@ export type NavigationItem = {
 };
 
 export async function Header({ navigation }: { navigation: NavigationItem[] }) {
+  noStore();
   const session = await getServerSession(getAuthConfig(prisma));
+  const subscription = session?.user?.id
+    ? await getSubscription(session.user.id).catch(() => null)
+    : null;
+  const activeBadgeLabel =
+    subscription &&
+    (subscription.status === "active" || subscription.status === "renewing")
+      ? `اشتراک فعال تا ${formatJalaliDate(subscription.endsAt)}`
+      : null;
 
   return (
     <header className="border-b border-border bg-card/50 backdrop-blur-sm">
@@ -132,7 +145,16 @@ export async function Header({ navigation }: { navigation: NavigationItem[] }) {
             })}
           </nav>
           {session?.user ? (
-            <UserMenu email={session.user.email ?? ""} />
+            <div className="flex items-center gap-3">
+              {activeBadgeLabel ? (
+                <Link href={{ pathname: "/dashboard/billing" }}>
+                  <Badge variant="success" className="hidden text-xs md:inline-flex">
+                    {activeBadgeLabel}
+                  </Badge>
+                </Link>
+              ) : null}
+              <UserMenu email={session.user.email ?? ""} />
+            </div>
           ) : (
             <div className="flex items-center gap-3 text-sm">
               <Link
