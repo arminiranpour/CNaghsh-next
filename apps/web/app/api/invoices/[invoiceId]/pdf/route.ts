@@ -1,4 +1,5 @@
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 
@@ -51,24 +52,30 @@ export async function GET(
     );
   }
 
-  // Generate PDF as Node Buffer (Uint8Array)
-  const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
+  try {
+    const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
 
-  // ✅ Copy into a fresh Uint8Array to get a plain ArrayBuffer (not SharedArrayBuffer-like)
-  const bytes = new Uint8Array(pdfBuffer.byteLength);
-  bytes.set(pdfBuffer); // copies the Buffer's contents
-  const body: ArrayBuffer = bytes.buffer;
+    const filename = `${invoice.number ?? invoice.id}.pdf`;
+    const cacheControl = FINALIZED_STATUSES.has(String(invoice.status))
+      ? CACHE_CONTROL_FINALIZED
+      : CACHE_CONTROL_DRAFT;
 
-  const filename = `${invoice.number ?? invoice.id}.pdf`;
-  const cacheControl = FINALIZED_STATUSES.has(String(invoice.status))
-    ? CACHE_CONTROL_FINALIZED
-    : CACHE_CONTROL_DRAFT;
+    const headers = new Headers({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
+      "Cache-Control": cacheControl,
+    });
 
-  const headers = new Headers({
-    "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-    "Cache-Control": cacheControl,
-  });
+    return new NextResponse(pdfBuffer, { status: 200, headers });
+  } catch (error) {
+    console.error("[invoice-pdf] Failed to render invoice PDF", {
+      invoiceId,
+      error,
+    });
 
-  return new NextResponse(body, { status: 200, headers });
+    return NextResponse.json(
+      { error: "PDF_RENDER_FAILED" },
+      { status: 500, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
 }

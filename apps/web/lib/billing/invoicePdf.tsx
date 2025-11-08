@@ -80,13 +80,14 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
   header: {
-    borderBottom: "1 solid #e2e8f0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
     paddingBottom: 16,
     marginBottom: 16,
   },
   companyName: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 700,
     marginBottom: 4,
   },
   companyInfo: {
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: 700,
   },
   statusChip: {
     borderRadius: 6,
@@ -114,11 +115,11 @@ const styles = StyleSheet.create({
   metaGrid: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
-    gap: 12,
     marginBottom: 16,
   },
   metaItem: {
     width: "48%",
+    marginBottom: 12,
   },
   metaLabel: {
     fontSize: 8,
@@ -133,23 +134,26 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: 700,
     marginBottom: 8,
   },
   billToBox: {
     padding: 12,
     borderRadius: 8,
-    border: "1 solid #e2e8f0",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     backgroundColor: "#f8fafc",
   },
   table: {
-    border: "1 solid #e2e8f0",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     borderRadius: 8,
-    overflow: "hidden",
   },
   tableHeader: {
     flexDirection: "row-reverse",
     backgroundColor: "#e2e8f0",
+    borderTopRightRadius: 8,
+    borderTopLeftRadius: 8,
   },
   tableRow: {
     flexDirection: "row-reverse",
@@ -158,12 +162,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderLeft: "1 solid #e2e8f0",
+    borderLeftWidth: 1,
+    borderLeftColor: "#e2e8f0",
     fontSize: 9,
     justifyContent: "center",
   },
   tableHeaderCell: {
-    fontWeight: "bold",
+    fontWeight: 700,
     fontSize: 9,
   },
   cellDescription: {
@@ -198,7 +203,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     alignSelf: "flex-end",
     borderRadius: 8,
-    border: "1 solid #e2e8f0",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     width: "60%",
   },
   totalRow: {
@@ -206,7 +212,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderBottom: "1 solid #e2e8f0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
   },
   totalLabel: {
     fontSize: 10,
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: 11,
-    fontWeight: "bold",
+    fontWeight: 700,
   },
   notes: {
     fontSize: 9,
@@ -223,12 +230,12 @@ const styles = StyleSheet.create({
   },
   watermark: {
     position: "absolute",
-    top: "40%",
-    left: "10%",
+    top: 320,
+    left: 60,
     fontSize: 48,
     color: "#94a3b8",
     opacity: 0.15,
-    transform: "rotate(-30deg)",
+    transform: [{ rotate: "-30deg" }],
   },
 });
 
@@ -457,8 +464,8 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
               <Text style={styles.totalLabel}>مالیات</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(0)}</Text>
             </View>
-            <View style={[styles.totalRow, { borderBottom: "none" }]}> 
-              <Text style={[styles.totalLabel, { fontWeight: "bold" }]}>جمع کل</Text>
+            <View style={[styles.totalRow, { borderBottomWidth: 0 }]}>
+              <Text style={[styles.totalLabel, { fontWeight: 700 }]}>جمع کل</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(grandTotal)}</Text>
             </View>
           </View>
