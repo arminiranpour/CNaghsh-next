@@ -31,7 +31,8 @@
     "cwv:smoke": "node scripts/cwv-smoke.mjs",
     "qa:smoke": "node scripts/rollout-check.mjs",
     "qa:analytics": "node scripts/analytics-smoke.mjs",
-    "qa:sprint": "tsx scripts/sprint-verification.mjs"
+    "qa:sprint": "tsx scripts/sprint-verification.mjs",
+    "pdf:smoke": "tsx scripts/pdf-smoke.ts"
   },
   "dependencies": {
     "@acme/ui": "file:./vendor/ui",
@@ -41,7 +42,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toast": "^1.2.1",
-    "@react-pdf/renderer": "3.4.5",
+    "@react-pdf/renderer": "^4.3.1",
     "@sentry/nextjs": "^8.34.0",
     "@tailwindcss/typography": "^0.5.12",
     "bcryptjs": "^2.4.3",
@@ -57,7 +58,8 @@
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-rtl": "^0.9.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "react-reconciler": "^0.31.0"
   },
   "devDependencies": {
     "@lhci/cli": "^0.13.0",

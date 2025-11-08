@@ -71,7 +71,10 @@ export async function GET(
       pdfBuffer.byteOffset,
       pdfBuffer.byteLength,
     );
-    const arrayBuffer = uint8.slice(0).buffer;
+    const arrayBuffer = uint8.buffer.slice(
+      uint8.byteOffset,
+      uint8.byteOffset + uint8.byteLength,
+    );
 
     return new NextResponse(arrayBuffer, { status: 200, headers });
   } catch (error) {

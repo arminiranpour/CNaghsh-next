@@ -1,3 +1,5 @@
+import "server-only";
+
 import { existsSync } from "node:fs";
 import path from "node:path";
 
@@ -20,16 +22,17 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
+type Style = Record<string, unknown>;
+
 // Filters out falsy/non-object/empty style entries to keep react-pdf happy
-function sx(...vals: any[]) {
+function sx<T extends Style>(...vals: Array<T | T[] | null | false | undefined>): T[] {
   return vals
     .flat()
-    .filter(
-      (v) =>
-        v &&
-        typeof v === "object" &&
-        (Object.keys(v).length > 0 || v.constructor?.name === "StyleSheet"),
-    );
+    .filter((v): v is T => {
+      if (!v || typeof v !== "object") return false;
+      const proto = Object.getPrototypeOf(v);
+      return proto === Object.prototype;
+    });
 }
 
 const FONT_VERSION = "5.0.21";
@@ -247,9 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: "#94a3b8",
     opacity: 0.15,
-    // TS type in @react-pdf/renderer doesn't include rotate; renderer supports it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    transform: [{ rotate: "-30deg" }] as any,
   },
 });
 
