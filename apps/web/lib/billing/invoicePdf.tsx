@@ -2,7 +2,6 @@ import "server-only";
 
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { ComponentProps } from "react";
 
 import {
   Document,
@@ -23,41 +22,28 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-type StyleObject = Record<string, unknown>;
+/** Minimal style-compat helpers (typed to 'any' to satisfy v4 renderer typings) */
+type StyleLike = Record<string, unknown>;
+const isPlainObject = (v: unknown): v is StyleLike =>
+  !!v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype;
 
-const isPlainObject = (value: unknown): value is StyleObject => {
-  if (!value || typeof value !== "object") return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype;
-};
-
-// Filters out falsy/non-object/empty style entries to keep react-pdf happy
-type ViewStyleProp = NonNullable<ComponentProps<typeof View>["style"]>;
-type TextStyleProp = NonNullable<ComponentProps<typeof Text>["style"]>;
-type StyleProp = ViewStyleProp | TextStyleProp;
-
-type CombinedStyle = StyleProp | StyleProp[];
-
-function sx(
-  ...vals: Array<StyleObject | StyleObject[] | null | false | undefined>
-): CombinedStyle {
-  const filtered = vals.flat().filter(isPlainObject) as StyleProp[];
-  if (filtered.length === 0) {
-    return [] as unknown as CombinedStyle;
-  }
-  if (filtered.length === 1) {
-    return filtered[0];
-  }
-  return filtered;
+// Keep react-pdf happy: only pass plain objects; return Shape compatible with Style | Style[] | undefined
+function sx(...vals: Array<StyleLike | StyleLike[] | null | false | undefined>): any {
+  const flat = vals.flat().filter(isPlainObject);
+  if (flat.length === 0) return undefined;
+  if (flat.length === 1) return flat[0] as any;
+  return flat as any;
 }
+const asStyle = (v: StyleLike): any => v as any;
 
 const FONT_VERSION = "5.0.21";
 const FONT_REMOTE_BASE = `https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@${FONT_VERSION}/files` as const;
 
-const localFontCandidates = (
-  weight: 400 | 500 | 700,
-): string[] => {
-  const fileName = weight === 400 ? "Vazirmatn-Regular.ttf" : weight === 500 ? "Vazirmatn-Medium.ttf" : "Vazirmatn-Bold.ttf";
+const localFontCandidates = (weight: 400 | 500 | 700): string[] => {
+  const fileName =
+    weight === 400 ? "Vazirmatn-Regular.ttf" :
+    weight === 500 ? "Vazirmatn-Medium.ttf" :
+    "Vazirmatn-Bold.ttf";
   return [
     path.join(process.cwd(), "apps", "web", "public", "fonts", fileName),
     path.join(process.cwd(), "public", "fonts", fileName),
@@ -72,35 +58,33 @@ const remoteFontSource = (weight: 400 | 500 | 700): string => {
 let fontsRegistered = false;
 
 const registerFonts = () => {
-  if (fontsRegistered) {
-    return;
-  }
+  if (fontsRegistered) return;
 
   const sources = [
-    { weight: 400 as const, fontWeight: 400 as const },
-    { weight: 500 as const, fontWeight: 500 as const },
-    { weight: 700 as const, fontWeight: 700 as const },
+    { weight: 400 as const, file: "Vazirmatn-Regular.ttf" },
+    { weight: 500 as const, file: "Vazirmatn-Medium.ttf" },
+    { weight: 700 as const, file: "Vazirmatn-Bold.ttf"  },
   ];
 
-  Font.register({
-    family: "Vazirmatn",
-    fonts: sources.map(({ weight, fontWeight }) => {
-      const local = localFontCandidates(weight).find((candidate) => existsSync(candidate));
-      if (local) {
-        return {
-          src: local,
-          fontWeight,
-        } as const;
-      }
-      return {
-        src: remoteFontSource(weight),
-        fontWeight,
-      } as const;
-    }),
+  const local = (file: string) =>
+    [path.join(process.cwd(), "apps", "web", "public", "fonts", file),
+     path.join(process.cwd(), "public", "fonts", file)]
+      .find((p) => existsSync(p));
+
+  const fonts = sources.map(({ weight, file }) => {
+    const src = local(file);
+    if (!src) {
+      throw new Error(
+        `[invoice-pdf] Missing local font ${file}. Place it in apps/web/public/fonts/`
+      );
+    }
+    return { src, fontWeight: weight };
   });
 
+  Font.register({ family: "Vazirmatn", fonts });
   fontsRegistered = true;
 };
+
 
 const styles = StyleSheet.create({
   page: {
@@ -269,18 +253,10 @@ const styles = StyleSheet.create({
   },
 });
 
-const statusTitle = (
-  invoice: Invoice,
-): string => {
-  if (invoice.status === "REFUNDED" && invoice.type === "REFUND") {
-    return "یادداشت بستانکاری";
-  }
-  if (invoice.status === "VOID") {
-    return "باطل‌شده";
-  }
-  if (invoice.status === "DRAFT") {
-    return "پیش‌فاکتور";
-  }
+const statusTitle = (invoice: Invoice): string => {
+  if (invoice.status === "REFUNDED" && invoice.type === "REFUND") return "یادداشت بستانکاری";
+  if (invoice.status === "VOID") return "باطل‌شده";
+  if (invoice.status === "DRAFT") return "پیش‌فاکتور";
   return "فاکتور";
 };
 
@@ -320,24 +296,14 @@ type InvoicePdfProps = {
   invoice: InvoicePdfRecord;
 };
 
-const getPlanName = (invoice: InvoicePdfRecord): string => {
-  if (invoice.planName) {
-    return invoice.planName;
-  }
-  return invoice.payment?.session?.price?.plan?.name ?? "پلن اشتراک";
-};
+const getPlanName = (invoice: InvoicePdfRecord): string =>
+  invoice.planName ?? invoice.payment?.session?.price?.plan?.name ?? "پلن اشتراک";
 
-const getPlanCycle = (invoice: InvoicePdfRecord): string | null => {
-  if (invoice.planCycle) {
-    return invoice.planCycle;
-  }
-  return invoice.payment?.session?.price?.plan?.cycle ?? null;
-};
+const getPlanCycle = (invoice: InvoicePdfRecord): string | null =>
+  invoice.planCycle ?? invoice.payment?.session?.price?.plan?.cycle ?? null;
 
 const formatCycleLabel = (cycle: string | null): string => {
-  if (!cycle) {
-    return "";
-  }
+  if (!cycle) return "";
   switch (cycle) {
     case "MONTHLY":
       return "ماهانه";
@@ -350,12 +316,8 @@ const formatCycleLabel = (cycle: string | null): string => {
   }
 };
 
-const lineItemNotes = (invoice: InvoicePdfRecord): string | null => {
-  if (invoice.type === "REFUND") {
-    return invoice.notes ?? "استرداد پرداخت پیشین";
-  }
-  return invoice.notes ?? null;
-};
+const lineItemNotes = (invoice: InvoicePdfRecord): string | null =>
+  invoice.type === "REFUND" ? invoice.notes ?? "استرداد پرداخت پیشین" : invoice.notes ?? null;
 
 const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
   const number = invoice.number ?? "در انتظار تخصیص";
@@ -367,9 +329,10 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
   const unitAmount = invoice.unitAmount ?? Math.round(invoice.total / Math.max(lineQuantity, 1));
   const planName = getPlanName(invoice);
   const planCycle = formatCycleLabel(getPlanCycle(invoice));
-  const periodLabel = invoice.periodStart && invoice.periodEnd
-    ? `${formatInvoiceJalaliDate(invoice.periodStart)} تا ${formatInvoiceJalaliDate(invoice.periodEnd)}`
-    : "دوره زمانی در دسترس نیست";
+  const periodLabel =
+    invoice.periodStart && invoice.periodEnd
+      ? `${formatInvoiceJalaliDate(invoice.periodStart)} تا ${formatInvoiceJalaliDate(invoice.periodEnd)}`
+      : "دوره زمانی در دسترس نیست";
   const lineTotal = invoice.total;
   const subtotal = lineTotal;
   const grandTotal = lineTotal;
@@ -382,6 +345,7 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
     <Document>
       <Page size="A4" style={styles.page} wrap>
         {watermark ? <Text style={styles.watermark}>{watermark}</Text> : null}
+
         <View style={styles.header}>
           <Text style={styles.companyName}>شرکت کستینگ نگارش</Text>
           <Text style={styles.companyInfo}>
@@ -459,11 +423,12 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
                 <Text style={sx(styles.tableHeaderCell, styles.headerTextRight)}>جمع خط</Text>
               </View>
             </View>
-            <View style={sx(styles.tableRow, { backgroundColor: "#f8fafc" })}>
+
+            <View style={sx(styles.tableRow, asStyle({ backgroundColor: "#f8fafc" }))}>
               <View style={sx(styles.tableCell, styles.cellDescription)}>
                 <Text>{`${planName}${planCycle ? ` · ${planCycle}` : ""}`}</Text>
                 {itemNote ? (
-                  <Text style={{ fontSize: 8, color: "#64748b", marginTop: 2 }}>{itemNote}</Text>
+                  <Text style={asStyle({ fontSize: 8, color: "#64748b", marginTop: 2 })}>{itemNote}</Text>
                 ) : null}
               </View>
               <View style={sx(styles.tableCell, styles.cellPeriod)}>
@@ -494,8 +459,8 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
               <Text style={styles.totalLabel}>مالیات</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(0)}</Text>
             </View>
-            <View style={sx(styles.totalRow, { borderBottomWidth: 0 })}>
-              <Text style={sx(styles.totalLabel, { fontWeight: 700 })}>جمع کل</Text>
+            <View style={sx(styles.totalRow, asStyle({ borderBottomWidth: 0 }))}>
+              <Text style={sx(styles.totalLabel, asStyle({ fontWeight: 700 }))}>جمع کل</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(grandTotal)}</Text>
             </View>
           </View>

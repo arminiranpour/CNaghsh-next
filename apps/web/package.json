@@ -32,7 +32,7 @@
     "qa:smoke": "node scripts/rollout-check.mjs",
     "qa:analytics": "node scripts/analytics-smoke.mjs",
     "qa:sprint": "tsx scripts/sprint-verification.mjs",
-    "pdf:smoke": "tsx scripts/pdf-smoke.ts"
+    "pdf:smoke": "tsx scripts/pdf-smoke.tsx"
   },
   "dependencies": {
     "@acme/ui": "file:./vendor/ui",

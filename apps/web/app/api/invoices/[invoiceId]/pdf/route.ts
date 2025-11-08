@@ -7,8 +7,7 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import { getInvoiceForPdf } from "@/lib/billing/invoiceQueries";
 import { generateInvoicePdf, type InvoicePdfRecord } from "@/lib/billing/invoicePdf";
 
-const CACHE_CONTROL_FINALIZED =
-  "public, max-age=3600, stale-while-revalidate=86400";
+const CACHE_CONTROL_FINALIZED = "public, max-age=3600, stale-while-revalidate=86400";
 const CACHE_CONTROL_DRAFT = "no-store";
 
 const FINALIZED_STATUSES = new Set<string>(["PAID", "REFUNDED", "VOID"]);
@@ -66,12 +65,13 @@ export async function GET(
       "Cache-Control": cacheControl,
     });
 
-    const arrayBuffer = pdfBuffer.buffer.slice(
-      pdfBuffer.byteOffset,
-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
-    );
+    // Make a plain ArrayBuffer (avoid SAB union) and send as Blob.
+    const view = new Uint8Array(pdfBuffer.buffer, pdfBuffer.byteOffset, pdfBuffer.byteLength);
+    const copy = new Uint8Array(view.length);
+    copy.set(view);
+    const blob = new Blob([copy], { type: "application/pdf" });
 
-    return new NextResponse(arrayBuffer, { status: 200, headers });
+    return new NextResponse(blob, { status: 200, headers });
   } catch (error) {
     console.error("[invoice-pdf] Failed to render invoice PDF", {
       invoiceId,
