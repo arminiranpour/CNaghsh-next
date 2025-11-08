@@ -14,21 +14,20 @@ model User {
   name                String?
   passwordHash        String?
   role                Role                 @default(USER)
+  auditLogs           AuditLog[]
   checkoutSessions    CheckoutSession[]
   emailLogs           EmailLog[]
   invoices            Invoice[]
   Job                 Job[]
+  jobCreditGrants     JobCreditGrant[]
   jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
   moderationEvents    ModerationEvent[]    @relation("ModerationActor")
   notifications       Notification[]
   payments            Payment[]
-  jobCreditGrants     JobCreditGrant[]
-  subscriptions       Subscription[]
   moderatedProfiles   Profile[]            @relation("ProfileModerators")
   profile             Profile?
+  subscriptions       Subscription?
   entitlements        UserEntitlement[]
-  auditLogs           AuditLog[]
-
 }
 
 model Profile {
@@ -141,7 +140,7 @@ model CheckoutSession {
 
 model Subscription {
   id                String             @id @default(cuid())
-  userId            String
+  userId            String             @unique
   planId            String
   status            SubscriptionStatus @default(active)
   startedAt         DateTime           @default(now())
@@ -151,10 +150,9 @@ model Subscription {
   providerRef       String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  plan              Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  plan              Plan               @relation(fields: [planId], references: [id])
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId])
   @@index([status])
   @@index([endsAt])
   @@index([planId])
@@ -174,10 +172,10 @@ model Payment {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   invoice           Invoice?
+  jobCreditGrants   JobCreditGrant?
   session           CheckoutSession     @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   webhookLogs       PaymentWebhookLog[]
-  jobCreditGrants   JobCreditGrant[]
 
   @@unique([provider, providerRef])
   @@index([status])
@@ -197,7 +195,7 @@ model PaymentWebhookLog {
   handledAt  DateTime?
   status     String?
   paymentId  String?
-  payment    Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  payment    Payment?  @relation(fields: [paymentId], references: [id])
 
   @@unique([provider, externalId])
   @@index([receivedAt])
@@ -217,21 +215,21 @@ model Invoice {
   total            Int
   currency         String        @default("IRR")
   status           InvoiceStatus
-  planId           String?
-  planName         String?
-  planCycle        PlanCycle?
-  periodStart      DateTime?
-  periodEnd        DateTime?
-  unitAmount       Int?
-  quantity         Int?          @default(1)
-  notes            String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  payment          Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   relatedInvoiceId String?
-  relatedInvoice   Invoice?      @relation("InvoiceRelations", fields: [relatedInvoiceId], references: [id], onDelete: SetNull)
+  notes            String?
+  periodEnd        DateTime?
+  periodStart      DateTime?
+  planCycle        PlanCycle?
+  planId           String?
+  planName         String?
+  quantity         Int?          @default(1)
+  unitAmount       Int?
+  payment          Payment?      @relation(fields: [paymentId], references: [id])
+  relatedInvoice   Invoice?      @relation("InvoiceRelations", fields: [relatedInvoiceId], references: [id])
   refunds          Invoice[]     @relation("InvoiceRelations")
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([issuedAt])
@@ -257,8 +255,6 @@ model UserEntitlement {
   updatedAt        DateTime       @updatedAt
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// NOTE: Prisma does not support partial indexes.
-  /// Application logic ensures at most one active CAN_PUBLISH_PROFILE entitlement per user.
   @@unique([userId, key, expiresAt])
   @@index([userId, key])
   @@index([expiresAt])
@@ -273,31 +269,29 @@ model JobCreditGrant {
   reason    String   @default("JOB_CREDIT_PURCHASE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  actorId       String
-  actorEmail    String?
-  resourceType  String
-  resourceId    String
-  action        String
-  reason        String
-  before        Json?
-  after         Json?
-  metadata      Json?
-  ipAddress     String?
-  userAgent     String?
-  idempotencyKey String? @unique
-  createdAt     DateTime @default(now())
-
-  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  actorId        String
+  actorEmail     String?
+  resourceType   String
+  resourceId     String
+  action         String
+  reason         String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
+  actor          User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([resourceType, resourceId, createdAt])
   @@index([actorId, createdAt])

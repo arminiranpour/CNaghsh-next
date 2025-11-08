@@ -2,6 +2,7 @@ import "server-only";
 
 import { existsSync } from "node:fs";
 import path from "node:path";
+import type { ComponentProps } from "react";
 
 import {
   Document,
@@ -22,30 +23,29 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-/** Minimal style-compat helpers to satisfy the react-pdf renderer typings */
-type StyleLike = Record<string, unknown>;
-type StyleInput = StyleLike | readonly StyleLike[] | null | false | undefined;
+/** Infer the exact style types react-pdf expects from View’s props */
+type ViewStyleProp = NonNullable<ComponentProps<typeof View>["style"]>;
+type ViewStyleSingle = ViewStyleProp extends Array<infer U> ? U : ViewStyleProp;
 
-const isPlainObject = (value: unknown): value is StyleLike =>
-  !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
+/** Helpers that always return react-pdf-compatible styles (no `any`) */
+type PlainObj = Record<string, unknown>;
+const isPlainObject = (v: unknown): v is PlainObj =>
+  !!v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype;
 
-const flattenStyles = (values: StyleInput[]): StyleLike[] =>
-  values.flatMap((value) => {
-    if (Array.isArray(value)) {
-      return value.filter(isPlainObject) as StyleLike[];
-    }
-    return isPlainObject(value) ? [value] : [];
-  });
+/** Cast a plain object to a single style object react-pdf accepts */
+const asStyle = (v: PlainObj): ViewStyleSingle => v as unknown as ViewStyleSingle;
 
-// Keep react-pdf happy: only pass plain objects; return Shape compatible with Style | Style[] | undefined
-const sx = (...values: StyleInput[]): StyleLike | StyleLike[] | undefined => {
-  const flat = flattenStyles(values);
+/** Merge style inputs into the exact type react-pdf expects (Style | Style[]) */
+function sx(
+  ...vals: Array<ViewStyleSingle | ViewStyleSingle[] | PlainObj | PlainObj[] | null | false | undefined>
+): ViewStyleProp | undefined {
+  const flat = vals
+    .flat()
+    .filter(Boolean)
+    .map((x) => (isPlainObject(x) ? (x as unknown as ViewStyleSingle) : (x as ViewStyleSingle)));
   if (flat.length === 0) return undefined;
-  if (flat.length === 1) return flat[0];
-  return flat;
-};
-
-const asStyle = (value: StyleLike): StyleLike => value;
+  return (flat.length === 1 ? flat[0] : flat) as ViewStyleProp;
+}
 
 let fontsRegistered = false;
 
@@ -55,19 +55,20 @@ const registerFonts = () => {
   const sources = [
     { weight: 400 as const, file: "Vazirmatn-Regular.ttf" },
     { weight: 500 as const, file: "Vazirmatn-Medium.ttf" },
-    { weight: 700 as const, file: "Vazirmatn-Bold.ttf"  },
+    { weight: 700 as const, file: "Vazirmatn-Bold.ttf" },
   ];
 
   const local = (file: string) =>
-    [path.join(process.cwd(), "apps", "web", "public", "fonts", file),
-     path.join(process.cwd(), "public", "fonts", file)]
-      .find((p) => existsSync(p));
+    [
+      path.join(process.cwd(), "apps", "web", "public", "fonts", file),
+      path.join(process.cwd(), "public", "fonts", file),
+    ].find((p) => existsSync(p));
 
   const fonts = sources.map(({ weight, file }) => {
     const src = local(file);
     if (!src) {
       throw new Error(
-        `[invoice-pdf] Missing local font ${file}. Place it in apps/web/public/fonts/`
+        `[invoice-pdf] Missing local font ${file}. Place it in apps/web/public/fonts/`,
       );
     }
     return { src, fontWeight: weight };
@@ -76,7 +77,6 @@ const registerFonts = () => {
   Font.register({ family: "Vazirmatn", fonts });
   fontsRegistered = true;
 };
-
 
 const styles = StyleSheet.create({
   page: {
@@ -420,7 +420,9 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
               <View style={sx(styles.tableCell, styles.cellDescription)}>
                 <Text>{`${planName}${planCycle ? ` · ${planCycle}` : ""}`}</Text>
                 {itemNote ? (
-                  <Text style={asStyle({ fontSize: 8, color: "#64748b", marginTop: 2 })}>{itemNote}</Text>
+                  <Text style={asStyle({ fontSize: 8, color: "#64748b", marginTop: 2 })}>
+                    {itemNote}
+                  </Text>
                 ) : null}
               </View>
               <View style={sx(styles.tableCell, styles.cellPeriod)}>

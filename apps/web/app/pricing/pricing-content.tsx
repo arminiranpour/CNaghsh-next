@@ -401,8 +401,8 @@ export function PricingContent({
   };
 
   const handleRenew = (cadence: CadenceKey) => {
-    if (!viewer.subscription) {
-      return;
+    const subscription = viewer.subscription;
+    if (!subscription) {      return;
     }
     startRenewTransition(async () => {
       try {
@@ -419,7 +419,7 @@ export function PricingContent({
         }
         const { sessionId, redirectUrl } = result.data;
         emitPricingTelemetry("pricing_cta_clicked", {
-          plan_id: viewer.subscription.planId,
+          plan_id: subscription.planId,
           cadence,
           user_state: viewer.state,
           mode: "renew",
