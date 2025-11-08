@@ -7,10 +7,10 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import { getInvoiceForPdf } from "@/lib/billing/invoiceQueries";
 import { generateInvoicePdf, type InvoicePdfRecord } from "@/lib/billing/invoicePdf";
 
-const CACHE_CONTROL_FINALIZED = "public, max-age=3600, stale-while-revalidate=86400";
+const CACHE_CONTROL_FINALIZED =
+  "public, max-age=3600, stale-while-revalidate=86400";
 const CACHE_CONTROL_DRAFT = "no-store";
 
-// Use string values to avoid enum width/overlap issues across layers
 const FINALIZED_STATUSES = new Set<string>(["PAID", "REFUNDED", "VOID"]);
 
 export async function GET(
@@ -66,11 +66,13 @@ export async function GET(
       "Cache-Control": cacheControl,
     });
 
-    // Convert Node Buffer -> ArrayBuffer for Web Response body typing
-    const body = pdfBuffer.buffer.slice(
+    // ✅ Force BodyInit to be Uint8Array (no Buffer/ArrayBuffer unions)
+    const body: Uint8Array = new Uint8Array(
+      pdfBuffer.buffer,
       pdfBuffer.byteOffset,
-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+      pdfBuffer.byteLength,
     );
+
     return new NextResponse(body, { status: 200, headers });
   } catch (error) {
     console.error("[invoice-pdf] Failed to render invoice PDF", {
