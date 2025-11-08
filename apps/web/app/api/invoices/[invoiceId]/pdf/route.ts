@@ -66,14 +66,14 @@ export async function GET(
       "Cache-Control": cacheControl,
     });
 
-    // ✅ Allocate a fresh ArrayBuffer and copy bytes (avoids SharedArrayBuffer typing)
-    const src = pdfBuffer as Uint8Array; // Node Buffer is a Uint8Array
-    const copy = new Uint8Array(src.byteLength);
-    copy.set(src); // copies into a new backing ArrayBuffer
+    const uint8 = new Uint8Array(
+      pdfBuffer.buffer,
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteLength,
+    );
+    const arrayBuffer = uint8.slice(0).buffer;
 
-    const blob = new Blob([copy.buffer], { type: "application/pdf" });
-
-    return new NextResponse(blob, { status: 200, headers });
+    return new NextResponse(arrayBuffer, { status: 200, headers });
   } catch (error) {
     console.error("[invoice-pdf] Failed to render invoice PDF", {
       invoiceId,

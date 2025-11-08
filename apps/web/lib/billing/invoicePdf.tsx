@@ -20,6 +20,18 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
+// Filters out falsy/non-object/empty style entries to keep react-pdf happy
+function sx(...vals: any[]) {
+  return vals
+    .flat()
+    .filter(
+      (v) =>
+        v &&
+        typeof v === "object" &&
+        (Object.keys(v).length > 0 || v.constructor?.name === "StyleSheet"),
+    );
+}
+
 const FONT_VERSION = "5.0.21";
 const FONT_REMOTE_BASE = `https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@${FONT_VERSION}/files` as const;
 
@@ -235,7 +247,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: "#94a3b8",
     opacity: 0.15,
-    transform: "rotate(-30deg)",
+    transform: [{ rotate: "-30deg" }],
   },
 });
 
@@ -413,39 +425,39 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
           <Text style={styles.sectionTitle}>جزئیات آیتم</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <View style={[styles.tableCell, styles.cellDescription]}>
+              <View style={sx(styles.tableCell, styles.cellDescription)}>
                 <Text style={styles.tableHeaderCell}>شرح</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellPeriod]}>
+              <View style={sx(styles.tableCell, styles.cellPeriod)}>
                 <Text style={styles.tableHeaderCell}>دوره پوشش</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellQuantity]}>
-                <Text style={[styles.tableHeaderCell, styles.headerTextCenter]}>تعداد</Text>
+              <View style={sx(styles.tableCell, styles.cellQuantity)}>
+                <Text style={sx(styles.tableHeaderCell, styles.headerTextCenter)}>تعداد</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellRight]}>
-                <Text style={[styles.tableHeaderCell, styles.headerTextRight]}>قیمت واحد</Text>
+              <View style={sx(styles.tableCell, styles.cellRight)}>
+                <Text style={sx(styles.tableHeaderCell, styles.headerTextRight)}>قیمت واحد</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellRight]}>
-                <Text style={[styles.tableHeaderCell, styles.headerTextRight]}>جمع خط</Text>
+              <View style={sx(styles.tableCell, styles.cellRight)}>
+                <Text style={sx(styles.tableHeaderCell, styles.headerTextRight)}>جمع خط</Text>
               </View>
             </View>
-            <View style={[styles.tableRow, { backgroundColor: "#f8fafc" }]}>
-              <View style={[styles.tableCell, styles.cellDescription]}>
+            <View style={sx(styles.tableRow, { backgroundColor: "#f8fafc" })}>
+              <View style={sx(styles.tableCell, styles.cellDescription)}>
                 <Text>{`${planName}${planCycle ? ` · ${planCycle}` : ""}`}</Text>
                 {itemNote ? (
                   <Text style={{ fontSize: 8, color: "#64748b", marginTop: 2 }}>{itemNote}</Text>
                 ) : null}
               </View>
-              <View style={[styles.tableCell, styles.cellPeriod]}>
+              <View style={sx(styles.tableCell, styles.cellPeriod)}>
                 <Text>{periodLabel}</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellQuantity]}>
+              <View style={sx(styles.tableCell, styles.cellQuantity)}>
                 <Text style={styles.textCenter}>{formatInvoiceNumber(lineQuantity)}</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellRight]}>
+              <View style={sx(styles.tableCell, styles.cellRight)}>
                 <Text style={styles.textRight}>{formatInvoiceCurrency(unitAmount)}</Text>
               </View>
-              <View style={[styles.tableCell, styles.cellRight]}>
+              <View style={sx(styles.tableCell, styles.cellRight)}>
                 <Text style={styles.textRight}>{formatInvoiceCurrency(lineTotal)}</Text>
               </View>
             </View>
@@ -464,8 +476,8 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
               <Text style={styles.totalLabel}>مالیات</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(0)}</Text>
             </View>
-            <View style={[styles.totalRow, { borderBottomWidth: 0 }]}>
-              <Text style={[styles.totalLabel, { fontWeight: 700 }]}>جمع کل</Text>
+            <View style={sx(styles.totalRow, { borderBottomWidth: 0 })}>
+              <Text style={sx(styles.totalLabel, { fontWeight: 700 })}>جمع کل</Text>
               <Text style={styles.totalValue}>{formatInvoiceCurrency(grandTotal)}</Text>
             </View>
           </View>
@@ -493,5 +505,13 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
 
 export const generateInvoicePdf = async (invoice: InvoicePdfRecord): Promise<Buffer> => {
   registerFonts();
-  return renderToBuffer(<InvoiceDocument invoice={invoice} />);
+  try {
+    return await renderToBuffer(<InvoiceDocument invoice={invoice} />);
+  } catch (error) {
+    console.error("[invoice-pdf] react-pdf render error", {
+      message: (error as Error)?.message,
+      stack: (error as Error)?.stack,
+    });
+    throw error;
+  }
 };
