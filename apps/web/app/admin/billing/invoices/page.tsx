@@ -84,13 +84,20 @@ function buildTypeLabel(type: InvoiceType) {
   }
 }
 
+const INVOICE_STATUS_VALUES = Object.values(InvoiceStatus);
+const INVOICE_TYPE_VALUES = Object.values(InvoiceType);
+
+function isInvoiceStatus(value: unknown): value is InvoiceStatus {
+  return typeof value === "string" && (INVOICE_STATUS_VALUES as string[]).includes(value);
+}
+
+function isInvoiceType(value: unknown): value is InvoiceType {
+  return typeof value === "string" && (INVOICE_TYPE_VALUES as string[]).includes(value);
+}
+
 async function InvoicesTable({ searchParams }: { searchParams: SearchParams }) {
-  const status = searchParams.status && Object.values(InvoiceStatus).includes(searchParams.status)
-    ? searchParams.status
-    : undefined;
-  const type = searchParams.type && Object.values(InvoiceType).includes(searchParams.type)
-    ? searchParams.type
-    : undefined;
+  const status = isInvoiceStatus(searchParams.status) ? searchParams.status : undefined;
+  const type = isInvoiceType(searchParams.type) ? searchParams.type : undefined;
 
   const pageParam = Number.parseInt(searchParams.page ?? "1", 10);
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;

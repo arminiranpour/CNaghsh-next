@@ -46,9 +46,9 @@ const registerFonts = () => {
   }
 
   const sources = [
-    { weight: 400 as const, fontWeight: "normal" as const },
-    { weight: 500 as const, fontWeight: "500" as const },
-    { weight: 700 as const, fontWeight: "bold" as const },
+    { weight: 400 as const, fontWeight: 400 as const },
+    { weight: 500 as const, fontWeight: 500 as const },
+    { weight: 700 as const, fontWeight: 700 as const },
   ];
 
   Font.register({
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     fontSize: 11,
-    fontWeight: "500",
+    fontWeight: 500,
   },
   section: {
     marginBottom: 18,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 10,
-    fontWeight: "500",
+    fontWeight: 500,
   },
   totalValue: {
     fontSize: 11,
