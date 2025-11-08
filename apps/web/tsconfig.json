@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "skipLibCheck": true,
     "noEmit": true,
     "allowJs": true,
     "plugins": [
@@ -28,10 +27,11 @@
         "../../packages/ui/src/*"
       ]
     },
+    "moduleResolution": "node",
+    "skipLibCheck": true,
     "types": [
       "node",
-      "react",
-      "react-dom"
+      "next/types/global"
     ]
   },
   "include": [
