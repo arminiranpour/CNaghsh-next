@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: "#94a3b8",
     opacity: 0.15,
-    transform: [{ rotate: "-30deg" }],
+    transform: [{ rotateZ: -30 }],
   },
 });
 

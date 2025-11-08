@@ -66,7 +66,12 @@ export async function GET(
       "Cache-Control": cacheControl,
     });
 
-    return new NextResponse(pdfBuffer, { status: 200, headers });
+    const pdfArrayBuffer = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+    );
+
+    return new NextResponse(pdfArrayBuffer, { status: 200, headers });
   } catch (error) {
     console.error("[invoice-pdf] Failed to render invoice PDF", {
       invoiceId,
