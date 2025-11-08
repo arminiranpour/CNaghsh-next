@@ -2,6 +2,7 @@ import "server-only";
 
 import { existsSync } from "node:fs";
 import path from "node:path";
+import type { ComponentProps } from "react";
 
 import {
   Document,
@@ -31,10 +32,23 @@ const isPlainObject = (value: unknown): value is StyleObject => {
 };
 
 // Filters out falsy/non-object/empty style entries to keep react-pdf happy
+type ViewStyleProp = NonNullable<ComponentProps<typeof View>["style"]>;
+type TextStyleProp = NonNullable<ComponentProps<typeof Text>["style"]>;
+type StyleProp = ViewStyleProp | TextStyleProp;
+
+type CombinedStyle = StyleProp | StyleProp[];
+
 function sx(
   ...vals: Array<StyleObject | StyleObject[] | null | false | undefined>
-): StyleObject[] {
-  return vals.flat().filter(isPlainObject);
+): CombinedStyle {
+  const filtered = vals.flat().filter(isPlainObject) as StyleProp[];
+  if (filtered.length === 0) {
+    return [] as unknown as CombinedStyle;
+  }
+  if (filtered.length === 1) {
+    return filtered[0];
+  }
+  return filtered;
 }
 
 const FONT_VERSION = "5.0.21";
