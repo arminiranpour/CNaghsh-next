@@ -22,38 +22,30 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-/** Minimal style-compat helpers (typed to 'any' to satisfy v4 renderer typings) */
+/** Minimal style-compat helpers to satisfy the react-pdf renderer typings */
 type StyleLike = Record<string, unknown>;
-const isPlainObject = (v: unknown): v is StyleLike =>
-  !!v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype;
+type StyleInput = StyleLike | readonly StyleLike[] | null | false | undefined;
+
+const isPlainObject = (value: unknown): value is StyleLike =>
+  !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
+
+const flattenStyles = (values: StyleInput[]): StyleLike[] =>
+  values.flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value.filter(isPlainObject) as StyleLike[];
+    }
+    return isPlainObject(value) ? [value] : [];
+  });
 
 // Keep react-pdf happy: only pass plain objects; return Shape compatible with Style | Style[] | undefined
-function sx(...vals: Array<StyleLike | StyleLike[] | null | false | undefined>): any {
-  const flat = vals.flat().filter(isPlainObject);
+const sx = (...values: StyleInput[]): StyleLike | StyleLike[] | undefined => {
+  const flat = flattenStyles(values);
   if (flat.length === 0) return undefined;
-  if (flat.length === 1) return flat[0] as any;
-  return flat as any;
-}
-const asStyle = (v: StyleLike): any => v as any;
-
-const FONT_VERSION = "5.0.21";
-const FONT_REMOTE_BASE = `https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@${FONT_VERSION}/files` as const;
-
-const localFontCandidates = (weight: 400 | 500 | 700): string[] => {
-  const fileName =
-    weight === 400 ? "Vazirmatn-Regular.ttf" :
-    weight === 500 ? "Vazirmatn-Medium.ttf" :
-    "Vazirmatn-Bold.ttf";
-  return [
-    path.join(process.cwd(), "apps", "web", "public", "fonts", fileName),
-    path.join(process.cwd(), "public", "fonts", fileName),
-  ];
+  if (flat.length === 1) return flat[0];
+  return flat;
 };
 
-const remoteFontSource = (weight: 400 | 500 | 700): string => {
-  const suffix = `${weight}-normal.ttf`;
-  return `${FONT_REMOTE_BASE}/vazirmatn-farsi-latin-${suffix}`;
-};
+const asStyle = (value: StyleLike): StyleLike => value;
 
 let fontsRegistered = false;
 
