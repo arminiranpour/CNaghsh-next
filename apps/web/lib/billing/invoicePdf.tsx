@@ -247,7 +247,9 @@ const styles = StyleSheet.create({
     fontSize: 48,
     color: "#94a3b8",
     opacity: 0.15,
-    transform: [{ rotate: "-30deg" }],
+    // TS type in @react-pdf/renderer doesn't include rotate; renderer supports it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transform: [{ rotate: "-30deg" }] as any,
   },
 });
 
