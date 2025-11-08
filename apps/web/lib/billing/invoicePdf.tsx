@@ -22,17 +22,19 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-type Style = Record<string, unknown>;
+type StyleObject = Record<string, unknown>;
+
+const isPlainObject = (value: unknown): value is StyleObject => {
+  if (!value || typeof value !== "object") return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype;
+};
 
 // Filters out falsy/non-object/empty style entries to keep react-pdf happy
-function sx<T extends Style>(...vals: Array<T | T[] | null | false | undefined>): T[] {
-  return vals
-    .flat()
-    .filter((v): v is T => {
-      if (!v || typeof v !== "object") return false;
-      const proto = Object.getPrototypeOf(v);
-      return proto === Object.prototype;
-    });
+function sx(
+  ...vals: Array<StyleObject | StyleObject[] | null | false | undefined>
+): StyleObject[] {
+  return vals.flat().filter(isPlainObject);
 }
 
 const FONT_VERSION = "5.0.21";
