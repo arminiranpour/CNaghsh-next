@@ -4,46 +4,30 @@
     "target": "ES2022",
     "noEmit": true,
     "allowJs": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/app/*": [
-        "./app/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@acme/ui": [
-        "../../packages/ui/src/index.ts"
-      ],
-      "@acme/ui/*": [
-        "../../packages/ui/src/*"
-      ]
+      "@/components/*": ["./components/*"],
+      "@/app/*": ["./app/*"],
+      "@/lib/*": ["./lib/*"],
+      "@acme/ui": ["../../packages/ui/src/index.ts"],
+      "@acme/ui/*": ["../../packages/ui/src/*"]
     },
     "moduleResolution": "node",
     "skipLibCheck": true,
-    "types": [
-      "node",
-      "next/types/global"
-    ]
+    "types": ["node", "next/types/global"]
+    /* If your base tsconfig doesn't set this, add it here:
+    "jsx": "react-jsx"
+    */
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
     "scripts/**/*.ts",
+    "scripts/**/*.tsx",   // <-- add this line
     "types/**/*.d.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules",
-    ".next"
-  ]
+  "exclude": ["node_modules", ".next"]
 }
