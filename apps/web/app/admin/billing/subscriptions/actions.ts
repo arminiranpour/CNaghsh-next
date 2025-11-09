@@ -119,6 +119,17 @@ function isNoopCtx(value: unknown): value is CancelAtPeriodEndNoopCtx {
   );
 }
 
+/** Ensurers that return strongly-typed values (prevents TS narrowing to 'never') */
+function ensureCancelNowCtx(value: unknown): CancelNowRejectionCtx {
+  if (isCancelNowCtx(value)) return value;
+  throw new Error("Invalid cancel-now context");
+}
+
+function ensureNoopCtx(value: unknown): CancelAtPeriodEndNoopCtx {
+  if (isNoopCtx(value)) return value;
+  throw new Error("Invalid noop context");
+}
+
 function toIso(date: Date) {
   return date.toISOString();
 }
@@ -243,10 +254,7 @@ export async function cancelNowAction(input: {
 
     if (!result) {
       if (rejectionContext) {
-        if (!isCancelNowCtx(rejectionContext)) {
-          throw new Error("Invalid cancel-now context");
-        }
-        const ctx = rejectionContext;
+        const ctx = ensureCancelNowCtx(rejectionContext);
         await recordAuditLog({
           actor: admin,
           resource: { type: "subscription", id: parsed.id },
@@ -371,10 +379,7 @@ export async function cancelAtPeriodEndAction(input: {
 
     if (!result) {
       if (noopContext) {
-        if (!isNoopCtx(noopContext)) {
-          throw new Error("Invalid noop context");
-        }
-        const nc = noopContext;
+        const nc = ensureNoopCtx(noopContext);
         if (nc.reason === "invalid") {
           await recordAuditLog({
             actor: admin,
