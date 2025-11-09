@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { SubscriptionStatus } from "@prisma/client";
+import { Prisma, SubscriptionStatus } from "@prisma/client";
 
 import { recordAuditLog } from "@/lib/admin/audit";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -134,12 +134,12 @@ export async function cancelNowAction(input: {
       }
     }
 
-    let rejectionContext:
-      | (NonNullable<Awaited<ReturnType<typeof prisma.subscription.findUnique>>> & {
-          plan: { id: string; name: string | null };
-          user: { id: string; email: string | null };
-        })
-      | null = null;
+    let rejectionContext: Prisma.SubscriptionGetPayload<{
+      include: {
+        plan: { select: { id: true; name: true } };
+        user: { select: { id: true; email: true } };
+      };
+    }> | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
@@ -293,15 +293,13 @@ export async function cancelAtPeriodEndAction(input: {
     }
 
     let noopContext:
-      | null
       | {
-          subscription: NonNullable<
-            Awaited<ReturnType<typeof prisma.subscription.findUnique>>
-          > & {
-            plan: { id: string; name: string | null };
-          };
+          subscription: Prisma.SubscriptionGetPayload<{
+            include: { plan: true };
+          }>;
           reason: "invalid" | "no_change";
-        } = null;
+        }
+      | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
