@@ -22,33 +22,47 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-/** Minimal style-compat helpers (typed to 'any' to satisfy v4 renderer typings) */
 type StyleLike = Record<string, unknown>;
-const isPlainObject = (v: unknown): v is StyleLike =>
-  !!v && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype;
+const isPlainObject = (value: unknown): value is StyleLike =>
+  !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
 
-// Keep react-pdf happy: only pass plain objects; return Shape compatible with Style | Style[] | undefined
-function sx(...vals: Array<StyleLike | StyleLike[] | null | false | undefined>): any {
-  const flat = vals.flat().filter(isPlainObject);
+const collectPlainStyles = (
+  values: Array<StyleLike | StyleLike[] | null | false | undefined>,
+): StyleLike[] => {
+  const plainStyles: StyleLike[] = [];
+  for (const value of values) {
+    if (!value) continue;
+    if (Array.isArray(value)) {
+      for (const nested of value) {
+        if (isPlainObject(nested)) plainStyles.push(nested);
+      }
+      continue;
+    }
+    if (isPlainObject(value)) {
+      plainStyles.push(value);
+    }
+  }
+  return plainStyles;
+};
+
+// Keep react-pdf happy: only pass plain objects; return shape compatible with Style | Style[] | undefined
+const sx = (
+  ...values: Array<StyleLike | StyleLike[] | null | false | undefined>
+): StyleLike | StyleLike[] | undefined => {
+  const flat = collectPlainStyles(values);
   if (flat.length === 0) return undefined;
-  if (flat.length === 1) return flat[0] as any;
-  return flat as any;
-}
-const asStyle = (v: StyleLike): any => v as any;
+  if (flat.length === 1) return flat[0];
+  return flat;
+};
+const asStyle = <T extends StyleLike>(value: T): StyleLike => value;
 
 const FONT_VERSION = "5.0.21";
 const FONT_REMOTE_BASE = `https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@${FONT_VERSION}/files` as const;
 
-const localFontCandidates = (weight: 400 | 500 | 700): string[] => {
-  const fileName =
-    weight === 400 ? "Vazirmatn-Regular.ttf" :
-    weight === 500 ? "Vazirmatn-Medium.ttf" :
-    "Vazirmatn-Bold.ttf";
-  return [
-    path.join(process.cwd(), "apps", "web", "public", "fonts", fileName),
-    path.join(process.cwd(), "public", "fonts", fileName),
-  ];
-};
+const localFontCandidates = (fileName: string): string[] => [
+  path.join(process.cwd(), "apps", "web", "public", "fonts", fileName),
+  path.join(process.cwd(), "public", "fonts", fileName),
+];
 
 const remoteFontSource = (weight: 400 | 500 | 700): string => {
   const suffix = `${weight}-normal.ttf`;
@@ -63,21 +77,17 @@ const registerFonts = () => {
   const sources = [
     { weight: 400 as const, file: "Vazirmatn-Regular.ttf" },
     { weight: 500 as const, file: "Vazirmatn-Medium.ttf" },
-    { weight: 700 as const, file: "Vazirmatn-Bold.ttf"  },
+    { weight: 700 as const, file: "Vazirmatn-Bold.ttf" },
   ];
 
-  const local = (file: string) =>
-    [path.join(process.cwd(), "apps", "web", "public", "fonts", file),
-     path.join(process.cwd(), "public", "fonts", file)]
-      .find((p) => existsSync(p));
-
   const fonts = sources.map(({ weight, file }) => {
-    const src = local(file);
-    if (!src) {
-      throw new Error(
-        `[invoice-pdf] Missing local font ${file}. Place it in apps/web/public/fonts/`
+    const localSrc = localFontCandidates(file).find((candidate) => existsSync(candidate));
+    if (!localSrc) {
+      console.warn(
+        `[invoice-pdf] Missing local font ${file}. Falling back to CDN source.`,
       );
     }
+    const src = localSrc ?? remoteFontSource(weight);
     return { src, fontWeight: weight };
   });
 
