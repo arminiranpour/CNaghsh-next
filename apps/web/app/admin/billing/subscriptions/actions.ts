@@ -194,8 +194,8 @@ export async function cancelNowAction(input: {
     });
 
     if (!result) {
-      if (hasValue(rejectionContext)) {
-        const ctx: CancelNowRejectionCtx = rejectionContext;
+      if (rejectionContext) {
+        const ctx = rejectionContext;
         await recordAuditLog({
           actor: admin,
           resource: { type: "subscription", id: parsed.id },
@@ -319,8 +319,8 @@ export async function cancelAtPeriodEndAction(input: {
     });
 
     if (!result) {
-      if (hasValue(noopContext) && noopContext.reason === "invalid") {
-        const nc: CancelAtPeriodEndNoopCtx = noopContext;
+      if (noopContext && noopContext.reason === "invalid") {
+        const nc = noopContext;
         await recordAuditLog({
           actor: admin,
           resource: { type: "subscription", id: parsed.id },
