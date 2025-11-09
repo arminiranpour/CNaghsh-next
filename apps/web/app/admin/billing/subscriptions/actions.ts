@@ -70,6 +70,55 @@ type CancelAtPeriodEndNoopCtx = {
   reason: "invalid" | "no_change";
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isSubscriptionSnapshotSource(value: unknown): value is SubscriptionSnapshotSource {
+  if (!isRecord(value)) return false;
+  const snapshot = value as Record<string, unknown>;
+  return (
+    typeof snapshot.id === "string" &&
+    typeof snapshot.status === "string" &&
+    snapshot.startedAt instanceof Date &&
+    snapshot.endsAt instanceof Date &&
+    (snapshot.renewalAt === null || snapshot.renewalAt instanceof Date) &&
+    typeof snapshot.cancelAtPeriodEnd === "boolean" &&
+    (snapshot.providerRef === null || typeof snapshot.providerRef === "string")
+  );
+}
+
+function isCancelNowCtx(value: unknown): value is CancelNowRejectionCtx {
+  if (!isSubscriptionSnapshotSource(value)) return false;
+  const ctx = value as SubscriptionSnapshotSource & Record<string, unknown>;
+  return (
+    typeof ctx.userId === "string" &&
+    typeof ctx.planId === "string" &&
+    isRecord(ctx.plan) &&
+    typeof ctx.plan.id === "string" &&
+    (ctx.plan.name === null || typeof ctx.plan.name === "string") &&
+    isRecord(ctx.user) &&
+    typeof ctx.user.id === "string" &&
+    (ctx.user.email === null || typeof ctx.user.email === "string")
+  );
+}
+
+function isNoopCtx(value: unknown): value is CancelAtPeriodEndNoopCtx {
+  if (!isRecord(value)) return false;
+  const ctx = value as Record<string, unknown>;
+  if (ctx.reason !== "invalid" && ctx.reason !== "no_change") return false;
+  if (!isSubscriptionSnapshotSource(ctx.subscription)) return false;
+  const subscription = ctx.subscription as SubscriptionSnapshotSource & Record<string, unknown>;
+  return (
+    typeof subscription.userId === "string" &&
+    typeof subscription.planId === "string" &&
+    (subscription.plan === null ||
+      (isRecord(subscription.plan) &&
+        typeof subscription.plan.id === "string" &&
+        (subscription.plan.name === null || typeof subscription.plan.name === "string")))
+  );
+}
+
 function toIso(date: Date) {
   return date.toISOString();
 }
@@ -120,22 +169,6 @@ function failure(error: unknown) {
     return { ok: false, error: error.message } as const;
   }
   return { ok: false, error: "خطای نامشخص رخ داد." } as const;
-}
-
-/** Assertion guards (fix TS "never" narrowing) */
-function assertCancelNowCtx(x: unknown): asserts x is CancelNowRejectionCtx {
-  const v = x as any;
-  if (!v || typeof v !== "object") throw new Error("Invalid cancel-now context");
-  if (!("status" in v) || !("plan" in v) || !("user" in v)) {
-    throw new Error("Invalid cancel-now context");
-  }
-}
-function assertNoopCtx(x: unknown): asserts x is CancelAtPeriodEndNoopCtx {
-  const v = x as any;
-  if (!v || typeof v !== "object") throw new Error("Invalid noop context");
-  if (!("subscription" in v) || !("reason" in v)) {
-    throw new Error("Invalid noop context");
-  }
 }
 
 export async function cancelNowAction(input: {
@@ -210,8 +243,9 @@ export async function cancelNowAction(input: {
 
     if (!result) {
       if (rejectionContext) {
-        // Assert the type so TS knows 'status' exists
-        assertCancelNowCtx(rejectionContext);
+        if (!isCancelNowCtx(rejectionContext)) {
+          throw new Error("Invalid cancel-now context");
+        }
         const ctx = rejectionContext;
         await recordAuditLog({
           actor: admin,
@@ -337,8 +371,9 @@ export async function cancelAtPeriodEndAction(input: {
 
     if (!result) {
       if (noopContext) {
-        // Assert so TS knows 'reason' and 'subscription' exist
-        assertNoopCtx(noopContext);
+        if (!isNoopCtx(noopContext)) {
+          throw new Error("Invalid noop context");
+        }
         const nc = noopContext;
         if (nc.reason === "invalid") {
           await recordAuditLog({
