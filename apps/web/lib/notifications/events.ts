@@ -2,6 +2,7 @@ import { NotificationChannel, NotificationType, type JobStatus } from "@prisma/c
 
 import { notifyOnce } from "./dispatcher";
 import { getNotificationTemplate } from "./templates";
+import { buildAbsoluteUrl } from "@/lib/url";
 
 type BasePayload = Record<string, unknown> | undefined;
 
@@ -286,5 +287,77 @@ export async function emitJobClosed({
     payload,
     dedupeKey: `${NotificationType.MODERATION_PENDING}:job:${jobId}:CLOSED`,
     channels: [NotificationChannel.IN_APP],
+  });
+}
+
+export async function emitBillingRefundIssued({
+  userId,
+  refundInvoiceId,
+  refundInvoiceNumber,
+  amount,
+  currency,
+  remainingAmount,
+}: {
+  userId: string;
+  refundInvoiceId: string;
+  refundInvoiceNumber: string | null;
+  amount: number;
+  currency: string;
+  remainingAmount: number;
+}) {
+  const pdfUrl = buildAbsoluteUrl(`/api/invoices/${refundInvoiceId}/pdf`);
+
+  await dispatchNotification({
+    userId,
+    type: NotificationType.BILLING_REFUND_ISSUED,
+    payload: {
+      invoiceId: refundInvoiceId,
+      invoiceNumber: refundInvoiceNumber,
+      amount,
+      currency,
+      remainingAmount,
+      pdfUrl,
+    },
+    dedupeKey: `${NotificationType.BILLING_REFUND_ISSUED}:${refundInvoiceId}`,
+  });
+}
+
+export async function emitBillingCancelImmediate({
+  userId,
+  subscriptionId,
+  endedAt,
+}: {
+  userId: string;
+  subscriptionId: string;
+  endedAt: Date;
+}) {
+  await dispatchNotification({
+    userId,
+    type: NotificationType.BILLING_CANCEL_IMMEDIATE,
+    payload: {
+      subscriptionId,
+      endedAt: endedAt.toISOString(),
+    },
+    dedupeKey: `${NotificationType.BILLING_CANCEL_IMMEDIATE}:${subscriptionId}:${endedAt.toISOString()}`,
+  });
+}
+
+export async function emitBillingCancelScheduled({
+  userId,
+  subscriptionId,
+  endsAt,
+}: {
+  userId: string;
+  subscriptionId: string;
+  endsAt: Date;
+}) {
+  await dispatchNotification({
+    userId,
+    type: NotificationType.BILLING_CANCEL_SCHEDULED,
+    payload: {
+      subscriptionId,
+      endsAt: endsAt.toISOString(),
+    },
+    dedupeKey: `${NotificationType.BILLING_CANCEL_SCHEDULED}:${subscriptionId}:${endsAt.toISOString()}`,
   });
 }

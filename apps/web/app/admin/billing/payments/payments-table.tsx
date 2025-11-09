@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -19,11 +21,20 @@ import { formatRials } from "@/lib/money";
 import { ActionDialog } from "../components/action-dialog";
 import { markPaymentFailedAction, refundPaymentAction } from "./actions";
 
+const statusLabels: Record<string, string> = {
+  PAID: "پرداخت‌شده",
+  PENDING: "در انتظار",
+  FAILED: "ناموفق",
+  REFUNDED: "بازپرداخت‌شده",
+  REFUNDED_PARTIAL: "بازپرداخت جزئی",
+};
+
 const statusVariants: Record<string, "success" | "secondary" | "outline" | "destructive"> = {
   PAID: "success",
   PENDING: "outline",
   FAILED: "destructive",
   REFUNDED: "secondary",
+  REFUNDED_PARTIAL: "secondary",
 };
 
 type PaymentRow = {
@@ -34,6 +45,8 @@ type PaymentRow = {
   amount: number;
   currency: string;
   status: string;
+  refundedAmount: number;
+  remainingRefundable: number;
   provider: string;
   providerRef: string;
   createdAt: string;
@@ -78,11 +91,21 @@ export function PaymentsTable({ rows }: Props) {
                     <div className="font-medium">{row.userName}</div>
                     <div className="font-mono text-xs text-muted-foreground">{row.userEmail}</div>
                     <div className="text-xs text-muted-foreground">فاکتور: {invoiceNumber}</div>
+                    <div className="text-xs text-muted-foreground">
+                      بازپرداخت شده: {formatRials(row.refundedAmount)}
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell>{formatRials(row.amount)}</TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant}>{row.status}</Badge>
+                  <div className="space-y-1">
+                    <div>{formatRials(row.amount)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      باقیمانده قابل بازپرداخت: {formatRials(row.remainingRefundable)}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant}>{statusLabels[row.status] ?? row.status}</Badge>
                 </TableCell>
                 <TableCell>{row.provider}</TableCell>
                 <TableCell>
@@ -93,19 +116,20 @@ export function PaymentsTable({ rows }: Props) {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2" dir="rtl">
-                    {row.status === "PAID" ? (
+                    {(row.status === "PAID" || row.status === "REFUNDED_PARTIAL") && row.remainingRefundable > 0 ? (
                       <ActionDialog
                         title="ثبت بازپرداخت"
                         description="بازپرداخت به صورت ثبت دفتر انجام می‌شود و می‌توانید سیاست دسترسی را تعیین کنید."
                         triggerLabel="بازپرداخت"
                         confirmLabel="تایید بازپرداخت"
                         variant="destructive"
-                        input={{}}
+                        input={{ amount: row.remainingRefundable }}
                         onSubmit={async (payload) =>
                           refundPaymentAction({
                             id: row.id,
                             reason: payload.reason,
                             updatedAt: row.updatedAt,
+                            amount: Number(payload.amount ?? row.remainingRefundable),
                             policy: getPolicy(row.id),
                             idempotencyKey:
                               typeof crypto !== "undefined" && crypto.randomUUID
@@ -114,8 +138,44 @@ export function PaymentsTable({ rows }: Props) {
                           })
                         }
                       >
-                        {() => (
+                        {({ values, onChange }) => {
+                          const rawAmount = values.amount;
+                          const amountValue =
+                            typeof rawAmount === "number"
+                              ? rawAmount
+                              : typeof rawAmount === "string"
+                                ? Number.parseInt(rawAmount, 10) || row.remainingRefundable
+                                : row.remainingRefundable;
+
+                          return (
                           <div className="space-y-3 text-sm">
+                            <div className="space-y-2">
+                              <Label htmlFor={`amount-${row.id}`}>مبلغ بازپرداخت (ریال)</Label>
+                              <Input
+                                id={`amount-${row.id}`}
+                                type="number"
+                                dir="ltr"
+                                min={1}
+                                max={row.remainingRefundable}
+                                value={String(amountValue)}
+                                onChange={(event) => onChange({ amount: event.target.value })}
+                                onBlur={(event) => {
+                                  const numeric = Number.parseInt(event.target.value, 10);
+                                  if (!Number.isFinite(numeric) || numeric <= 0) {
+                                    onChange({ amount: row.remainingRefundable });
+                                    return;
+                                  }
+
+                                  if (numeric > row.remainingRefundable) {
+                                    onChange({ amount: row.remainingRefundable });
+                                  }
+                                }}
+                                required
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                حداکثر مبلغ قابل بازپرداخت {formatRials(row.remainingRefundable)} است.
+                              </p>
+                            </div>
                             <div className="space-y-2">
                               <div className="font-medium">سیاست دسترسی پس از بازپرداخت</div>
                               <div className="space-y-2" dir="rtl">
@@ -142,7 +202,8 @@ export function PaymentsTable({ rows }: Props) {
                               </div>
                             </div>
                           </div>
-                        )}
+                          );
+                        }}
                       </ActionDialog>
                     ) : null}
                     {row.status === "PENDING" ? (

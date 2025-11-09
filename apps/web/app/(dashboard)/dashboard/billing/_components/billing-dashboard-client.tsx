@@ -72,6 +72,7 @@ const paymentStatusLabels: Record<string, string> = {
   PENDING: "در انتظار",
   FAILED: "ناموفق",
   REFUNDED: "بازپرداخت‌شده",
+  REFUNDED_PARTIAL: "بازپرداخت جزئی",
 };
 
 const paymentStatusVariants: Record<string, "success" | "secondary" | "outline" | "destructive"> = {
@@ -79,6 +80,7 @@ const paymentStatusVariants: Record<string, "success" | "secondary" | "outline" 
   PENDING: "outline",
   FAILED: "destructive",
   REFUNDED: "secondary",
+  REFUNDED_PARTIAL: "secondary",
 };
 
 const invoiceStatusLabels: Record<string, string> = {

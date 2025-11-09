@@ -8,6 +8,8 @@ import {
   type SubscriptionStatus,
 } from "@prisma/client";
 
+type ExtendedPaymentStatus = PaymentStatus | "REFUNDED_PARTIAL";
+
 import { prisma } from "@/lib/db";
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -152,7 +154,7 @@ export async function listSubscriptions({ filters, pagination, sort }: Subscript
 type PaymentSortField = "createdAt" | "amount" | "status";
 
 type PaymentFilters = {
-  status?: PaymentStatus;
+  status?: ExtendedPaymentStatus;
   provider?: Provider;
   from?: Date;
   to?: Date;
@@ -174,7 +176,7 @@ export async function listPayments({ filters, pagination, sort }: PaymentListArg
   const where: Prisma.PaymentWhereInput = {};
 
   if (filters.status) {
-    where.status = filters.status;
+    where.status = filters.status as PaymentStatus;
   }
 
   if (filters.provider) {
@@ -223,7 +225,7 @@ export async function listPayments({ filters, pagination, sort }: PaymentListArg
       where,
       include: {
         user: { select: { id: true, email: true, name: true } },
-        invoice: true,
+        invoice: { include: { refunds: { select: { id: true, total: true } } } },
       },
       orderBy,
       skip: (page - 1) * pageSize,
@@ -231,7 +233,25 @@ export async function listPayments({ filters, pagination, sort }: PaymentListArg
     }),
   ]);
 
-  return { items: payments, total, page, pageSize };
+  const items = payments.map((payment) => {
+    const extendedPayment = payment as typeof payment & { refundedAmount?: number };
+    const refundedAmount = extendedPayment.refundedAmount ?? 0;
+
+    const invoiceWithRefunds = payment.invoice
+      ? {
+          ...payment.invoice,
+          refunds: payment.invoice.refunds ?? [],
+        }
+      : null;
+
+    return {
+      ...payment,
+      refundedAmount,
+      invoice: invoiceWithRefunds,
+    };
+  });
+
+  return { items, total, page, pageSize };
 }
 
 type InvoiceSortField = "issuedAt" | "total" | "status";

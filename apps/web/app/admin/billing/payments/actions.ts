@@ -12,6 +12,9 @@ import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { emit } from "@/lib/billing/events";
 import { assignInvoiceNumber } from "@/lib/billing/invoiceNumber";
 import { sendInvoiceRefundedEmail } from "@/lib/billing/invoiceNotifications";
+import { emitBillingRefundIssued } from "@/lib/notifications/events";
+import { formatJalaliDateTime } from "@/lib/datetime/jalali";
+import { formatRials } from "@/lib/money";
 
 const reasonSchema = z
   .string({ invalid_type_error: "لطفاً دلیل را به صورت متن وارد کنید." })
@@ -22,6 +25,16 @@ const idSchema = z.string().cuid();
 const timestampSchema = z
   .string()
   .refine((value) => !Number.isNaN(Date.parse(value)), "مقدار زمان نامعتبر است.");
+const amountSchema = z
+  .coerce
+  .number({ invalid_type_error: "مبلغ بازپرداخت باید یک عدد معتبر باشد." })
+  .int("مبلغ باید به صورت عدد صحیح وارد شود.")
+  .positive("مبلغ بازپرداخت باید بیشتر از صفر باشد.");
+const policySchema = z.enum(["revoke_now", "keep_until_end"], {
+  invalid_type_error: "سیاست انتخاب شده معتبر نیست.",
+});
+
+const REFUNDED_PARTIAL_STATUS = "REFUNDED_PARTIAL" as PaymentStatus;
 
 const PAYMENTS_PATH = "/admin/billing/payments";
 
@@ -33,6 +46,7 @@ function mapPaymentSnapshot(payment: {
   provider: string;
   providerRef: string;
   updatedAt: Date;
+  refundedAmount: number;
 }) {
   return {
     status: payment.status,
@@ -41,6 +55,7 @@ function mapPaymentSnapshot(payment: {
     provider: payment.provider,
     providerRef: payment.providerRef,
     updatedAt: payment.updatedAt.toISOString(),
+    refundedAmount: payment.refundedAmount,
   };
 }
 
@@ -79,6 +94,7 @@ export async function refundPaymentAction(input: {
   reason: string;
   updatedAt: string;
   policy: "revoke_now" | "keep_until_end";
+  amount: number | string;
   idempotencyKey?: string;
 }) {
   try {
@@ -87,27 +103,55 @@ export async function refundPaymentAction(input: {
       id: idSchema.parse(input.id),
       reason: reasonSchema.parse(input.reason),
       updatedAt: timestampSchema.parse(input.updatedAt),
-      policy: input.policy === "revoke_now" ? "revoke_now" : "keep_until_end",
-      idempotencyKey: input.idempotencyKey,
+      policy: policySchema.parse(input.policy),
+      amount: amountSchema.parse(input.amount),
+      idempotencyKey: input.idempotencyKey?.trim(),
     } as const;
 
     const now = new Date();
 
+    if (parsed.idempotencyKey) {
+      const existingAudit = await prisma.auditLog.findUnique({
+        where: { idempotencyKey: parsed.idempotencyKey },
+        select: { id: true },
+      });
+
+      if (existingAudit) {
+        return { ok: true } as const;
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const payment = await tx.payment.findUnique({
         where: { id: parsed.id },
-        include: { invoice: true, user: { select: { id: true } } },
+        include: {
+          invoice: {
+            include: {
+              refunds: {
+                select: {
+                  id: true,
+                  total: true,
+                  issuedAt: true,
+                  number: true,
+                },
+              },
+            },
+          },
+          user: { select: { id: true } },
+        },
       });
 
       if (!payment) {
         throw new Error("پرداخت یافت نشد.");
       }
 
-      if (payment.status === PaymentStatus.REFUNDED) {
-        throw new Error("این پرداخت قبلاً بازپرداخت شده است.");
+      const currentStatus = payment.status;
+
+      if (currentStatus === PaymentStatus.REFUNDED) {
+        throw new Error("این پرداخت قبلاً به‌طور کامل بازپرداخت شده است.");
       }
 
-      if (payment.status !== PaymentStatus.PAID) {
+      if (currentStatus !== PaymentStatus.PAID && currentStatus !== REFUNDED_PARTIAL_STATUS) {
         throw new Error("تنها پرداخت‌های موفق قابل بازپرداخت هستند.");
       }
 
@@ -115,21 +159,35 @@ export async function refundPaymentAction(input: {
         throw new Error("اطلاعات پرداخت تغییر کرده است. لطفاً صفحه را به‌روزرسانی کنید.");
       }
 
+      const currentRefundedAmount = (payment as typeof payment & { refundedAmount?: number }).refundedAmount ?? 0;
+      const remainingRefundable = Math.max(payment.amount - currentRefundedAmount, 0);
+
+      if (remainingRefundable <= 0) {
+        throw new Error("این پرداخت دیگر مبلغ قابل بازپرداختی ندارد.");
+      }
+
+      if (parsed.amount > remainingRefundable) {
+        throw new Error("مبلغ بازپرداخت بیشتر از مقدار مجاز است.");
+      }
+
+      const nextRefundedAmount = currentRefundedAmount + parsed.amount;
+      const isFullRefund = nextRefundedAmount >= payment.amount;
+      const nextStatus = isFullRefund ? PaymentStatus.REFUNDED : REFUNDED_PARTIAL_STATUS;
+
       const updatedPayment = await tx.payment.update({
         where: { id: payment.id },
-        data: { status: PaymentStatus.REFUNDED },
+        data: {
+          status: nextStatus as PaymentStatus,
+          refundedAmount: nextRefundedAmount,
+        },
       });
 
       const originalInvoice = payment.invoice ?? null;
 
-      let refundInvoice = await tx.invoice.findFirst({
-        where: { relatedInvoiceId: originalInvoice?.id ?? undefined, type: InvoiceType.REFUND },
-      });
-
       const refundCreatePayload: Prisma.InvoiceUncheckedCreateInput = {
         userId: payment.userId,
         paymentId: null,
-        total: -Math.abs(payment.amount),
+        total: -Math.abs(parsed.amount),
         currency: payment.currency,
         type: InvoiceType.REFUND,
         status: InvoiceStatus.REFUNDED,
@@ -140,36 +198,47 @@ export async function refundPaymentAction(input: {
         planCycle: originalInvoice?.planCycle ?? null,
         periodStart: originalInvoice?.periodStart ?? null,
         periodEnd: originalInvoice?.periodEnd ?? null,
-        unitAmount: originalInvoice?.unitAmount
-          ? -Math.abs(originalInvoice.unitAmount)
-          : -Math.abs(payment.amount),
-        quantity: originalInvoice?.quantity ?? 1,
+        unitAmount: -Math.abs(parsed.amount),
+        quantity: 1,
         notes: parsed.reason,
       };
-
-      const refundUpdatePayload: Prisma.InvoiceUncheckedUpdateInput = {
-        ...refundCreatePayload,
-      };
-
-      if (!refundInvoice) {
-        refundInvoice = await tx.invoice.create({
-          data: refundCreatePayload,
-        });
-      } else {
-        refundInvoice = await tx.invoice.update({
-          where: { id: refundInvoice.id },
-          data: refundUpdatePayload,
-        });
-      }
+      let refundInvoice = await tx.invoice.create({
+        data: refundCreatePayload,
+      });
 
       await assignInvoiceNumber({ invoiceId: refundInvoice.id, tx });
 
+      const refreshedRefundInvoice = await tx.invoice.findUnique({ where: { id: refundInvoice.id } });
+      if (refreshedRefundInvoice) {
+        refundInvoice = refreshedRefundInvoice;
+      }
+
       let updatedOriginalInvoice = originalInvoice;
-      if (originalInvoice && originalInvoice.status !== InvoiceStatus.REFUNDED) {
-        updatedOriginalInvoice = await tx.invoice.update({
-          where: { id: originalInvoice.id },
-          data: { status: InvoiceStatus.REFUNDED, notes: parsed.reason },
-        });
+      if (originalInvoice) {
+        if (isFullRefund) {
+          if (originalInvoice.status !== InvoiceStatus.REFUNDED) {
+            updatedOriginalInvoice = await tx.invoice.update({
+              where: { id: originalInvoice.id },
+              data: {
+                status: InvoiceStatus.REFUNDED,
+                notes: parsed.reason,
+              },
+            });
+          }
+        } else {
+          const existingNotes = originalInvoice.notes ?? "";
+          const noteEntry = `بازپرداخت جزئی ${formatRials(parsed.amount)} در ${formatJalaliDateTime(now)} — دلیل: ${parsed.reason}`;
+          const mergedNotes = [existingNotes.trim(), noteEntry]
+            .filter((item) => item && item.length > 0)
+            .join("\n");
+
+          updatedOriginalInvoice = await tx.invoice.update({
+            where: { id: originalInvoice.id },
+            data: {
+              notes: mergedNotes,
+            },
+          });
+        }
       }
 
       let entitlementBefore = null;
@@ -197,11 +266,13 @@ export async function refundPaymentAction(input: {
         refundInvoice,
         entitlementBefore,
         entitlementAfter,
+        nextRefundedAmount,
+        remainingAfter: Math.max(payment.amount - nextRefundedAmount, 0),
+        isFullRefund,
       };
     });
 
-    const reconciliation =
-      parsed.policy === "revoke_now" ? await syncSingleUser(result.payment.userId) : null;
+    const reconciliation = await syncSingleUser(result.payment.userId);
 
     await recordAuditLog({
       actor: admin,
@@ -209,7 +280,11 @@ export async function refundPaymentAction(input: {
       action: "ADMIN_REFUND_PAYMENT",
       reason: parsed.reason,
       before: {
-        payment: mapPaymentSnapshot(result.payment),
+        payment: mapPaymentSnapshot({
+          ...result.payment,
+          refundedAmount:
+            (result.payment as typeof result.payment & { refundedAmount?: number }).refundedAmount ?? 0,
+        }),
         invoice: mapInvoiceSnapshot(result.originalInvoice),
         entitlement: result.entitlementBefore
           ? {
@@ -219,7 +294,10 @@ export async function refundPaymentAction(input: {
           : null,
       },
       after: {
-        payment: mapPaymentSnapshot(result.updatedPayment),
+        payment: mapPaymentSnapshot({
+          ...result.updatedPayment,
+          refundedAmount: result.nextRefundedAmount,
+        }),
         invoice: mapInvoiceSnapshot(result.updatedOriginalInvoice),
         refundInvoice: mapInvoiceSnapshot(result.refundInvoice),
         entitlement: result.entitlementAfter
@@ -232,6 +310,9 @@ export async function refundPaymentAction(input: {
       metadata: {
         policy: parsed.policy,
         reconciliation,
+        refundAmount: parsed.amount,
+        remainingAfter: result.remainingAfter,
+        fullRefund: result.isFullRefund,
       },
       idempotencyKey: input.idempotencyKey,
     });
@@ -239,6 +320,15 @@ export async function refundPaymentAction(input: {
     await sendInvoiceRefundedEmail({
       invoiceId: result.refundInvoice.id,
       userId: result.payment.userId,
+    });
+
+    await emitBillingRefundIssued({
+      userId: result.payment.userId,
+      refundInvoiceId: result.refundInvoice.id,
+      refundInvoiceNumber: result.refundInvoice.number ?? null,
+      amount: parsed.amount,
+      currency: result.updatedPayment.currency,
+      remainingAmount: result.remainingAfter,
     });
 
     await emit({
@@ -313,11 +403,19 @@ export async function markPaymentFailedAction(input: {
       action: "ADMIN_MARK_PAYMENT_FAILED",
       reason: parsed.reason,
       before: {
-        payment: mapPaymentSnapshot(result.payment),
+        payment: mapPaymentSnapshot({
+          ...result.payment,
+          refundedAmount:
+            (result.payment as typeof result.payment & { refundedAmount?: number }).refundedAmount ?? 0,
+        }),
         invoice: mapInvoiceSnapshot(result.payment.invoice ?? null),
       },
       after: {
-        payment: mapPaymentSnapshot(result.updatedPayment),
+        payment: mapPaymentSnapshot({
+          ...result.updatedPayment,
+          refundedAmount:
+            (result.updatedPayment as typeof result.updatedPayment & { refundedAmount?: number }).refundedAmount ?? 0,
+        }),
         invoice: mapInvoiceSnapshot(result.invoice),
       },
       idempotencyKey: parsed.idempotencyKey,

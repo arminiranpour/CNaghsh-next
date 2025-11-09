@@ -171,6 +171,7 @@ model Payment {
   amount            Int
   currency          String              @default("IRR")
   status            PaymentStatus
+  refundedAmount    Int                 @default(0)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   invoice           Invoice?
@@ -410,6 +411,7 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+  REFUNDED_PARTIAL
 }
 
 enum ProfileVisibility {
@@ -470,6 +472,9 @@ enum NotificationType {
   USER_UNPUBLISHED
   ENTITLEMENT_EXPIRED
   ENTITLEMENT_RESTORED
+  BILLING_REFUND_ISSUED
+  BILLING_CANCEL_IMMEDIATE
+  BILLING_CANCEL_SCHEDULED
 }
 
 enum JobStatus {

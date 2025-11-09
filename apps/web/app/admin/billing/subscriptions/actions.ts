@@ -10,6 +10,14 @@ import { prisma } from "@/lib/db";
 import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { emit } from "@/lib/billing/events";
+import {
+  emitBillingCancelImmediate,
+  emitBillingCancelScheduled,
+} from "@/lib/notifications/events";
+import {
+  sendImmediateCancellationEmail,
+  sendScheduledCancellationEmail,
+} from "@/lib/billing/subscriptionNotifications";
 
 const idSchema = z.string().cuid();
 const reasonSchema = z
@@ -30,6 +38,11 @@ const dateSchema = z
   .refine((value) => !Number.isNaN(Date.parse(value)), "تاریخ نامعتبر است.");
 
 const SUBSCRIPTIONS_PATH = "/admin/billing/subscriptions";
+
+const VALID_CANCEL_STATUSES = new Set<SubscriptionStatus>([
+  SubscriptionStatus.active,
+  SubscriptionStatus.renewing,
+]);
 
 function toIso(date: Date) {
   return date.toISOString();
@@ -105,10 +118,28 @@ export async function cancelNowAction(input: {
       id: idSchema.parse(input.id),
       reason: reasonSchema.parse(input.reason),
       updatedAt: timestampSchema.parse(input.updatedAt),
-      idempotencyKey: input.idempotencyKey,
+      idempotencyKey: input.idempotencyKey?.trim(),
     };
 
     const now = new Date();
+
+    if (parsed.idempotencyKey) {
+      const existingAudit = await prisma.auditLog.findUnique({
+        where: { idempotencyKey: parsed.idempotencyKey },
+        select: { id: true },
+      });
+
+      if (existingAudit) {
+        return success();
+      }
+    }
+
+    let rejectionContext:
+      | (Awaited<ReturnType<typeof prisma.subscription.findUnique>> & {
+          plan: { id: string; name: string | null };
+          user: { id: string; email: string | null };
+        })
+      | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
@@ -124,6 +155,11 @@ export async function cancelNowAction(input: {
       }
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
+
+      if (!VALID_CANCEL_STATUSES.has(subscription.status)) {
+        rejectionContext = subscription;
+        return null;
+      }
 
       const entitlementBefore = await tx.userEntitlement.findFirst({
         where: { userId: subscription.userId, key: CAN_PUBLISH_PROFILE },
@@ -156,6 +192,24 @@ export async function cancelNowAction(input: {
       };
     });
 
+    if (!result) {
+      if (rejectionContext) {
+        await recordAuditLog({
+          actor: admin,
+          resource: { type: "subscription", id: parsed.id },
+          action: "ADMIN_CANCEL_NOW_REJECTED",
+          reason: parsed.reason,
+          before: { subscription: mapSubscriptionSnapshot(rejectionContext) },
+          after: { subscription: mapSubscriptionSnapshot(rejectionContext) },
+          metadata: { status: rejectionContext.status },
+          idempotencyKey: parsed.idempotencyKey ?? null,
+        });
+        throw new Error("اشتراک در وضعیت فعلی قابل لغو فوری نیست.");
+      }
+
+      throw new Error("لغو اشتراک با خطا مواجه شد.");
+    }
+
     const reconciliation = await syncSingleUser(result.subscription.userId);
 
     await recordAuditLog({
@@ -173,6 +227,18 @@ export async function cancelNowAction(input: {
       },
       metadata: reconciliation,
       idempotencyKey: parsed.idempotencyKey ?? null,
+    });
+
+    await sendImmediateCancellationEmail({
+      userId: result.subscription.userId,
+      planName: result.subscription.plan.name,
+      endedAt: now,
+    });
+
+    await emitBillingCancelImmediate({
+      userId: result.subscription.userId,
+      subscriptionId: result.subscription.id,
+      endedAt: now,
     });
 
     await emit({
@@ -212,8 +278,28 @@ export async function cancelAtPeriodEndAction(input: {
       reason: reasonSchema.parse(input.reason),
       updatedAt: timestampSchema.parse(input.updatedAt),
       cancel: input.cancel,
-      idempotencyKey: input.idempotencyKey,
+      idempotencyKey: input.idempotencyKey?.trim(),
     };
+
+    if (parsed.idempotencyKey) {
+      const existingAudit = await prisma.auditLog.findUnique({
+        where: { idempotencyKey: parsed.idempotencyKey },
+        select: { id: true },
+      });
+
+      if (existingAudit) {
+        return success();
+      }
+    }
+
+    let noopContext:
+      | null
+      | {
+          subscription: Awaited<ReturnType<typeof prisma.subscription.findUnique>> & {
+            plan: { id: string; name: string | null };
+          };
+          reason: "invalid" | "no_change";
+        } = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
@@ -226,40 +312,92 @@ export async function cancelAtPeriodEndAction(input: {
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
 
+      if (!VALID_CANCEL_STATUSES.has(subscription.status)) {
+        noopContext = { subscription, reason: "invalid" };
+        return null;
+      }
+
+      if (subscription.cancelAtPeriodEnd === parsed.cancel) {
+        noopContext = { subscription, reason: "no_change" };
+        return { subscription, updated: subscription, changed: false };
+      }
+
       const updated = await tx.subscription.update({
         where: { id: subscription.id },
         data: { cancelAtPeriodEnd: parsed.cancel },
       });
 
-      return { subscription, updated };
+      return { subscription, updated, changed: true };
     });
+
+    if (!result) {
+      if (noopContext?.reason === "invalid") {
+        await recordAuditLog({
+          actor: admin,
+          resource: { type: "subscription", id: parsed.id },
+          action: parsed.cancel
+            ? "ADMIN_SET_CANCEL_AT_PERIOD_END_REJECTED"
+            : "ADMIN_CLEAR_CANCEL_AT_PERIOD_END_REJECTED",
+          reason: parsed.reason,
+          before: { subscription: mapSubscriptionSnapshot(noopContext.subscription) },
+          after: { subscription: mapSubscriptionSnapshot(noopContext.subscription) },
+          metadata: { status: noopContext.subscription.status },
+          idempotencyKey: parsed.idempotencyKey ?? null,
+        });
+        throw new Error("وضعیت فعلی اشتراک اجازه ثبت این عملیات را نمی‌دهد.");
+      }
+
+      throw new Error("ثبت لغو در پایان دوره با خطا مواجه شد.");
+    }
+
+    const { subscription, updated, changed } = result;
 
     await recordAuditLog({
       actor: admin,
-      resource: { type: "subscription", id: result.subscription.id },
+      resource: { type: "subscription", id: subscription.id },
       action: parsed.cancel ? "ADMIN_SET_CANCEL_AT_PERIOD_END" : "ADMIN_CLEAR_CANCEL_AT_PERIOD_END",
       reason: parsed.reason,
-      before: { subscription: mapSubscriptionSnapshot(result.subscription) },
-      after: { subscription: mapSubscriptionSnapshot(result.updated) },
+      before: { subscription: mapSubscriptionSnapshot(subscription) },
+      after: { subscription: mapSubscriptionSnapshot(updated) },
+      metadata:
+        noopContext?.reason === "no_change"
+          ? { unchanged: true }
+          : undefined,
       idempotencyKey: parsed.idempotencyKey ?? null,
     });
 
-    await emit({
-      type: parsed.cancel
-        ? "SUBSCRIPTION_ADMIN_CANCEL_AT_PERIOD_END"
-        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED",
-      userId: result.subscription.userId,
-      subscriptionId: result.subscription.id,
-      planId: result.subscription.planId,
-      at: new Date(),
-      subscription: {
-        status: result.updated.status,
-        startedAt: result.updated.startedAt,
-        endsAt: result.updated.endsAt,
-        renewalAt: result.updated.renewalAt,
-        cancelAtPeriodEnd: result.updated.cancelAtPeriodEnd,
-      },
-    });
+    if (parsed.cancel && changed) {
+      await sendScheduledCancellationEmail({
+        userId: subscription.userId,
+        planName: subscription.plan?.name,
+        endsAt: updated.endsAt,
+      });
+
+      await emitBillingCancelScheduled({
+        userId: subscription.userId,
+        subscriptionId: subscription.id,
+        endsAt: updated.endsAt,
+      });
+    }
+
+    if (changed) {
+      await emit({
+        type: parsed.cancel
+          ? "SUBSCRIPTION_ADMIN_CANCEL_AT_PERIOD_END"
+          : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED",
+        userId: subscription.userId,
+        subscriptionId: subscription.id,
+        planId: subscription.planId,
+        at: new Date(),
+        subscription: {
+          status: updated.status,
+          startedAt: updated.startedAt,
+          endsAt: updated.endsAt,
+          renewalAt: updated.renewalAt,
+          cancelAtPeriodEnd: updated.cancelAtPeriodEnd,
+        },
+      });
+    }
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
 

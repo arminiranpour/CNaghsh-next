@@ -1,5 +1,15 @@
 import { NotificationType } from "@prisma/client";
 
+const jalaliDateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { dateStyle: "medium" });
+const jalaliDateTimeFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+const rialFormatter = new Intl.NumberFormat("fa-IR", {
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+});
+
 type TemplatePayload = Record<string, unknown> | undefined;
 
 type TemplateResult = {
@@ -71,6 +81,35 @@ function formatPersianDate(value?: string | null): string | null {
     return null;
   }
   return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+}
+
+function formatJalaliDate(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return jalaliDateFormatter.format(date);
+}
+
+function formatJalaliDateTime(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return jalaliDateTimeFormatter.format(date);
+}
+
+function formatRialAmount(value?: unknown): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "0 ریال";
+  }
+  return `${rialFormatter.format(Math.abs(Math.trunc(value)))} ریال`;
 }
 
 const templates: Record<NotificationType, (payload: TemplatePayload) => TemplateResult> = {
@@ -211,6 +250,58 @@ const templates: Record<NotificationType, (payload: TemplatePayload) => Template
     title: "اشتراک فعال شد؛ پروفایل شما مجدداً نمایش داده می‌شود.",
     body: "اشتراک شما فعال شد و پروفایل دوباره برای عموم نمایش داده می‌شود. سپاس از همراهی شما.",
   }),
+  [NotificationType.BILLING_REFUND_ISSUED]: (payload) => {
+    const amount = typeof payload === "object" && payload && "amount" in payload ? payload.amount : undefined;
+    const remaining =
+      typeof payload === "object" && payload && "remainingAmount" in payload
+        ? payload.remainingAmount
+        : undefined;
+    const invoiceNumber =
+      payload && typeof payload === "object" && "invoiceNumber" in payload && payload.invoiceNumber
+        ? String(payload.invoiceNumber)
+        : null;
+    const pdfUrl =
+      payload && typeof payload === "object" && "pdfUrl" in payload && typeof payload.pdfUrl === "string"
+        ? payload.pdfUrl
+        : "/dashboard/billing";
+
+    const title = invoiceNumber ? `استرداد شماره ${invoiceNumber}` : "استرداد شما ثبت شد";
+    const parts = [
+      `مبلغ ${formatRialAmount(typeof amount === "number" ? amount : 0)} به حساب شما بازگردانده شد.`,
+    ];
+
+    if (typeof remaining === "number" && remaining > 0) {
+      parts.push(`مبلغ باقیمانده قابل بازپرداخت: ${formatRialAmount(remaining)}.`);
+    }
+
+    parts.push(`مشاهده سند بازپرداخت: ${pdfUrl}`);
+
+    return { title, body: parts.join(" ") };
+  },
+  [NotificationType.BILLING_CANCEL_IMMEDIATE]: (payload) => {
+    const endedAt =
+      payload && typeof payload === "object" && "endedAt" in payload && typeof payload.endedAt === "string"
+        ? payload.endedAt
+        : null;
+    const endedLabel = formatJalaliDateTime(endedAt) ?? "اکنون";
+
+    return {
+      title: "اشتراک شما لغو شد",
+      body: `لغو فوری اشتراک ثبت شد و دسترسی شما از ${endedLabel} متوقف می‌شود. برای مدیریت مجدد اشتراک می‌توانید به /dashboard/billing مراجعه کنید.`,
+    };
+  },
+  [NotificationType.BILLING_CANCEL_SCHEDULED]: (payload) => {
+    const endsAt =
+      payload && typeof payload === "object" && "endsAt" in payload && typeof payload.endsAt === "string"
+        ? payload.endsAt
+        : null;
+    const endsLabel = formatJalaliDate(endsAt) ?? "زمان مشخص";
+
+    return {
+      title: "لغو در پایان دوره ثبت شد",
+      body: `اشتراک شما در تاریخ ${endsLabel} لغو می‌شود و تا آن زمان دسترسی فعال خواهد بود. برای تغییر تصمیم خود به /dashboard/billing سر بزنید.`,
+    };
+  },
 };
 
 export function getNotificationTemplate(

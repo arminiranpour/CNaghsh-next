@@ -6,7 +6,12 @@ export type BillingSubscriptionStatus =
   | "canceled"
   | "renewing";
 
-export type BillingPaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+export type BillingPaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "REFUNDED"
+  | "REFUNDED_PARTIAL";
 
 export type BillingInvoiceStatus = "DRAFT" | "PAID" | "VOID" | "REFUNDED";
 
