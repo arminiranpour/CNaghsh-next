@@ -54,7 +54,6 @@ type SubscriptionSnapshotSource = {
   providerRef: string | null;
 };
 
-/** ---------- Explicit context types ---------- */
 type CancelNowRejectionCtx = SubscriptionSnapshotSource & {
   userId: string;
   planId: string;
@@ -70,7 +69,6 @@ type CancelAtPeriodEndNoopCtx = {
   };
   reason: "invalid" | "no_change";
 };
-/** ------------------------------------------- */
 
 function toIso(date: Date) {
   return date.toISOString();
@@ -124,9 +122,20 @@ function failure(error: unknown) {
   return { ok: false, error: "خطای نامشخص رخ داد." } as const;
 }
 
-/** Simple guard so TS won’t narrow to never */
-function hasValue<T>(v: T | null | undefined): v is T {
-  return v != null;
+/** Assertion guards (fix TS "never" narrowing) */
+function assertCancelNowCtx(x: unknown): asserts x is CancelNowRejectionCtx {
+  const v = x as any;
+  if (!v || typeof v !== "object") throw new Error("Invalid cancel-now context");
+  if (!("status" in v) || !("plan" in v) || !("user" in v)) {
+    throw new Error("Invalid cancel-now context");
+  }
+}
+function assertNoopCtx(x: unknown): asserts x is CancelAtPeriodEndNoopCtx {
+  const v = x as any;
+  if (!v || typeof v !== "object") throw new Error("Invalid noop context");
+  if (!("subscription" in v) || !("reason" in v)) {
+    throw new Error("Invalid noop context");
+  }
 }
 
 export async function cancelNowAction(input: {
@@ -201,6 +210,8 @@ export async function cancelNowAction(input: {
 
     if (!result) {
       if (rejectionContext) {
+        // Assert the type so TS knows 'status' exists
+        assertCancelNowCtx(rejectionContext);
         const ctx = rejectionContext;
         await recordAuditLog({
           actor: admin,
@@ -325,21 +336,25 @@ export async function cancelAtPeriodEndAction(input: {
     });
 
     if (!result) {
-      if (noopContext && noopContext.reason === "invalid") {
+      if (noopContext) {
+        // Assert so TS knows 'reason' and 'subscription' exist
+        assertNoopCtx(noopContext);
         const nc = noopContext;
-        await recordAuditLog({
-          actor: admin,
-          resource: { type: "subscription", id: parsed.id },
-          action: parsed.cancel
-            ? "ADMIN_SET_CANCEL_AT_PERIOD_END_REJECTED"
-            : "ADMIN_CLEAR_CANCEL_AT_PERIOD_END_REJECTED",
-          reason: parsed.reason,
-          before: { subscription: mapSubscriptionSnapshot(nc.subscription) },
-          after: { subscription: mapSubscriptionSnapshot(nc.subscription) },
-          metadata: { status: nc.subscription.status },
-          idempotencyKey: parsed.idempotencyKey ?? null,
-        });
-        throw new Error("وضعیت فعلی اشتراک اجازه ثبت این عملیات را نمی‌دهد.");
+        if (nc.reason === "invalid") {
+          await recordAuditLog({
+            actor: admin,
+            resource: { type: "subscription", id: parsed.id },
+            action: parsed.cancel
+              ? "ADMIN_SET_CANCEL_AT_PERIOD_END_REJECTED"
+              : "ADMIN_CLEAR_CANCEL_AT_PERIOD_END_REJECTED",
+            reason: parsed.reason,
+            before: { subscription: mapSubscriptionSnapshot(nc.subscription) },
+            after: { subscription: mapSubscriptionSnapshot(nc.subscription) },
+            metadata: { status: nc.subscription.status },
+            idempotencyKey: parsed.idempotencyKey ?? null,
+          });
+          throw new Error("وضعیت فعلی اشتراک اجازه ثبت این عملیات را نمی‌دهد.");
+        }
       }
       throw new Error("ثبت لغو در پایان دوره با خطا مواجه شد.");
     }
