@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { Prisma, SubscriptionStatus } from "@prisma/client";
+import { SubscriptionStatus } from "@prisma/client";
 
 import { recordAuditLog } from "@/lib/admin/audit";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -44,16 +44,30 @@ const VALID_CANCEL_STATUSES = new Set<SubscriptionStatus>([
   SubscriptionStatus.renewing,
 ]);
 
+type SubscriptionSnapshotSource = {
+  id: string;
+  status: SubscriptionStatus;
+  startedAt: Date;
+  endsAt: Date;
+  renewalAt: Date | null;
+  cancelAtPeriodEnd: boolean;
+  providerRef: string | null;
+};
+
 /** ---------- Explicit context types ---------- */
-type CancelNowRejectionCtx = Prisma.SubscriptionGetPayload<{
-  include: {
-    plan: { select: { id: true; name: true } };
-    user: { select: { id: true; email: true } };
-  };
-}>;
+type CancelNowRejectionCtx = SubscriptionSnapshotSource & {
+  userId: string;
+  planId: string;
+  plan: { id: string; name: string | null };
+  user: { id: string; email: string | null };
+};
 
 type CancelAtPeriodEndNoopCtx = {
-  subscription: Prisma.SubscriptionGetPayload<{ include: { plan: true } }>;
+  subscription: SubscriptionSnapshotSource & {
+    userId: string;
+    planId: string;
+    plan: { id: string; name: string | null } | null;
+  };
   reason: "invalid" | "no_change";
 };
 /** ------------------------------------------- */
@@ -72,15 +86,7 @@ function assertFreshness(current: Date, expectedIso: string) {
   }
 }
 
-function mapSubscriptionSnapshot(subscription: {
-  id: string;
-  status: SubscriptionStatus;
-  startedAt: Date;
-  endsAt: Date;
-  renewalAt: Date | null;
-  cancelAtPeriodEnd: boolean;
-  providerRef: string | null;
-}) {
+function mapSubscriptionSnapshot(subscription: SubscriptionSnapshotSource) {
   return {
     status: subscription.status,
     startedAt: toIso(subscription.startedAt),
