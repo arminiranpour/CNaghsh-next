@@ -53,20 +53,18 @@ const providerOptions: { id: ProviderName; label: string }[] = [
   { id: "nextpay", label: "نکست‌پی" },
 ];
 
+/** Safe stringify that can't be broken by shadowed `String` */
+const toSafeString = (value: unknown): string =>
+  value == null ? "-" : globalThis.String(value);
+
 const formatLimitValue = (value: unknown): string => {
   if (typeof value === "number") {
     return new Intl.NumberFormat("fa-IR").format(value);
   }
-
   if (typeof value === "boolean") {
     return value ? "بله" : "خیر";
   }
-
-  if (value === null || value === undefined) {
-    return "-";
-  }
-
-  return String(value);
+  return toSafeString(value);
 };
 
 export function PricingContent({
@@ -95,8 +93,8 @@ export function PricingContent({
       setUserIdInput(initialUserId);
       try {
         localStorage.setItem("sandboxUserId", initialUserId);
-      } catch (error) {
-        // ignore storage errors in non-browser environments
+      } catch {
+        /* ignore storage errors */
       }
       return;
     }
@@ -107,15 +105,13 @@ export function PricingContent({
         setEffectiveUserId(stored);
         setUserIdInput(stored);
       }
-    } catch (error) {
-      // ignore storage errors in non-browser environments
+    } catch {
+      /* ignore storage errors */
     }
   }, [initialUserId]);
 
   useEffect(() => {
-    if (!dialogOpen) {
-      setSelectedPrice(null);
-    }
+    if (!dialogOpen) setSelectedPrice(null);
   }, [dialogOpen]);
 
   const canCheckout = Boolean(effectiveUserId);
@@ -129,7 +125,6 @@ export function PricingContent({
       });
       return;
     }
-
     setSelectedPrice(price);
     setSelectedProvider(providerOptions[0].id);
     setDialogOpen(true);
@@ -148,8 +143,8 @@ export function PricingContent({
 
     try {
       localStorage.setItem("sandboxUserId", value);
-    } catch (error) {
-      // ignore storage errors
+    } catch {
+      /* ignore storage errors */
     }
 
     setEffectiveUserId(value);
@@ -160,9 +155,7 @@ export function PricingContent({
   };
 
   const handleStartCheckout = async () => {
-    if (!selectedPrice) {
-      return;
-    }
+    if (!selectedPrice) return;
 
     if (!effectiveUserId) {
       toast({
@@ -177,15 +170,14 @@ export function PricingContent({
     try {
       const response = await fetch("/api/checkout/start", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: effectiveUserId,
           provider: selectedProvider,
           priceId: selectedPrice.id,
         }),
       });
+
       const isJsonResponse = response.headers
         .get("content-type")
         ?.toLowerCase()
@@ -197,8 +189,8 @@ export function PricingContent({
           data = (await response.json()) as
             | CheckoutStartSuccess
             | CheckoutStartError;
-        } catch (error) {
-          console.error("Failed to parse checkout response", error);
+        } catch (e) {
+          console.error("Failed to parse checkout response", e);
           data = null;
         }
       }
@@ -209,9 +201,10 @@ export function PricingContent({
         !("sessionId" in data) ||
         !("redirectUrl" in data)
       ) {
-        const errorMessage = data && "error" in data && data.error
-          ? data.error
-          : "خطا در شروع فرایند پرداخت";
+        const errorMessage =
+          data && "error" in data && data.error
+            ? data.error
+            : "خطا در شروع فرایند پرداخت";
         throw new Error(errorMessage);
       }
 
@@ -236,10 +229,7 @@ export function PricingContent({
   };
 
   const dialogTitle = useMemo(() => {
-    if (!selectedPrice) {
-      return "انتخاب درگاه";
-    }
-
+    if (!selectedPrice) return "انتخاب درگاه";
     return `انتخاب درگاه برای ${selectedPrice.name}`;
   }, [selectedPrice]);
 

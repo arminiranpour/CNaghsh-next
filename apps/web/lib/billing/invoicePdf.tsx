@@ -22,39 +22,29 @@ import {
   maskProviderReference,
 } from "@/lib/billing/invoiceFormat";
 
-type StyleLike = Record<string, unknown>;
-const isPlainObject = (value: unknown): value is StyleLike =>
-  !!value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PDFStyle = any;
 
-const collectPlainStyles = (
-  values: Array<StyleLike | StyleLike[] | null | false | undefined>,
-): StyleLike[] => {
-  const plainStyles: StyleLike[] = [];
-  for (const value of values) {
-    if (!value) continue;
-    if (Array.isArray(value)) {
-      for (const nested of value) {
-        if (isPlainObject(nested)) plainStyles.push(nested);
-      }
-      continue;
-    }
-    if (isPlainObject(value)) {
-      plainStyles.push(value);
+function sx(
+  ...values: Array<PDFStyle | PDFStyle[] | null | false | undefined>
+): PDFStyle | PDFStyle[] | undefined {
+  const out: PDFStyle[] = [];
+  for (const v of values) {
+    if (!v) continue;
+    if (Array.isArray(v)) {
+      for (const x of v) if (x) out.push(x);
+    } else {
+      out.push(v);
     }
   }
-  return plainStyles;
-};
+  if (out.length === 0) return undefined;
+  if (out.length === 1) return out[0];
+  return out;
+}
 
-// Keep react-pdf happy: only pass plain objects; return shape compatible with Style | Style[] | undefined
-const sx = (
-  ...values: Array<StyleLike | StyleLike[] | null | false | undefined>
-): StyleLike | StyleLike[] | undefined => {
-  const flat = collectPlainStyles(values);
-  if (flat.length === 0) return undefined;
-  if (flat.length === 1) return flat[0];
-  return flat;
-};
-const asStyle = <T extends StyleLike>(value: T): StyleLike => value;
+function asStyle(input: Partial<PDFStyle>): PDFStyle {
+  return input as PDFStyle;
+}
 
 const FONT_VERSION = "5.0.21";
 const FONT_REMOTE_BASE = `https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn@${FONT_VERSION}/files` as const;
@@ -83,9 +73,7 @@ const registerFonts = () => {
   const fonts = sources.map(({ weight, file }) => {
     const localSrc = localFontCandidates(file).find((candidate) => existsSync(candidate));
     if (!localSrc) {
-      console.warn(
-        `[invoice-pdf] Missing local font ${file}. Falling back to CDN source.`,
-      );
+      console.warn(`[invoice-pdf] Missing local font ${file}. Falling back to CDN source.`);
     }
     const src = localSrc ?? remoteFontSource(weight);
     return { src, fontWeight: weight };
@@ -94,7 +82,6 @@ const registerFonts = () => {
   Font.register({ family: "Vazirmatn", fonts });
   fontsRegistered = true;
 };
-
 
 const styles = StyleSheet.create({
   page: {
@@ -335,17 +322,6 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
   const issuedIso = formatInvoiceIsoDate(invoice.issuedAt);
   const provider = invoice.payment?.provider ?? "-";
   const providerRef = maskProviderReference(invoice.payment?.providerRef ?? null);
-  const lineQuantity = invoice.quantity ?? 1;
-  const unitAmount = invoice.unitAmount ?? Math.round(invoice.total / Math.max(lineQuantity, 1));
-  const planName = getPlanName(invoice);
-  const planCycle = formatCycleLabel(getPlanCycle(invoice));
-  const periodLabel =
-    invoice.periodStart && invoice.periodEnd
-      ? `${formatInvoiceJalaliDate(invoice.periodStart)} تا ${formatInvoiceJalaliDate(invoice.periodEnd)}`
-      : "دوره زمانی در دسترس نیست";
-  const lineTotal = invoice.total;
-  const subtotal = lineTotal;
-  const grandTotal = lineTotal;
   const title = statusTitle(invoice);
   const chip = statusChipLabel[invoice.status];
   const itemNote = lineItemNotes(invoice);
@@ -436,22 +412,37 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
 
             <View style={sx(styles.tableRow, asStyle({ backgroundColor: "#f8fafc" }))}>
               <View style={sx(styles.tableCell, styles.cellDescription)}>
-                <Text>{`${planName}${planCycle ? ` · ${planCycle}` : ""}`}</Text>
+                <Text>{`${getPlanName(invoice)}${getPlanCycle(invoice) ? ` · ${formatCycleLabel(getPlanCycle(invoice))}` : ""}`}</Text>
                 {itemNote ? (
-                  <Text style={asStyle({ fontSize: 8, color: "#64748b", marginTop: 2 })}>{itemNote}</Text>
+                  <Text style={asStyle({ fontSize: 8, color: "#64748b", marginTop: 2 })}>
+                    {itemNote}
+                  </Text>
                 ) : null}
               </View>
               <View style={sx(styles.tableCell, styles.cellPeriod)}>
-                <Text>{periodLabel}</Text>
+                <Text>
+                  {invoice.periodStart && invoice.periodEnd
+                    ? `${formatInvoiceJalaliDate(invoice.periodStart)} تا ${formatInvoiceJalaliDate(
+                        invoice.periodEnd,
+                      )}`
+                    : "دوره زمانی در دسترس نیست"}
+                </Text>
               </View>
               <View style={sx(styles.tableCell, styles.cellQuantity)}>
-                <Text style={styles.textCenter}>{formatInvoiceNumber(lineQuantity)}</Text>
+                <Text style={styles.textCenter}>
+                  {formatInvoiceNumber(invoice.quantity ?? 1)}
+                </Text>
               </View>
               <View style={sx(styles.tableCell, styles.cellRight)}>
-                <Text style={styles.textRight}>{formatInvoiceCurrency(unitAmount)}</Text>
+                <Text style={styles.textRight}>
+                  {formatInvoiceCurrency(
+                    invoice.unitAmount ??
+                      Math.round(invoice.total / Math.max(invoice.quantity ?? 1, 1)),
+                  )}
+                </Text>
               </View>
               <View style={sx(styles.tableCell, styles.cellRight)}>
-                <Text style={styles.textRight}>{formatInvoiceCurrency(lineTotal)}</Text>
+                <Text style={styles.textRight}>{formatInvoiceCurrency(invoice.total)}</Text>
               </View>
             </View>
           </View>
@@ -459,7 +450,7 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
           <View style={styles.totalsBox}>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>جمع جزء</Text>
-              <Text style={styles.totalValue}>{formatInvoiceCurrency(subtotal)}</Text>
+              <Text style={styles.totalValue}>{formatInvoiceCurrency(invoice.total)}</Text>
             </View>
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>تخفیف</Text>
@@ -471,7 +462,7 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
             </View>
             <View style={sx(styles.totalRow, asStyle({ borderBottomWidth: 0 }))}>
               <Text style={sx(styles.totalLabel, asStyle({ fontWeight: 700 }))}>جمع کل</Text>
-              <Text style={styles.totalValue}>{formatInvoiceCurrency(grandTotal)}</Text>
+              <Text style={styles.totalValue}>{formatInvoiceCurrency(invoice.total)}</Text>
             </View>
           </View>
         </View>
@@ -479,16 +470,15 @@ const InvoiceDocument = ({ invoice }: InvoicePdfProps) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>یادداشت‌ها</Text>
           <Text style={styles.notes}>
-            این اشتراک غیرقابل انتقال است و در صورت وجود سوال می‌توانید با support@casting.example تماس بگیرید.
+            این اشتراک غیرقابل انتقال است و در صورت وجود سوال می‌توانید با support@casting.example تماس
+            بگیرید.
             {invoice.status === "VOID"
               ? " این فاکتور باطل شده است و صرفاً برای سوابق نگهداری می‌شود."
               : null}
             {invoice.status === "REFUNDED" && invoice.type === "REFUND"
               ? " مبلغ منفی نشان‌دهنده استرداد به حساب شما است."
               : null}
-            {invoice.status === "DRAFT"
-              ? " این پیش‌فاکتور نهایی نشده است و ممکن است تغییر کند."
-              : null}
+            {invoice.status === "DRAFT" ? " این پیش‌فاکتور نهایی نشده است و ممکن است تغییر کند." : null}
           </Text>
         </View>
       </Page>
