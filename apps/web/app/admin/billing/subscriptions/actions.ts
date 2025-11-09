@@ -44,6 +44,20 @@ const VALID_CANCEL_STATUSES = new Set<SubscriptionStatus>([
   SubscriptionStatus.renewing,
 ]);
 
+/** ---------- Explicit context types ---------- */
+type CancelNowRejectionCtx = Prisma.SubscriptionGetPayload<{
+  include: {
+    plan: { select: { id: true; name: true } };
+    user: { select: { id: true; email: true } };
+  };
+}>;
+
+type CancelAtPeriodEndNoopCtx = {
+  subscription: Prisma.SubscriptionGetPayload<{ include: { plan: true } }>;
+  reason: "invalid" | "no_change";
+};
+/** ------------------------------------------- */
+
 function toIso(date: Date) {
   return date.toISOString();
 }
@@ -82,9 +96,7 @@ function mapEntitlementSnapshot(entitlement: {
   expiresAt: Date | null;
   updatedAt: Date;
 } | null) {
-  if (!entitlement) {
-    return null;
-  }
+  if (!entitlement) return null;
   return {
     id: entitlement.id,
     expiresAt: entitlement.expiresAt ? toIso(entitlement.expiresAt) : null,
@@ -104,6 +116,11 @@ function failure(error: unknown) {
     return { ok: false, error: error.message } as const;
   }
   return { ok: false, error: "خطای نامشخص رخ داد." } as const;
+}
+
+/** Simple guard so TS won’t narrow to never */
+function hasValue<T>(v: T | null | undefined): v is T {
+  return v != null;
 }
 
 export async function cancelNowAction(input: {
@@ -128,18 +145,10 @@ export async function cancelNowAction(input: {
         where: { idempotencyKey: parsed.idempotencyKey },
         select: { id: true },
       });
-
-      if (existingAudit) {
-        return success();
-      }
+      if (existingAudit) return success();
     }
 
-    let rejectionContext: Prisma.SubscriptionGetPayload<{
-      include: {
-        plan: { select: { id: true; name: true } };
-        user: { select: { id: true; email: true } };
-      };
-    }> | null = null;
+    let rejectionContext: CancelNowRejectionCtx | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
@@ -150,9 +159,7 @@ export async function cancelNowAction(input: {
         },
       });
 
-      if (!subscription) {
-        throw new Error("اشتراک یافت نشد.");
-      }
+      if (!subscription) throw new Error("اشتراک یافت نشد.");
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
 
@@ -176,37 +183,31 @@ export async function cancelNowAction(input: {
         },
       });
 
-      let entitlementAfter = entitlementBefore ?? null;
-      if (entitlementBefore) {
-        entitlementAfter = await tx.userEntitlement.update({
-          where: { id: entitlementBefore.id },
-          data: { expiresAt: now },
-        });
-      }
+      const entitlementAfter = entitlementBefore
+        ? await tx.userEntitlement.update({
+            where: { id: entitlementBefore.id },
+            data: { expiresAt: now },
+          })
+        : null;
 
-      return {
-        subscription,
-        updated,
-        entitlementBefore,
-        entitlementAfter,
-      };
+      return { subscription, updated, entitlementBefore, entitlementAfter };
     });
 
     if (!result) {
-      if (rejectionContext) {
+      if (hasValue(rejectionContext)) {
+        const ctx: CancelNowRejectionCtx = rejectionContext;
         await recordAuditLog({
           actor: admin,
           resource: { type: "subscription", id: parsed.id },
           action: "ADMIN_CANCEL_NOW_REJECTED",
           reason: parsed.reason,
-          before: { subscription: mapSubscriptionSnapshot(rejectionContext) },
-          after: { subscription: mapSubscriptionSnapshot(rejectionContext) },
-          metadata: { status: rejectionContext.status },
+          before: { subscription: mapSubscriptionSnapshot(ctx) },
+          after: { subscription: mapSubscriptionSnapshot(ctx) },
+          metadata: { status: ctx.status },
           idempotencyKey: parsed.idempotencyKey ?? null,
         });
         throw new Error("اشتراک در وضعیت فعلی قابل لغو فوری نیست.");
       }
-
       throw new Error("لغو اشتراک با خطا مواجه شد.");
     }
 
@@ -257,7 +258,6 @@ export async function cancelNowAction(input: {
     });
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
-
     return success();
   } catch (error) {
     return failure(error);
@@ -286,29 +286,17 @@ export async function cancelAtPeriodEndAction(input: {
         where: { idempotencyKey: parsed.idempotencyKey },
         select: { id: true },
       });
-
-      if (existingAudit) {
-        return success();
-      }
+      if (existingAudit) return success();
     }
 
-    let noopContext:
-      | {
-          subscription: Prisma.SubscriptionGetPayload<{
-            include: { plan: true };
-          }>;
-          reason: "invalid" | "no_change";
-        }
-      | null = null;
+    let noopContext: CancelAtPeriodEndNoopCtx | null = null;
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({
         where: { id: parsed.id },
         include: { plan: true },
       });
-      if (!subscription) {
-        throw new Error("اشتراک یافت نشد.");
-      }
+      if (!subscription) throw new Error("اشتراک یافت نشد.");
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
 
@@ -331,7 +319,8 @@ export async function cancelAtPeriodEndAction(input: {
     });
 
     if (!result) {
-      if (noopContext?.reason === "invalid") {
+      if (hasValue(noopContext) && noopContext.reason === "invalid") {
+        const nc: CancelAtPeriodEndNoopCtx = noopContext;
         await recordAuditLog({
           actor: admin,
           resource: { type: "subscription", id: parsed.id },
@@ -339,14 +328,13 @@ export async function cancelAtPeriodEndAction(input: {
             ? "ADMIN_SET_CANCEL_AT_PERIOD_END_REJECTED"
             : "ADMIN_CLEAR_CANCEL_AT_PERIOD_END_REJECTED",
           reason: parsed.reason,
-          before: { subscription: mapSubscriptionSnapshot(noopContext.subscription) },
-          after: { subscription: mapSubscriptionSnapshot(noopContext.subscription) },
-          metadata: { status: noopContext.subscription.status },
+          before: { subscription: mapSubscriptionSnapshot(nc.subscription) },
+          after: { subscription: mapSubscriptionSnapshot(nc.subscription) },
+          metadata: { status: nc.subscription.status },
           idempotencyKey: parsed.idempotencyKey ?? null,
         });
         throw new Error("وضعیت فعلی اشتراک اجازه ثبت این عملیات را نمی‌دهد.");
       }
-
       throw new Error("ثبت لغو در پایان دوره با خطا مواجه شد.");
     }
 
@@ -359,10 +347,7 @@ export async function cancelAtPeriodEndAction(input: {
       reason: parsed.reason,
       before: { subscription: mapSubscriptionSnapshot(subscription) },
       after: { subscription: mapSubscriptionSnapshot(updated) },
-      metadata:
-        noopContext?.reason === "no_change"
-          ? { unchanged: true }
-          : undefined,
+      metadata: changed ? undefined : { unchanged: true },
       idempotencyKey: parsed.idempotencyKey ?? null,
     });
 
@@ -400,7 +385,6 @@ export async function cancelAtPeriodEndAction(input: {
     }
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
-
     return success();
   } catch (error) {
     return failure(error);
@@ -431,9 +415,7 @@ export async function adjustEndsAtAction(input: {
         where: { id: parsed.id },
         include: { plan: true },
       });
-      if (!subscription) {
-        throw new Error("اشتراک یافت نشد.");
-      }
+      if (!subscription) throw new Error("اشتراک یافت نشد.");
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
 
@@ -450,13 +432,12 @@ export async function adjustEndsAtAction(input: {
         },
       });
 
-      let entitlementAfter = entitlementBefore ?? null;
-      if (entitlementBefore) {
-        entitlementAfter = await tx.userEntitlement.update({
-          where: { id: entitlementBefore.id },
-          data: { expiresAt: newEndsAt },
-        });
-      }
+      const entitlementAfter = entitlementBefore
+        ? await tx.userEntitlement.update({
+            where: { id: entitlementBefore.id },
+            data: { expiresAt: newEndsAt },
+          })
+        : null;
 
       return { subscription, updated, entitlementBefore, entitlementAfter };
     });
@@ -523,9 +504,7 @@ export async function reactivateNowAction(input: {
 
     const result = await prisma.$transaction(async (tx) => {
       const subscription = await tx.subscription.findUnique({ where: { id: parsed.id } });
-      if (!subscription) {
-        throw new Error("اشتراک یافت نشد.");
-      }
+      if (!subscription) throw new Error("اشتراک یافت نشد.");
 
       assertFreshness(subscription.updatedAt, parsed.updatedAt);
 
@@ -558,7 +537,6 @@ export async function reactivateNowAction(input: {
     });
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
-
     return success();
   } catch (error) {
     return failure(error);
@@ -585,10 +563,7 @@ export async function recomputeEntitlementsAction(input: {
       select: { id: true, userId: true, planId: true },
     });
 
-    if (!subscription) {
-      throw new Error("اشتراک یافت نشد.");
-    }
-
+    if (!subscription) throw new Error("اشتراک یافت نشد.");
     if (subscription.userId !== parsed.userId) {
       throw new Error("شناسه کاربر با اشتراک هم‌خوانی ندارد.");
     }
@@ -613,7 +588,6 @@ export async function recomputeEntitlementsAction(input: {
     });
 
     await revalidatePath(SUBSCRIPTIONS_PATH);
-
     return success();
   } catch (error) {
     return failure(error);
