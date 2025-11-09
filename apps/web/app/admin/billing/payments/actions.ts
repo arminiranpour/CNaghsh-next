@@ -213,6 +213,17 @@ export async function refundPaymentAction(input: {
         refundInvoice = refreshedRefundInvoice;
       }
 
+      const invoiceRefundInclude = {
+        refunds: {
+          select: {
+            id: true,
+            total: true,
+            issuedAt: true,
+            number: true,
+          },
+        },
+      } as const;
+
       let updatedOriginalInvoice = originalInvoice;
       if (originalInvoice) {
         if (isFullRefund) {
@@ -223,6 +234,7 @@ export async function refundPaymentAction(input: {
                 status: InvoiceStatus.REFUNDED,
                 notes: parsed.reason,
               },
+              include: invoiceRefundInclude,
             });
           }
         } else {
@@ -237,6 +249,7 @@ export async function refundPaymentAction(input: {
             data: {
               notes: mergedNotes,
             },
+            include: invoiceRefundInclude,
           });
         }
       }

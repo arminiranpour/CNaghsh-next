@@ -135,7 +135,7 @@ export async function cancelNowAction(input: {
     }
 
     let rejectionContext:
-      | (Awaited<ReturnType<typeof prisma.subscription.findUnique>> & {
+      | (NonNullable<Awaited<ReturnType<typeof prisma.subscription.findUnique>>> & {
           plan: { id: string; name: string | null };
           user: { id: string; email: string | null };
         })
@@ -295,7 +295,9 @@ export async function cancelAtPeriodEndAction(input: {
     let noopContext:
       | null
       | {
-          subscription: Awaited<ReturnType<typeof prisma.subscription.findUnique>> & {
+          subscription: NonNullable<
+            Awaited<ReturnType<typeof prisma.subscription.findUnique>>
+          > & {
             plan: { id: string; name: string | null };
           };
           reason: "invalid" | "no_change";

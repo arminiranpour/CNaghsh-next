@@ -301,17 +301,19 @@ export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
     }
 
     if (!VALID_CANCEL_STATUSES.has(existing.status)) {
-      return { subscription: existing, eventType: flag
+      const eventType: BillingEventType = flag
         ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
-        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED", changed: false };
+        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED";
+      return { subscription: existing, eventType, changed: false };
     }
 
     if (existing.cancelAtPeriodEnd === flag) {
+      const eventType: BillingEventType = flag
+        ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
+        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED";
       return {
         subscription: existing,
-        eventType: flag
-          ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
-          : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED",
+        eventType,
         changed: false,
       };
     }
