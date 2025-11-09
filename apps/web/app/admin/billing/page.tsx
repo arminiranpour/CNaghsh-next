@@ -32,6 +32,7 @@ const PAYMENT_STATUS_VARIANTS: Record<
   [PaymentStatus.PENDING]: "outline",
   [PaymentStatus.FAILED]: "destructive",
   [PaymentStatus.REFUNDED]: "secondary",
+  [PaymentStatus.REFUNDED_PARTIAL]: "secondary",
 };
 
 const INVOICE_STATUS_VARIANTS: Record<

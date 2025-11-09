@@ -54,6 +54,7 @@ const statusOptions = [
   { value: PaymentStatus.PENDING, label: "در انتظار" },
   { value: PaymentStatus.FAILED, label: "ناموفق" },
   { value: PaymentStatus.REFUNDED, label: "بازپرداخت" },
+  { value: "REFUNDED_PARTIAL", label: "بازپرداخت جزئی" },
 ];
 
 export default async function PaymentsPage({
@@ -72,11 +73,15 @@ export default async function PaymentsPage({
   const maxParam = typeof searchParams.max === "string" ? searchParams.max : undefined;
   const pageParam = typeof searchParams.page === "string" ? Number.parseInt(searchParams.page, 10) : 1;
 
+  const normalizedStatus =
+    statusParam && statusParam === "REFUNDED_PARTIAL"
+      ? "REFUNDED_PARTIAL"
+      : statusParam && Object.values(PaymentStatus).includes(statusParam as PaymentStatus)
+        ? statusParam
+        : undefined;
+
   const filters = {
-    status:
-      statusParam && Object.values(PaymentStatus).includes(statusParam as PaymentStatus)
-        ? (statusParam as PaymentStatus)
-        : undefined,
+    status: normalizedStatus as PaymentStatus | "REFUNDED_PARTIAL" | undefined,
     provider:
       providerParam && Object.values(Provider).includes(providerParam as Provider)
         ? (providerParam as Provider)
@@ -104,6 +109,7 @@ export default async function PaymentsPage({
     amount: payment.amount,
     currency: payment.currency,
     status: payment.status,
+    refundedAmount: (payment as typeof payment & { refundedAmount?: number }).refundedAmount ?? 0,
     provider: payment.provider,
     providerRef: payment.providerRef,
     createdAt: payment.createdAt.toISOString(),
@@ -116,6 +122,9 @@ export default async function PaymentsPage({
           total: payment.invoice.total,
         }
       : null,
+  })).map((row) => ({
+    ...row,
+    remainingRefundable: Math.max(row.amount - row.refundedAmount, 0),
   }));
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));

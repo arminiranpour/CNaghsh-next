@@ -9,6 +9,8 @@ import {
 
 import { prisma } from "../prisma";
 import { emit, type BillingEventType } from "./events";
+import { emitBillingCancelScheduled } from "@/lib/notifications/events";
+import { sendScheduledCancellationEmail } from "./subscriptionNotifications";
 
 const cycleToMonths: Record<PlanCycle, number> = {
   [PlanCycle.MONTHLY]: 1,
@@ -68,6 +70,11 @@ type SubscriptionWithPlan = Prisma.SubscriptionGetPayload<{
 }>;
 
 const mapInclude = { plan: true } as const;
+
+const VALID_CANCEL_STATUSES = new Set<SubscriptionStatus>([
+  SubscriptionStatus.active,
+  SubscriptionStatus.renewing,
+]);
 
 const emitSubscriptionEvent = async (
   type: BillingEventType,
@@ -283,7 +290,7 @@ type SetCancelArgs = {
 };
 
 export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
-  const { subscription, eventType } = await prisma.$transaction(async (tx) => {
+  const { subscription, eventType, changed } = await prisma.$transaction(async (tx) => {
     const existing = await tx.subscription.findUnique({
       where: { userId },
       include: mapInclude,
@@ -293,19 +300,28 @@ export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
       throw new SubscriptionNotFoundError(userId);
     }
 
-    let status = existing.status;
+    if (!VALID_CANCEL_STATUSES.has(existing.status)) {
+      const eventType: BillingEventType = flag
+        ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
+        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED";
+      return { subscription: existing, eventType, changed: false };
+    }
 
-    if (flag && existing.status === SubscriptionStatus.active) {
-      status = SubscriptionStatus.renewing;
-    } else if (!flag && existing.status === SubscriptionStatus.renewing) {
-      status = SubscriptionStatus.active;
+    if (existing.cancelAtPeriodEnd === flag) {
+      const eventType: BillingEventType = flag
+        ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
+        : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED";
+      return {
+        subscription: existing,
+        eventType,
+        changed: false,
+      };
     }
 
     const updated = await tx.subscription.update({
       where: { id: existing.id },
       data: {
         cancelAtPeriodEnd: flag,
-        status,
       },
       include: mapInclude,
     });
@@ -314,10 +330,23 @@ export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
       ? "SUBSCRIPTION_CANCEL_AT_PERIOD_END_SET"
       : "SUBSCRIPTION_CANCEL_AT_PERIOD_END_CLEARED";
 
-    return { subscription: updated, eventType };
+    return { subscription: updated, eventType, changed: true };
   });
 
   await emitSubscriptionEvent(eventType, subscription);
+  if (flag && changed) {
+    await sendScheduledCancellationEmail({
+      userId: subscription.userId,
+      planName: subscription.plan?.name,
+      endsAt: subscription.endsAt,
+    });
+
+    await emitBillingCancelScheduled({
+      userId: subscription.userId,
+      subscriptionId: subscription.id,
+      endsAt: subscription.endsAt,
+    });
+  }
   return subscription;
 };
 
