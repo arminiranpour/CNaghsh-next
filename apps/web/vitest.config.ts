@@ -1,3 +1,4 @@
+// apps/web/vitest.config.ts
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +15,8 @@ export default defineConfig({
       "apps/web/lib/**/*.test.{ts,tsx}",
       "apps/web/**/*.test.{ts,tsx}",
     ],
-        coverage: {
+    setupFiles: [path.resolve(__dirname, "vitest.setup.ts")],
+    coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
       thresholds: {
@@ -28,10 +30,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./"),
-      "server-only": path.resolve(
-        __dirname,
-        "./test/mocks/server-only.ts",
-      ),
+      "server-only": path.resolve(__dirname, "./test/mocks/server-only.ts"),
     },
   },
 });

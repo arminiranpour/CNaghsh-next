@@ -1,7 +1,4 @@
-import nodemailer from "nodemailer";
-
-type SentMessageInfo = nodemailer.SentMessageInfo;
-type Transporter = nodemailer.Transporter;
+import nodemailer, { type Transporter } from "nodemailer";
 
 import { prisma } from "@/lib/prisma";
 import { buildAbsoluteUrl } from "@/lib/url";
@@ -145,7 +142,9 @@ function renderKeyValues(items: EmailKeyValue[] | undefined): string {
 
 function renderActions(primary: EmailAction | undefined, secondary: EmailAction[] | undefined): string {
   const primaryButton = primary
-    ? `<a href="${primary.href}" style="display:inline-block;padding:12px 24px;border-radius:9999px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;">${escapeHtml(primary.label)}</a>`
+    ? `<a href="${primary.href}" style="display:inline-block;padding:12px 24px;border-radius:9999px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;">${escapeHtml(
+        primary.label,
+      )}</a>`
     : "";
 
   const secondaryButtons = secondary
@@ -177,12 +176,19 @@ export function renderEmail(content: EmailContent): string {
   const supportLink = content.supportLink ?? "mailto:support@cnaghsh.com";
   const manageLink = content.manageLink ?? `${baseUrl}/dashboard/notifications`;
   const paragraphs = content.paragraphs
-    .map((paragraph) => `<p style="margin:0 0 16px;font-size:14px;color:#0f172a;line-height:1.9;">${escapeHtml(paragraph)}</p>`)
+    .map(
+      (paragraph) =>
+        `<p style="margin:0 0 16px;font-size:14px;color:#0f172a;line-height:1.9;">${escapeHtml(
+          paragraph,
+        )}</p>`,
+    )
     .join("");
   const keyValues = renderKeyValues(content.keyValues);
   const actions = renderActions(content.primaryAction, content.secondaryActions);
   const footerNote = content.footerNote
-    ? `<p style="margin:16px 0 0;font-size:12px;color:#475569;line-height:1.8;">${escapeHtml(content.footerNote)}</p>`
+    ? `<p style="margin:16px 0 0;font-size:12px;color:#475569;line-height:1.8;">${escapeHtml(
+        content.footerNote,
+      )}</p>`
     : "";
   const tone = toneToColor(content.tone);
 
@@ -220,7 +226,9 @@ export function renderEmail(content: EmailContent): string {
               </div>
             </div>
             <div style="margin-top:24px;padding:20px;border-radius:16px;background:${tone.background};border:1px solid ${tone.border};color:#ffffff;">
-              <h1 style="margin:0;font-size:20px;line-height:1.6;font-weight:700;">${escapeHtml(content.headline)}</h1>
+              <h1 style="margin:0;font-size:20px;line-height:1.6;font-weight:700;">${escapeHtml(
+                content.headline,
+              )}</h1>
             </div>
             <div style="margin-top:24px;">
               ${paragraphs}
@@ -247,11 +255,11 @@ export function renderEmail(content: EmailContent): string {
 </html>`;
 }
 
-export async function sendEmail({ userId, to, content }: SendEmailOptions): Promise<{
-  ok: boolean;
-  messageId?: string;
-  error?: string;
-}> {
+export async function sendEmail({
+  userId,
+  to,
+  content,
+}: SendEmailOptions): Promise<{ ok: boolean; messageId?: string; error?: string }> {
   const configured = isEmailConfigured();
 
   if (!configured) {
@@ -301,12 +309,17 @@ export async function sendEmail({ userId, to, content }: SendEmailOptions): Prom
   const html = renderEmail(content);
 
   try {
-    const info: SentMessageInfo = await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: MAIL_FROM,
       to: recipient,
       subject: content.subject,
       html,
-    });
+    }) as { messageId?: string } | string | unknown;
+
+    const messageId =
+      typeof info === "object" && info !== null && "messageId" in info
+        ? (info as { messageId?: string }).messageId
+        : undefined;
 
     if (userId) {
       await prisma.emailLog.create({
@@ -319,7 +332,7 @@ export async function sendEmail({ userId, to, content }: SendEmailOptions): Prom
       });
     }
 
-    return { ok: true, messageId: info.messageId };
+    return { ok: true, messageId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
 
