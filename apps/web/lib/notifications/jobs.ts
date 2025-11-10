@@ -50,7 +50,7 @@ export async function enqueueJob(logId: string, payload: NotificationJobPayload)
   const job = await prisma.notificationJob.create({
     data: {
       logId,
-      payload,
+      payload: payload as unknown as Prisma.InputJsonValue,
     },
   });
 
@@ -167,7 +167,9 @@ export async function processJob(jobId: string): Promise<void> {
           type: payload.type,
           title: payload.title,
           body: payload.body,
-          payload: payload.payload ?? undefined,
+          payload: payload.payload
+            ? (payload.payload as Prisma.InputJsonValue)
+            : undefined,
           channel: NotificationChannel.IN_APP,
           dedupeKey: payload.dedupeKey,
         },

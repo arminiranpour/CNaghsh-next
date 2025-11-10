@@ -71,7 +71,7 @@ async function createLogEntry({
       channel,
       dedupeKey,
       status: NotificationDispatchStatus.QUEUED,
-      metadata: payload ?? undefined,
+      metadata: payload ? (payload as Prisma.InputJsonValue) : undefined,
     },
   });
 }

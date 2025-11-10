@@ -334,9 +334,9 @@ export async function refundPaymentAction(input: {
       refundInvoiceId: result.refundInvoice.id,
       refundInvoiceNumber: result.refundInvoice.number ?? null,
       amount: parsed.amount,
-      originalInvoiceNumber: result.updatedOriginalInvoice.number ?? null,
+      originalInvoiceNumber: result.updatedOriginalInvoice?.number ?? null,
       policyNote:
-        parsed.policy === "keep_access"
+        parsed.policy === "keep_until_end"
           ? "دسترسی‌های شما همچنان فعال باقی می‌ماند."
           : "با این استرداد، دسترسی مرتبط نیز لغو شد.",
     });

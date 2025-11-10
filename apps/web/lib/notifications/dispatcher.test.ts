@@ -64,9 +64,9 @@ describe("notifications dispatcher", () => {
       dedupeKey: "invoice-1",
       emailContent: {
         subject: "پرداخت ناموفق بود",
-        heading: "پرداخت شما انجام نشد",
-        preview: "لطفاً دوباره تلاش کنید.",
-        body: [{ type: "text", value: "نمونه" }],
+        headline: "پرداخت شما انجام نشد",
+        preheader: "لطفاً دوباره تلاش کنید.",
+        paragraphs: ["نمونه"],
       },
       emailRecipient: "user@example.com",
     });
