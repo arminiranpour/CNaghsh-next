@@ -1,4 +1,7 @@
-import nodemailer, { type SentMessageInfo, type Transporter } from "nodemailer";
+import nodemailer from "nodemailer";
+
+type SentMessageInfo = nodemailer.SentMessageInfo;
+type Transporter = nodemailer.Transporter;
 
 import { prisma } from "@/lib/prisma";
 import { buildAbsoluteUrl } from "@/lib/url";
@@ -87,7 +90,7 @@ function parsePort(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 587;
 }
 
-async function getTransport(): Promise<Transporter<SentMessageInfo>> {
+async function getTransport(): Promise<Transporter> {
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: parsePort(),
