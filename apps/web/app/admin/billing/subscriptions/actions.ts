@@ -14,10 +14,6 @@ import {
   emitBillingCancelImmediate,
   emitBillingCancelScheduled,
 } from "@/lib/notifications/events";
-import {
-  sendImmediateCancellationEmail,
-  sendScheduledCancellationEmail,
-} from "@/lib/billing/subscriptionNotifications";
 
 const idSchema = z.string().cuid();
 const reasonSchema = z
@@ -289,12 +285,6 @@ export async function cancelNowAction(input: {
       idempotencyKey: parsed.idempotencyKey ?? null,
     });
 
-    await sendImmediateCancellationEmail({
-      userId: result.subscription.userId,
-      planName: result.subscription.plan.name,
-      endedAt: now,
-    });
-
     await emitBillingCancelImmediate({
       userId: result.subscription.userId,
       subscriptionId: result.subscription.id,
@@ -413,12 +403,6 @@ export async function cancelAtPeriodEndAction(input: {
     });
 
     if (parsed.cancel && changed) {
-      await sendScheduledCancellationEmail({
-        userId: subscription.userId,
-        planName: subscription.plan?.name,
-        endsAt: updated.endsAt,
-      });
-
       await emitBillingCancelScheduled({
         userId: subscription.userId,
         subscriptionId: subscription.id,

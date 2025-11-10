@@ -7,16 +7,18 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { buildAbsoluteUrl } from "@/lib/url";
 import { prisma } from "../prisma";
 import { emit, type BillingEventType } from "./events";
-import { emitBillingCancelScheduled } from "@/lib/notifications/events";
-import { sendScheduledCancellationEmail } from "./subscriptionNotifications";
+import { emitBillingCancelScheduled, emitBillingSubscriptionExpired } from "@/lib/notifications/events";
 
 const cycleToMonths: Record<PlanCycle, number> = {
   [PlanCycle.MONTHLY]: 1,
   [PlanCycle.QUARTERLY]: 3,
   [PlanCycle.YEARLY]: 12,
 };
+
+const billingDashboardUrl = buildAbsoluteUrl("/dashboard/billing");
 
 const addMonthsUtc = (date: Date, months: number) => {
   return new Date(
@@ -281,6 +283,12 @@ export const markExpired = async ({ userId }: MarkExpiredArgs) => {
   });
 
   await emitSubscriptionEvent("SUBSCRIPTION_EXPIRED", subscription);
+  await emitBillingSubscriptionExpired({
+    userId: subscription.userId,
+    subscriptionId: subscription.id,
+    expiredAt: subscription.endsAt ?? new Date(),
+    renewUrl: billingDashboardUrl,
+  });
   return subscription;
 };
 
@@ -335,12 +343,6 @@ export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
 
   await emitSubscriptionEvent(eventType, subscription);
   if (flag && changed) {
-    await sendScheduledCancellationEmail({
-      userId: subscription.userId,
-      planName: subscription.plan?.name,
-      endsAt: subscription.endsAt,
-    });
-
     await emitBillingCancelScheduled({
       userId: subscription.userId,
       subscriptionId: subscription.id,

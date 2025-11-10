@@ -14,6 +14,7 @@ model User {
   name                String?
   passwordHash        String?
   role                Role                 @default(USER)
+  timezone            String?              @db.VarChar(64)
   checkoutSessions    CheckoutSession[]
   emailLogs           EmailLog[]
   invoices            Invoice[]
@@ -28,6 +29,8 @@ model User {
   profile             Profile?
   entitlements        UserEntitlement[]
   auditLogs           AuditLog[]
+  notificationPreferences NotificationPreference[]
+  notificationMessageLogs NotificationMessageLog[]
 
 }
 
@@ -355,11 +358,14 @@ model Notification {
   channel   NotificationChannel @default(IN_APP)
   readAt    DateTime?
   createdAt DateTime            @default(now())
+  dedupeKey String?             @db.VarChar(255)
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
+  @@index([dedupeKey])
+  @@unique([dedupeKey])
 }
 
 model EmailLog {
@@ -373,6 +379,59 @@ model EmailLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model NotificationPreference {
+  id           String                @id @default(cuid())
+  userId       String
+  category     NotificationCategory
+  emailEnabled Boolean              @default(true)
+  inAppEnabled Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([category])
+}
+
+model NotificationMessageLog {
+  id                String                      @id @default(cuid())
+  userId            String?
+  email             String?
+  eventType         String
+  channel           NotificationChannel
+  dedupeKey         String                      @db.VarChar(255)
+  status            NotificationDispatchStatus
+  attempts          Int                         @default(0)
+  providerMessageId String?
+  error             String?
+  metadata          Json?
+  lastAttemptAt     DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  user              User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  jobs              NotificationJob[]
+
+  @@index([userId])
+  @@index([channel])
+  @@unique([dedupeKey, channel])
+}
+
+model NotificationJob {
+  id          String                @id @default(cuid())
+  logId       String
+  status      NotificationJobStatus @default(PENDING)
+  attempts    Int                   @default(0)
+  maxAttempts Int                   @default(3)
+  runAt       DateTime              @default(now())
+  payload     Json
+  error       String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  messageLog  NotificationMessageLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
 }
 
 enum ProductType {
@@ -461,6 +520,11 @@ enum NotificationChannel {
   EMAIL
 }
 
+enum NotificationCategory {
+  BILLING_TRANSACTIONAL
+  BILLING_REMINDERS
+}
+
 enum NotificationType {
   MODERATION_APPROVED
   MODERATION_REJECTED
@@ -475,6 +539,28 @@ enum NotificationType {
   BILLING_REFUND_ISSUED
   BILLING_CANCEL_IMMEDIATE
   BILLING_CANCEL_SCHEDULED
+  BILLING_SUBSCRIPTION_RENEWED
+  BILLING_SUBSCRIPTION_EXPIRY_REMINDER
+  BILLING_SUBSCRIPTION_EXPIRED
+  BILLING_PAYMENT_FAILED
+  BILLING_INVOICE_READY
+  BILLING_INVOICE_REFUND_READY
+  BILLING_WEBHOOK_ALERT
+}
+
+enum NotificationDispatchStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum NotificationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
 }
 
 enum JobStatus {

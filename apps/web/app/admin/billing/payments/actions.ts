@@ -11,7 +11,6 @@ import { CAN_PUBLISH_PROFILE } from "@/lib/billing/entitlementKeys";
 import { syncSingleUser } from "@/lib/billing/entitlementSync";
 import { emit } from "@/lib/billing/events";
 import { assignInvoiceNumber } from "@/lib/billing/invoiceNumber";
-import { sendInvoiceRefundedEmail } from "@/lib/billing/invoiceNotifications";
 import { emitBillingRefundIssued } from "@/lib/notifications/events";
 import { formatJalaliDateTime } from "@/lib/datetime/jalali";
 import { formatRials } from "@/lib/money";
@@ -330,18 +329,16 @@ export async function refundPaymentAction(input: {
       idempotencyKey: input.idempotencyKey,
     });
 
-    await sendInvoiceRefundedEmail({
-      invoiceId: result.refundInvoice.id,
-      userId: result.payment.userId,
-    });
-
     await emitBillingRefundIssued({
       userId: result.payment.userId,
       refundInvoiceId: result.refundInvoice.id,
       refundInvoiceNumber: result.refundInvoice.number ?? null,
       amount: parsed.amount,
-      currency: result.updatedPayment.currency,
-      remainingAmount: result.remainingAfter,
+      originalInvoiceNumber: result.updatedOriginalInvoice.number ?? null,
+      policyNote:
+        parsed.policy === "keep_access"
+          ? "دسترسی‌های شما همچنان فعال باقی می‌ماند."
+          : "با این استرداد، دسترسی مرتبط نیز لغو شد.",
     });
 
     await emit({

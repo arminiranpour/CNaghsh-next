@@ -1,14 +1,19 @@
 import type { NotificationChannel, NotificationType } from "@prisma/client";
 
-export type NotificationDispatchStatus = "delivered" | "duplicate" | "error";
+export type NotificationDispatchOutcome =
+  | "queued"
+  | "sent"
+  | "failed"
+  | "duplicate"
+  | "skipped";
 
 export type NotificationDispatchEvent = {
   userId: string;
   type: NotificationType;
-  channels: NotificationChannel[];
+  channel: NotificationChannel;
   dedupeKey?: string;
   dedupeHash: string;
-  status: NotificationDispatchStatus;
+  status: NotificationDispatchOutcome;
   durationMs: number;
   error?: unknown;
 };
@@ -16,18 +21,24 @@ export type NotificationDispatchEvent = {
 export type NotificationDispatchObserver = (event: NotificationDispatchEvent) => void;
 
 let observer: NotificationDispatchObserver | null = (event) => {
-  const { status, ...rest } = event;
-  const payload = {
-    ...rest,
-    status,
-  };
+  const payload = { ...event };
 
-  if (status === "error") {
-    console.error("[notifications] dispatch_error", payload);
-  } else if (status === "duplicate") {
-    console.info("[notifications] dispatch_duplicate", payload);
-  } else {
-    console.info("[notifications] dispatch_delivered", payload);
+  switch (event.status) {
+    case "failed":
+      console.error("[notifications] dispatch_failed", payload);
+      break;
+    case "duplicate":
+      console.info("[notifications] dispatch_duplicate", payload);
+      break;
+    case "skipped":
+      console.info("[notifications] dispatch_skipped", payload);
+      break;
+    case "sent":
+      console.info("[notifications] dispatch_sent", payload);
+      break;
+    default:
+      console.info("[notifications] dispatch_queued", payload);
+      break;
   }
 };
 

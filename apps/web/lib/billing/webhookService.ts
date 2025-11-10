@@ -1,13 +1,20 @@
 import { Prisma } from "@prisma/client";
 
 import type { ProviderName, WebhookStatus } from "@/lib/billing/providers";
+import { buildAbsoluteUrl } from "@/lib/url";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus, PaymentStatus } from "@/lib/prismaEnums";
 
 import { applyPaymentToSubscription } from "./paymentToSubscription";
 import { applyPaymentToJobCredits } from "./paymentToJobCredits";
 import { assignInvoiceNumber } from "./invoiceNumber";
-import { sendInvoiceFinalizedEmail } from "./invoiceNotifications";
+import {
+  emitBillingInvoiceReady,
+  emitBillingPaymentFailed,
+} from "@/lib/notifications/events";
+
+const billingDashboardUrl = buildAbsoluteUrl("/dashboard/billing");
+const supportMailto = process.env.NOTIFICATIONS_SUPPORT_EMAIL ?? "mailto:support@cnaghsh.com";
 
 type JsonPayload = Prisma.InputJsonValue;
 
@@ -178,9 +185,31 @@ export const processWebhook = async (
   }
 
   if (result.invoiceId) {
-    await sendInvoiceFinalizedEmail({
-      invoiceId: result.invoiceId,
+    const invoiceRecord = await prisma.invoice.findUnique({
+      where: { id: result.invoiceId },
+      select: { number: true, issuedAt: true, total: true },
+    });
+
+    if (invoiceRecord) {
+      await emitBillingInvoiceReady({
+        userId: input.userId,
+        invoiceId: result.invoiceId,
+        invoiceNumber: invoiceRecord.number ?? null,
+        amount: invoiceRecord.total,
+        issuedAt: invoiceRecord.issuedAt ?? new Date(),
+      });
+    }
+  }
+
+  if (paymentStatus === PaymentStatus.FAILED) {
+    await emitBillingPaymentFailed({
       userId: input.userId,
+      paymentId: result.payment.id,
+      amount: result.payment.amount,
+      providerLabel: input.provider,
+      reference: result.payment.providerRef,
+      retryUrl: billingDashboardUrl,
+      supportUrl: supportMailto,
     });
   }
 

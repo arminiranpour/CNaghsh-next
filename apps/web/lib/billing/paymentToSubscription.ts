@@ -4,6 +4,7 @@ import { prisma } from "../prisma";
 
 import { CAN_PUBLISH_PROFILE } from "./entitlementKeys";
 import { revalidateSubscriptionViews } from "@/lib/entitlements/revalidate";
+import { emitBillingSubscriptionRenewed } from "@/lib/notifications/events";
 import {
   activateOrStart,
   getSubscription,
@@ -304,6 +305,24 @@ export const applyPaymentToSubscription = async ({
   }
 
   await revalidateSubscriptionViews(payment.userId);
+
+  let invoiceNumber: string | null = null;
+  if (invoiceId) {
+    const invoiceRecord = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { number: true },
+    });
+    invoiceNumber = invoiceRecord?.number ?? null;
+  }
+
+  await emitBillingSubscriptionRenewed({
+    userId: payment.userId,
+    subscriptionId: nextSubscription.id,
+    planName: nextSubscription.plan?.name,
+    endsAt: subscriptionEndsAt,
+    invoiceId: invoiceId ?? null,
+    invoiceNumber,
+  });
 
   return {
     applied: true,
