@@ -253,8 +253,14 @@ export async function processDueJobs(limit = 10): Promise<number> {
     select: { id: true },
   });
 
+  if (jobs.length === 0) {
+    return 0;
+  }
+
+  const { processJob: processSingleJob } = await import("./jobs");
+
   for (const job of jobs) {
-    await processJob(job.id);
+    await processSingleJob(job.id);
   }
 
   return jobs.length;

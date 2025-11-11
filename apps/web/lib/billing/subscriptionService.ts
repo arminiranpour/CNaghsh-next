@@ -330,6 +330,7 @@ export const setCancelAtPeriodEnd = async ({ userId, flag }: SetCancelArgs) => {
       where: { id: existing.id },
       data: {
         cancelAtPeriodEnd: flag,
+        status: flag ? SubscriptionStatus.renewing : SubscriptionStatus.active,
       },
       include: mapInclude,
     });

@@ -11,7 +11,6 @@ let consentGranted = false;
 let adapter: AnalyticsAdapter | null = null;
 
 const ALLOWED_PROP_KEYS = new Set([
-  "query",
   "city",
   "category",
   "payType",
