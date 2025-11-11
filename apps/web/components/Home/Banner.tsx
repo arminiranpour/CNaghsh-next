@@ -59,15 +59,23 @@ export default function HeroSection() {
 
         {/* 📏 فریم سفید */}
         <Image
-          src="/cineflash/home/banner/MainFrame.png"
-          alt="نوار سفید بنر"
-          width={1556}
-          height={1230}
-          className="absolute"
-          style={{ left: "-5px", top: "15px", opacity: 0.5, zIndex: 10 }}
-          unoptimized
-          priority
-        />
+  src="/cineflash/home/banner/MainFrame.png"
+  alt="نوار سفید بنر"
+  fill
+  className="absolute"
+  style={{
+    left: 0,
+    top: "15px",
+    transform: "scaleX(1.15) scaleY(1.05)", // ← افقی ۱۵٪ و عمودی ۵٪ کشیده‌تر
+    transformOrigin: "center top", // ← از بالا ثابت بماند و پایین کشیده شود
+    opacity: 0.5,
+    zIndex: 10,
+    objectFit: "contain",
+  }}
+  unoptimized
+  priority
+/>
+
 
         {/* 🟠 لوگو */}
         <Image
