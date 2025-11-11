@@ -12,6 +12,7 @@ let adapter: AnalyticsAdapter | null = null;
 
 const ALLOWED_PROP_KEYS = new Set([
   "city",
+  "query",
   "category",
   "payType",
   "remote",
