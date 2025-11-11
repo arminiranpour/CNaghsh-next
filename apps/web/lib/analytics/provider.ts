@@ -10,9 +10,18 @@ type AnalyticsAdapter = {
 let consentGranted = false;
 let adapter: AnalyticsAdapter | null = null;
 
-const ALLOWED_PROP_KEYS = new Set([
+const TRACK_ALLOWED_PROP_KEYS = new Set([
   "city",
   "query",
+  "category",
+  "payType",
+  "remote",
+  "sort",
+  "page",
+]);
+
+const IDENTIFY_ALLOWED_PROP_KEYS = new Set([
+  "city",
   "category",
   "payType",
   "remote",
@@ -86,12 +95,15 @@ function sanitizeValue(value: unknown): unknown {
   return undefined;
 }
 
-function sanitizeProps(props?: AnalyticsEventProps): AnalyticsEventProps | undefined {
+function sanitizeProps(
+  props: AnalyticsEventProps | undefined,
+  allowedKeys: Set<string> = TRACK_ALLOWED_PROP_KEYS,
+): AnalyticsEventProps | undefined {
   if (!props) {
     return undefined;
   }
 
-  const entries = Object.entries(props).filter(([key]) => ALLOWED_PROP_KEYS.has(key));
+  const entries = Object.entries(props).filter(([key]) => allowedKeys.has(key));
 
   if (entries.length === 0) {
     return undefined;
@@ -126,7 +138,7 @@ export function track(event: string, props?: AnalyticsEventProps): void {
     return;
   }
 
-  const sanitizedProps = sanitizeProps(props);
+  const sanitizedProps = sanitizeProps(props, TRACK_ALLOWED_PROP_KEYS);
   ensureAdapter().track(event, sanitizedProps);
 }
 
@@ -135,7 +147,7 @@ export function identify(userId?: string, traits?: AnalyticsEventProps): void {
     return;
   }
 
-  ensureAdapter().identify(userId, sanitizeProps(traits));
+  ensureAdapter().identify(userId, sanitizeProps(traits, IDENTIFY_ALLOWED_PROP_KEYS));
 }
 
 export function resetAnalyticsStateForTests(): void {
