@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,16 +22,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 import type { ProviderName } from "@/lib/billing/provider.types";
 
-import type { OneTimePrice, PricingPlan } from "./page";
+import type {
+  CadenceKey,
+  OneTimePrice,
+  PricingPlanCadence,
+  PricingPlanGroupData,
+  PricingViewer,
+} from "./page";
+
+type CadenceLabels = Readonly<Record<CadenceKey, string>>;
 
 type PricingContentProps = {
-  plans: PricingPlan[];
-  oneTimePrices: OneTimePrice[];
-  initialUserId: string | null;
+  plans: PricingPlanGroupData[];
+  cadenceLabels: CadenceLabels;
+  initialCadence: CadenceKey;
+  viewer: PricingViewer;
+  jobOffers: OneTimePrice[];
+};
+
+type SelectedPrice = {
+  id: string;
+  name: string;
+  cadence?: CadenceKey;
+  description?: string;
+};
+
+type DisplayPlan = {
+  group: PricingPlanGroupData;
+  cadenceKey: CadenceKey;
+  cadence: PricingPlanCadence;
 };
 
 type CheckoutStartSuccess = {
@@ -41,10 +66,33 @@ type CheckoutStartError = {
   error?: string;
 };
 
-type SelectedPrice = {
-  id: string;
-  name: string;
-  description?: string;
+const SIGN_IN_URL = "/auth/signin?callbackUrl=%2Fpricing";
+
+const resolveGroupCadence = (
+  group: PricingPlanGroupData,
+  preferred: CadenceKey,
+): DisplayPlan | null => {
+  const exactCadence = group.cadences[preferred];
+  if (exactCadence) {
+    return { group, cadenceKey: preferred, cadence: exactCadence };
+  }
+
+  const fallbackEntry = (
+    Object.entries(group.cadences) as Array<[
+      CadenceKey,
+      PricingPlanCadence | undefined,
+    ]>
+  ).find(([, cadence]) => Boolean(cadence));
+
+  if (!fallbackEntry || !fallbackEntry[1]) {
+    return null;
+  }
+
+  return {
+    group,
+    cadenceKey: fallbackEntry[0],
+    cadence: fallbackEntry[1],
+  };
 };
 
 const providerOptions: { id: ProviderName; label: string }[] = [
@@ -53,27 +101,16 @@ const providerOptions: { id: ProviderName; label: string }[] = [
   { id: "nextpay", label: "نکست‌پی" },
 ];
 
-/** Safe stringify that can't be broken by shadowed `String` */
-const toSafeString = (value: unknown): string =>
-  value == null ? "-" : globalThis.String(value);
-
-const formatLimitValue = (value: unknown): string => {
-  if (typeof value === "number") {
-    return new Intl.NumberFormat("fa-IR").format(value);
-  }
-  if (typeof value === "boolean") {
-    return value ? "بله" : "خیر";
-  }
-  return toSafeString(value);
-};
-
 export function PricingContent({
   plans,
-  oneTimePrices,
-  initialUserId,
+  cadenceLabels,
+  initialCadence,
+  viewer,
+  jobOffers,
 }: PricingContentProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [activeCadence, setActiveCadence] = useState<CadenceKey>(initialCadence);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ProviderName>(
     providerOptions[0].id,
@@ -82,45 +119,61 @@ export function PricingContent({
     null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [effectiveUserId, setEffectiveUserId] = useState<string | null>(
-    initialUserId,
-  );
-  const [userIdInput, setUserIdInput] = useState("");
+
+  const cadenceOptions = useMemo(() => {
+    const available = new Set<CadenceKey>();
+    plans.forEach((group) => {
+      (Object.entries(group.cadences) as Array<[
+        CadenceKey,
+        PricingPlanCadence | undefined,
+      ]>).forEach(([key, value]) => {
+        if (value) {
+          available.add(key);
+        }
+      });
+    });
+
+    return (Object.keys(cadenceLabels) as CadenceKey[]).filter((key) =>
+      available.has(key),
+    );
+  }, [plans, cadenceLabels]);
 
   useEffect(() => {
-    if (initialUserId) {
-      setEffectiveUserId(initialUserId);
-      setUserIdInput(initialUserId);
-      try {
-        localStorage.setItem("sandboxUserId", initialUserId);
-      } catch {
-        /* ignore storage errors */
-      }
+    if (cadenceOptions.length === 0) {
       return;
     }
-
-    try {
-      const stored = localStorage.getItem("sandboxUserId");
-      if (stored) {
-        setEffectiveUserId(stored);
-        setUserIdInput(stored);
-      }
-    } catch {
-      /* ignore storage errors */
+    if (cadenceOptions.includes(initialCadence)) {
+      setActiveCadence(initialCadence);
+      return;
     }
-  }, [initialUserId]);
+    setActiveCadence(cadenceOptions[0]);
+  }, [initialCadence, cadenceOptions]);
 
   useEffect(() => {
     if (!dialogOpen) setSelectedPrice(null);
   }, [dialogOpen]);
 
-  const canCheckout = Boolean(effectiveUserId);
+  const displayPlans = useMemo(() => {
+    return plans
+      .map((group) => resolveGroupCadence(group, activeCadence))
+      .filter((plan): plan is DisplayPlan => Boolean(plan));
+  }, [plans, activeCadence]);
+
+  const canCheckout = viewer.state === "signed-in" && Boolean(viewer.userId);
+
+  const subscriptionPlanId = viewer.subscription?.planId ?? null;
+  const subscriptionCadenceLabel = viewer.subscription?.cycle
+    ? cadenceLabels[viewer.subscription.cycle] ?? viewer.subscription.cycle
+    : null;
+  const subscriptionGroup = viewer.subscription?.groupId
+    ? plans.find((group) => group.groupId === viewer.subscription?.groupId)
+    : null;
 
   const handleSelectPrice = (price: SelectedPrice) => {
     if (!canCheckout) {
       toast({
-        title: "شناسه کاربر لازم است",
-        description: "لطفاً ابتدا شناسه کاربر را برای تست ذخیره کنید.",
+        title: "برای خرید ابتدا وارد شوید",
+        description: "جهت ادامه، وارد حساب کاربری خود شوید یا ثبت‌نام کنید.",
         variant: "destructive",
       });
       return;
@@ -130,37 +183,13 @@ export function PricingContent({
     setDialogOpen(true);
   };
 
-  const handleSaveUserId = () => {
-    const value = userIdInput.trim();
-    if (!value) {
-      toast({
-        title: "شناسه نامعتبر است",
-        description: "شناسه کاربر نمی‌تواند خالی باشد.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      localStorage.setItem("sandboxUserId", value);
-    } catch {
-      /* ignore storage errors */
-    }
-
-    setEffectiveUserId(value);
-    toast({
-      title: "ذخیره شد",
-      description: "شناسه کاربر برای تست ذخیره شد.",
-    });
-  };
-
   const handleStartCheckout = async () => {
     if (!selectedPrice) return;
 
-    if (!effectiveUserId) {
+    if (!viewer.userId) {
       toast({
-        title: "شناسه کاربر لازم است",
-        description: "لطفاً ابتدا شناسه کاربر را برای تست ذخیره کنید.",
+        title: "برای ادامه وارد شوید",
+        description: "شناسه کاربر معتبر یافت نشد.",
         variant: "destructive",
       });
       return;
@@ -172,7 +201,7 @@ export function PricingContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: effectiveUserId,
+          userId: viewer.userId,
           provider: selectedProvider,
           priceId: selectedPrice.id,
         }),
@@ -235,119 +264,185 @@ export function PricingContent({
 
   return (
     <div className="space-y-10">
-      {!effectiveUserId && (
-        <div className="mx-auto flex w-full max-w-xl flex-col gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4">
-          <label className="text-sm font-medium" htmlFor="sandbox-user-id">
-            شناسه کاربر (برای تست)
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Input
-              id="sandbox-user-id"
-              value={userIdInput}
-              onChange={(event) => setUserIdInput(event.target.value)}
-              placeholder="مثلاً usr_123"
-              className="flex-1"
-            />
-            <Button onClick={handleSaveUserId}>ذخیره</Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            این مقدار فقط در مرورگر شما ذخیره می‌شود و برای تست درگاه لازم است.
+      {viewer.subscription && (
+        <div className="mx-auto w-full max-w-3xl rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
+          <p className="font-medium">
+            اشتراک فعال شما: {subscriptionGroup?.name ?? "پلن فعلی"}
           </p>
+          <p className="mt-1 text-primary/80">
+            دوره پرداخت: {subscriptionCadenceLabel ?? "نامشخص"}
+          </p>
+          {viewer.subscription.endsAt && (
+            <p className="mt-1 text-primary/80">
+              تاریخ پایان دوره کنونی: {" "}
+              {new Date(viewer.subscription.endsAt).toLocaleDateString(
+                "fa-IR",
+              )}
+            </p>
+          )}
         </div>
       )}
 
-      {initialUserId && (
-        <p className="text-center text-sm text-muted-foreground">
-          شناسه کاربر به‌صورت خودکار تنظیم شده است و دکمه‌های خرید فعال هستند.
-        </p>
+      {cadenceOptions.length > 1 && (
+        <div className="flex justify-center">
+          <div className="inline-flex rounded-full border border-border bg-muted/60 p-1">
+            {cadenceOptions.map((cadence) => (
+              <Button
+                key={cadence}
+                type="button"
+                variant={cadence === activeCadence ? "default" : "ghost"}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm",
+                  cadence !== activeCadence && "text-muted-foreground",
+                )}
+                onClick={() => setActiveCadence(cadence)}
+              >
+                {cadenceLabels[cadence] ?? cadence}
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-semibold">اشتراک</h2>
-            <p className="text-sm text-muted-foreground">
-              انتخاب یکی از پلن‌های اشتراک برای دسترسی کامل به امکانات.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {plans.map((plan) => (
-              <Card key={plan.id} className="flex flex-col justify-between">
-                <CardHeader>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    دوره {plan.cycle}
+      <section className="space-y-6">
+        <div className="space-y-2 text-center">
+          <h2 className="text-3xl font-semibold">پلن‌های اشتراک</h2>
+          <p className="text-sm text-muted-foreground">
+            با توجه به نیاز خود، دوره پرداخت مناسب را انتخاب کنید و دسترسی کامل دریافت کنید.
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {displayPlans.map(({ group, cadenceKey, cadence }) => {
+            const isActivePlan = subscriptionPlanId === cadence.planId;
+            return (
+              <Card
+                key={`${group.groupId}-${cadenceKey}`}
+                className={cn(
+                  "flex h-full flex-col justify-between border",
+                  group.highlight && "border-primary shadow-lg",
+                )}
+              >
+                <CardHeader className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-xl">{group.name}</CardTitle>
+                    {group.badgeLabel && (
+                      <Badge variant="secondary">{group.badgeLabel}</Badge>
+                    )}
+                  </div>
+                  {group.tagline && (
+                    <p className="text-sm text-muted-foreground">
+                      {group.tagline}
+                    </p>
+                  )}
+                  <div className="text-3xl font-bold text-primary">
+                    {cadence.formattedAmount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    دوره {cadenceLabels[cadenceKey] ?? cadenceKey}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-2xl font-bold text-primary">
-                    {plan.price.formatted}
-                  </div>
-                  {plan.limits && Object.keys(plan.limits).length > 0 && (
-                    <ul className="list-disc space-y-1 pr-5 text-sm text-muted-foreground">
-                      {Object.entries(plan.limits).map(([key, value]) => (
-                        <li key={key}>{formatLimitValue(value)}</li>
+                  {group.features.length > 0 && (
+                    <ul className="space-y-3 text-sm">
+                      {group.features.map((feature) => (
+                        <li key={feature.key} className="space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="font-medium text-foreground">
+                              {feature.primary}
+                            </span>
+                            {feature.value && (
+                              <span className="text-xs text-muted-foreground">
+                                {feature.value.valueLabel}
+                              </span>
+                            )}
+                          </div>
+                          {feature.secondary && (
+                            <p className="text-xs text-muted-foreground">
+                              {feature.secondary}
+                            </p>
+                          )}
+                        </li>
                       ))}
                     </ul>
                   )}
+                  {group.note && (
+                    <p className="rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
+                      {group.note}
+                    </p>
+                  )}
                 </CardContent>
                 <CardFooter>
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      handleSelectPrice({
-                        id: plan.price.id,
-                        name: plan.name,
-                        description: plan.cycle,
-                      })
-                    }
-                    disabled={!canCheckout}
-                  >
-                    خرید اشتراک
-                  </Button>
+                  {canCheckout ? (
+                    <Button
+                      className="w-full"
+                      onClick={() =>
+                        handleSelectPrice({
+                          id: cadence.priceId,
+                          name: group.name,
+                          cadence: cadenceKey,
+                          description: cadenceLabels[cadenceKey] ?? cadenceKey,
+                        })
+                      }
+                      disabled={isActivePlan || isSubmitting}
+                    >
+                      {isActivePlan ? "پلن فعال شما" : "شروع اشتراک"}
+                    </Button>
+                  ) : (
+                    <Button asChild className="w-full">
+                      <Link href={SIGN_IN_URL}>ورود یا ثبت‌نام</Link>
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
-            ))}
-          </div>
-        </section>
+            );
+          })}
+        </div>
+      </section>
 
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-semibold">ثبت آگهی شغلی (تک خرید)</h2>
-            <p className="text-sm text-muted-foreground">
-              پرداخت یکباره برای انتشار یک آگهی شغلی.
-            </p>
-          </div>
-          <div className="grid gap-4">
-            {oneTimePrices.map((price) => (
-              <Card key={price.id} className="flex flex-col justify-between">
-                <CardHeader>
-                  <CardTitle className="text-xl">{price.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    {price.formatted}
-                  </div>
-                </CardContent>
-                <CardFooter>
+      <section className="space-y-6">
+        <div className="space-y-2 text-center">
+          <h2 className="text-3xl font-semibold">ثبت آگهی شغلی (تک‌خرید)</h2>
+          <p className="text-sm text-muted-foreground">
+            برای هر آگهی جدید می‌توانید از گزینه پرداخت یکباره استفاده کنید.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {jobOffers.map((price) => (
+            <Card key={price.id} className="flex h-full flex-col justify-between">
+              <CardHeader>
+                <CardTitle className="text-xl">{price.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">
+                  {price.formatted}
+                </div>
+              </CardContent>
+              <CardFooter>
+                {canCheckout ? (
                   <Button
                     className="w-full"
                     onClick={() =>
                       handleSelectPrice({
                         id: price.id,
                         name: price.name,
+                        description: "ثبت آگهی شغلی",
                       })
                     }
-                    disabled={!canCheckout}
+                    disabled={isSubmitting}
                   >
                     پرداخت برای آگهی
                   </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </div>
+                ) : (
+                  <Button asChild className="w-full">
+                    <Link href={SIGN_IN_URL}>ورود یا ثبت‌نام</Link>
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
