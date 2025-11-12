@@ -1,12 +1,27 @@
 import type { ReactNode } from "react";
 
+import { ADMIN_FORBIDDEN_MESSAGE, requireAdmin } from "@/lib/admin/auth";
+
 import { SidebarNav } from "./sidebar-nav";
 
-export default function BillingAdminLayout({
+export default async function BillingAdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    return (
+      <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center bg-muted/30 p-6 text-center">
+        <div className="max-w-md space-y-4 rounded-lg border border-border bg-background p-8 shadow-sm">
+          <h1 className="text-2xl font-semibold text-destructive">دسترسی غیرمجاز</h1>
+          <p className="text-sm leading-6 text-muted-foreground">{ADMIN_FORBIDDEN_MESSAGE}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div dir="rtl" className="min-h-screen bg-muted/20">
       <div className="flex min-h-screen flex-row-reverse">

@@ -10,7 +10,6 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
-
 const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },
@@ -23,10 +22,13 @@ const navigation = [
   },
 ] satisfies NavigationItem[];
 
+
+
 const isStaging = process.env.NEXT_PUBLIC_ENV === "staging";
+const appBaseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(appBaseUrl),
   title: SITE_NAME,
   description: SITE_DESCRIPTION,
   openGraph: {
@@ -57,7 +59,7 @@ export default function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const baseUrl = getBaseUrl();
+  const baseUrl = appBaseUrl;
   const organizationJsonLd = siteOrganizationJsonLd({
     name: SITE_NAME,
     url: baseUrl,

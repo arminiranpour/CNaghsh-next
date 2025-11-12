@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Children, Fragment, isValidElement } from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -13,23 +14,22 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline"
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10"
-      }
+        icon: "h-10 w-10",
+      },
     },
     defaultVariants: {
       variant: "default",
-      size: "default"
-    }
+      size: "default",
+    },
   }
 );
 
@@ -39,15 +39,122 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/* -------------------- helpers to guarantee a single element for Radix Slot -------------------- */
+
+type NamedComponent = {
+  displayName?: string;
+  name?: string;
+};
+
+const getElementDisplayName = (element: React.ReactElement): string | undefined => {
+  const { type } = element;
+  if (typeof type === "string") {
+    return type;
+  }
+
+  if (typeof type === "function" || (typeof type === "object" && type !== null)) {
+    const named = type as NamedComponent;
+    return named.displayName ?? named.name;
+  }
+
+  return undefined;
+};
+
+function isFragmentEl(node: unknown): node is React.ReactElement {
+  return isValidElement(node) && node.type === Fragment;
+}
+
+function hasExactlyOneChildElement(node: React.ReactNode): node is React.ReactElement {
+  if (isValidElement(node) && !isFragmentEl(node)) return true;
+  if (Array.isArray(node)) {
+    const filtered = node.filter(Boolean);
+    return filtered.length === 1 && isValidElement(filtered[0]) && filtered[0].type !== Fragment;
+  }
+  return false;
+}
+
+function wrapInSpan(
+  children: React.ReactNode,
+  wrapperProps?: React.HTMLAttributes<HTMLSpanElement>,
+): React.ReactElement<HTMLSpanElement> {
+  return <span {...wrapperProps}>{children}</span>;
+}
+
+/**
+ * Ensure Slot receives exactly one *element*. If we get text, a Fragment, or multiple nodes,
+ * wrap them in a <span>. In dev, log a helpful warning to locate the caller.
+ */
+function coerceToSingleElement(
+  children: React.ReactNode,
+  wrapperProps?: React.HTMLAttributes<HTMLSpanElement>
+): React.ReactElement {
+  // Single non-fragment element → OK
+  if (hasExactlyOneChildElement(children)) {
+    return children as React.ReactElement;
+  }
+
+  // Fragment with a single element → unwrap
+  if (isFragmentEl(children)) {
+    const fragmentKids = (children.props?.children ?? []) as React.ReactNode;
+    if (hasExactlyOneChildElement(fragmentKids)) {
+      return fragmentKids as React.ReactElement;
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[Button.asChild] Wrapped non-element or multiple children in <span> for Radix Slot compatibility.",
+      {
+        type: typeof children,
+        count: Array.isArray(children) ? children.filter(Boolean).length : 1,
+        preview:
+          typeof children === "string"
+            ? children.slice(0, 80)
+            : Array.isArray(children)
+              ? Children.toArray(children).map((child) => {
+                  if (typeof child === "string") {
+                    return child.slice(0, 20);
+                  }
+                  if (isValidElement(child)) {
+                    return getElementDisplayName(child) ?? "element";
+                  }
+                  return typeof child;
+                })
+              : isValidElement(children)
+                ? getElementDisplayName(children) ?? "element"
+                : String(children),
+      }
+    );
+  }
+
+  return wrapInSpan(children, wrapperProps);
+}
+
+/* ----------------------------------------- component ----------------------------------------- */
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
+    if (asChild) {
+      const coercedChild = coerceToSingleElement(children, {
+        className: "inline-flex items-center gap-1",
+      });
+
+      return (
+        <Slot ref={ref} className={cn(buttonVariants({ variant, size, className }))} {...props}>
+          {coercedChild}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <button
         ref={ref}
+        className={cn(buttonVariants({ variant, size, className }))}
         {...props}
-      />
+      >
+        {children}
+      </button>
     );
   }
 );

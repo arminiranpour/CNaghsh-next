@@ -1,7 +1,6 @@
 {
   "name": "cnaghsh-next",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "turbo run dev --parallel",
     "dev:infra": "docker compose -f infra/docker-compose.dev.yml up -d",
@@ -10,21 +9,33 @@
     "db:reset": "pnpm prisma migrate reset --force && pnpm prisma generate",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "qa:radix-slot": "./tsx tools/radix-slot-check.ts",
+    "lint:radix": "./eslint --ext .ts,.tsx apps --rulesdir eslint-local --rule 'local/radix-single-child:error'"
   },
   "prisma": {
     "schema": "apps/web/prisma/schema.prisma"
   },
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^20.19.17",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "dotenv-cli": "^7.4.4",
+    "jsdom": "^27.1.0",
     "prisma": "6.16.3",
+    "server-only": "^0.0.1",
     "turbo": "^2.0.6",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "undici": "^7.16.0"
   },
   "dependencies": {
     "@prisma/client": "6.16.3"
-  }
+  },
+  "pnpm": {
+    "overrides": {
+      "react-reconciler": "^0.31.0"
+    }
+  },
+  "packageManager": "pnpm@9.10.0+sha512.73a29afa36a0d092ece5271de5177ecbf8318d454ecd701343131b8ebc0c1a91c487da46ab77c8e596d6acf1461e3594ced4becedf8921b074fbd8653ed7051c"
 }

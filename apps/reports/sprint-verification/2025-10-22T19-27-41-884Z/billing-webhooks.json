@@ -1,0 +1,15 @@
+{
+  "first": {
+    "idempotent": false,
+    "paymentId": "cmh2dxyqx0003uajvjwi9irjs",
+    "invoiceId": "cmh2dxyqy0005uajvpif7j3o0"
+  },
+  "second": {
+    "idempotent": true
+  },
+  "counts": {
+    "payments": 1,
+    "invoices": 1,
+    "logs": 1
+  }
+}

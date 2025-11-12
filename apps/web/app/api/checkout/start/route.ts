@@ -1,11 +1,8 @@
 import { NextRequest } from "next/server";
 
-import { providers } from "@/lib/billing/providers";
-import { ProviderName } from "@/lib/billing/providers/types";
-import { prisma } from "@/lib/db";
+import { startCheckoutSession } from "@/lib/billing/checkout";
+import { ProviderName } from "@/lib/billing/provider.types";
 import { badRequest, ok, safeJson, serverError } from "@/lib/http";
-import { sanitizeReturnUrl } from "@/lib/url";
-import { CheckoutStatus, Provider } from "@/lib/prismaEnums";
 
 const isProviderName = (value: string): value is ProviderName => {
   return value === "zarinpal" || value === "idpay" || value === "nextpay";
@@ -34,61 +31,30 @@ export async function POST(request: NextRequest) {
   if (typeof priceId !== "string" || priceId.trim().length === 0) {
     return badRequest("Invalid JSON");
   }
-  const adapter = providers[provider];
-    if (!adapter) {
-    return badRequest("Invalid JSON");
-  }
 
-  const price = await prisma.price.findFirst({
-    where: { id: priceId, active: true },
-  });
-
-  if (!price) {
-    return badRequest("Price not found");
-  }
-
-  const session = await prisma.checkoutSession.create({
-    data: {
-      userId,
-      provider: provider as Provider,
-      priceId,
-      status: CheckoutStatus.STARTED,
-      redirectUrl: "",
-      returnUrl: "",
-      providerInitPayload: {},
-    },
-  });
-  const fallbackPath = `/checkout/${session.id}/success`;
-  const resolvedReturnUrl = sanitizeReturnUrl(
-    typeof returnUrl === "string" ? returnUrl : undefined,
-    fallbackPath,
-  );
-
-  let startResult;
   try {
-    startResult = adapter.start({
-      sessionId: session.id,
-      amount: price.amount,
-      currency: "IRR",
-      returnUrl: resolvedReturnUrl,
+    const result = await startCheckoutSession({
+      userId,
+      priceId,
+      provider,
+      returnUrl: typeof returnUrl === "string" ? returnUrl : undefined,
+    });
+
+    return ok({
+      sessionId: result.sessionId,
+      redirectUrl: result.redirectUrl,
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === "PRICE_NOT_FOUND") {
+        return badRequest("Price not found");
+      }
+
+      if (error.message === "UNKNOWN_PROVIDER") {
+        return badRequest("Invalid JSON");
+      }
+    }
+
     return serverError("Failed to start checkout");
   }
-  try {
-    await prisma.checkoutSession.update({
-      where: { id: session.id },
-      data: {
-        redirectUrl: startResult.redirectUrl,
-        returnUrl: resolvedReturnUrl,
-      },
-    });
-  } catch (error) {
-    return serverError("Failed to persist checkout session");
-  }
-
-  return ok({
-    sessionId: session.id,
-    redirectUrl: startResult.redirectUrl,
-  });
 }

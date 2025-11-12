@@ -1,11 +1,17 @@
 import { createHash } from "crypto";
 
-import { NotificationChannel, NotificationType } from "@prisma/client";
+import {
+  NotificationChannel,
+  NotificationDispatchStatus,
+  NotificationType,
+  Prisma,
+} from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
-
-import { isEmailConfigured, sendEmail } from "./email";
 import { emitNotificationDispatch } from "./instrumentation";
+import { enqueueJob, type NotificationJobPayload } from "./jobs";
+import { prisma } from "@/lib/prisma";
+import { buildManagePreferencesLink, isChannelEnabled, resolveCategoryForType } from "./preferences";
+import type { EmailContent } from "./email";
 
 export { setNotificationDispatchObserver } from "./instrumentation";
 export type { NotificationDispatchObserver, NotificationDispatchEvent } from "./instrumentation";
@@ -17,108 +23,171 @@ type NotifyOptions = {
   body: string;
   payload?: Record<string, unknown> | null;
   channels?: NotificationChannel[];
-  dedupeKey?: string;
+  dedupeKey: string;
+  emailContent?: EmailContent | null;
+  emailRecipient?: string | null;
 };
 
-const TEN_MINUTES_MS = 10 * 60 * 1000;
-
-function computeDedupeHash({
-  userId,
-  type,
-  body,
-  payload,
-  dedupeKey,
-}: {
-  userId: string;
-  type: NotificationType;
-  body: string;
-  payload?: Record<string, unknown> | null;
-  dedupeKey?: string;
-}): string {
-  const payloadString = payload ? JSON.stringify(payload) : "";
-  const fallback = dedupeKey ?? (payloadString.length > 0 ? payloadString : body);
-  const source = `${userId}:${type}:${fallback}`;
-
+function computeDedupeHash(userId: string, type: NotificationType, dedupeKey: string): string {
+  const source = `${userId}:${type}:${dedupeKey}`;
   return createHash("sha256").update(source).digest("hex");
 }
 
-export async function notifyOnce(options: NotifyOptions): Promise<void> {
-  const { userId, type, title, body, payload, channels, dedupeKey } = options;
-  const requestedChannels = channels?.length ? channels : [NotificationChannel.IN_APP];
-  const start = Date.now();
-  const hash = computeDedupeHash({ userId, type, body, payload: payload ?? undefined, dedupeKey });
-  let status: "delivered" | "duplicate" | "error" = "delivered";
-  let dispatchError: unknown;
+function isUniqueConstraint(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
 
-  try {
-    const existing = await prisma.notification.findFirst({
-      where: {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    return true;
+  }
+
+  return (error as { code?: string }).code === "P2002";
+}
+
+async function createLogEntry({
+  userId,
+  type,
+  dedupeKey,
+  channel,
+  email,
+  payload,
+}: {
+  userId: string;
+  type: NotificationType;
+  dedupeKey: string;
+  channel: NotificationChannel;
+  email?: string | null;
+  payload?: Record<string, unknown> | null;
+}) {
+  return prisma.notificationMessageLog.create({
+    data: {
+      userId,
+      email: email ?? null,
+      eventType: type,
+      channel,
+      dedupeKey,
+      status: NotificationDispatchStatus.QUEUED,
+      metadata: payload ? (payload as Prisma.InputJsonValue) : undefined,
+    },
+  });
+}
+
+export async function notifyOnce(options: NotifyOptions): Promise<void> {
+  const {
+    userId,
+    type,
+    title,
+    body,
+    payload,
+    channels,
+    dedupeKey,
+    emailContent,
+    emailRecipient,
+  } = options;
+
+  if (!dedupeKey || dedupeKey.trim().length === 0) {
+    throw new Error("notifyOnce requires a non-empty dedupeKey");
+  }
+
+  const requestedChannels = channels?.length ? channels : [NotificationChannel.IN_APP];
+  const category = resolveCategoryForType(type);
+  const dedupeHash = computeDedupeHash(userId, type, dedupeKey);
+  const manageLink = buildManagePreferencesLink(userId);
+
+  for (const channel of requestedChannels) {
+    const start = Date.now();
+    let status: "queued" | "failed" | "duplicate" | "skipped" = "queued";
+    let error: unknown;
+
+    try {
+      const allowed = await isChannelEnabled({
+        userId,
+        category,
+        channel,
+      });
+
+      if (!allowed) {
+        status = "skipped";
+        try {
+          await prisma.notificationMessageLog.create({
+            data: {
+              userId,
+              eventType: type,
+              channel,
+              dedupeKey,
+              status: NotificationDispatchStatus.SKIPPED,
+              metadata: { reason: "PREFERENCE_DISABLED" },
+            },
+          });
+        } catch (skipError) {
+          if (!isUniqueConstraint(skipError)) {
+            throw skipError;
+          }
+        }
+        continue;
+      }
+
+      let log;
+      try {
+        log = await createLogEntry({
+          userId,
+          type,
+          dedupeKey,
+          channel,
+          email: emailRecipient ?? null,
+          payload,
+        });
+      } catch (creationError) {
+        if (isUniqueConstraint(creationError)) {
+          status = "duplicate";
+          continue;
+        }
+        throw creationError;
+      }
+
+      const jobPayload: NotificationJobPayload = {
         userId,
         type,
-        createdAt: {
-          gte: new Date(Date.now() - TEN_MINUTES_MS),
-        },
-        payload: {
-          path: ["dedupeKey"],
-          equals: hash,
-        },
-      },
-    });
+        title,
+        body,
+        payload: payload ?? undefined,
+        dedupeKey,
+        channel,
+      };
 
-    if (existing) {
-      status = "duplicate";
-      return;
-    }
+      if (channel === NotificationChannel.EMAIL && emailContent) {
+        jobPayload.email = {
+          content: { ...emailContent, manageLink },
+          to: emailRecipient ?? undefined,
+        };
+      }
 
-    const notificationPayload = {
-      ...(payload ?? {}),
-      dedupeKey: hash,
-      ...(dedupeKey ? { dedupeKeyRaw: dedupeKey } : {}),
-    } satisfies Record<string, unknown>;
-
-    if (requestedChannels.includes(NotificationChannel.IN_APP)) {
-      await prisma.notification.create({
-        data: {
-          userId,
-          type,
-          title,
-          body,
-          payload: notificationPayload,
-          channel: NotificationChannel.IN_APP,
-        },
+      await enqueueJob(log.id, jobPayload);
+      status = "queued";
+    } catch (dispatchError) {
+      status = "failed";
+      error = dispatchError;
+      console.error("[notifications] dispatch_failed", {
+        userId,
+        type,
+        channel,
+        error: dispatchError,
+      });
+    } finally {
+      emitNotificationDispatch({
+        userId,
+        type,
+        channel,
+        dedupeKey,
+        dedupeHash,
+        status,
+        durationMs: Date.now() - start,
+        ...(error ? { error } : {}),
       });
     }
-
-    const shouldSendEmail =
-      requestedChannels.includes(NotificationChannel.EMAIL) && isEmailConfigured();
-
-    if (shouldSendEmail) {
-      try {
-        await sendEmail(userId, title, body);
-      } catch (error) {
-        dispatchError = error;
-        status = "error";
-        console.error("[notifications] email_failed", {
-          userId,
-          type,
-          error,
-        });
-      }
-    }
-  } catch (error) {
-    status = "error";
-    dispatchError = error;
-    throw error;
-  } finally {
-    emitNotificationDispatch({
-      userId,
-      type,
-      channels: requestedChannels,
-      dedupeKey,
-      dedupeHash: hash,
-      status,
-      durationMs: Date.now() - start,
-      ...(dispatchError ? { error: dispatchError } : {}),
-    });
   }
 }

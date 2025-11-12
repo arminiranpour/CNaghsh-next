@@ -1,9 +1,16 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { PreferenceChannelToggleGroup } from "@/components/notifications/preference-channel-toggle-group";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
+import {
+  CATEGORY_CONFIG,
+  buildManagePreferencesLink,
+  getUserPreferences,
+} from "@/lib/notifications/preferences";
 
 import { markAllRead, markOneRead } from "./actions";
 
@@ -45,6 +52,9 @@ export default async function NotificationsPage() {
     take: 50,
   });
 
+  const preferences = await getUserPreferences(userId);
+  const manageLink = buildManagePreferencesLink(userId);
+
   const unreadCount = notifications.reduce(
     (total, item) => (item.readAt ? total : total + 1),
     0,
@@ -68,6 +78,53 @@ export default async function NotificationsPage() {
           </form>
         ) : null}
       </div>
+
+      <section className="rounded-2xl border border-border/60 bg-background p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold">تنظیمات اعلان‌های صورتحساب</h3>
+            <p className="text-sm text-muted-foreground">
+              می‌توانید ترجیح خود را برای دریافت ایمیل و اعلان درون‌برنامه مشخص کنید. لینک سریع مدیریت: {" "}
+              <Link href={manageLink} className="text-primary underline-offset-2 hover:underline">
+                مدیریت اعلان‌ها
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          {preferences.map((pref) => {
+            const config = CATEGORY_CONFIG[pref.category];
+
+            return (
+              <div
+                key={pref.category}
+                className="flex flex-col gap-4 rounded-xl border border-border/50 bg-muted/10 p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">{config.title}</p>
+                  <p className="text-xs leading-6 text-muted-foreground">{config.description}</p>
+                  {pref.locked ? (
+                    <p className="text-xs font-medium text-primary">
+                      این دسته‌بندی همیشه فعال است و امکان غیرفعال‌سازی ندارد.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      تغییرات اعمال‌شده بلافاصله ذخیره خواهد شد.
+                    </p>
+                  )}
+                </div>
+                <PreferenceChannelToggleGroup
+                  category={pref.category}
+                  emailEnabled={pref.emailEnabled}
+                  inAppEnabled={pref.inAppEnabled}
+                  locked={pref.locked}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {notifications.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-10 text-center text-sm text-muted-foreground">

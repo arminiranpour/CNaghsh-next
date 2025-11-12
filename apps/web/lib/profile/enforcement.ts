@@ -33,13 +33,12 @@ async function revalidateProfilePaths(profileId: string) {
 
 export async function getPublishability(userId: string): Promise<PublishabilityResult> {
   const now = new Date();
-  const entitlement = await prisma.userEntitlement.findUnique({
+  const entitlement = await prisma.userEntitlement.findFirst({
     where: {
-      userId_key: {
-        userId,
-        key: CAN_PUBLISH_PROFILE,
-      },
+      userId,
+      key: CAN_PUBLISH_PROFILE,
     },
+    orderBy: { expiresAt: "desc" },
     select: {
       expiresAt: true,
     },

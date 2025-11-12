@@ -1,0 +1,86 @@
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+import { NextResponse } from "next/server";
+
+import { getServerAuthSession } from "@/lib/auth/session";
+import { getInvoiceForPdf } from "@/lib/billing/invoiceQueries";
+import { generateInvoicePdf, type InvoicePdfRecord } from "@/lib/billing/invoicePdf";
+
+const CACHE_CONTROL_FINALIZED = "public, max-age=3600, stale-while-revalidate=86400";
+const CACHE_CONTROL_DRAFT = "no-store";
+
+const FINALIZED_STATUSES = new Set<string>(["PAID", "REFUNDED", "VOID"]);
+
+export async function GET(
+  _request: Request,
+  context: { params: { invoiceId: string } },
+) {
+  const session = await getServerAuthSession();
+  const user = session?.user;
+
+  if (!user || typeof user.id !== "string") {
+    return NextResponse.json(
+      { error: "UNAUTHORIZED" },
+      { status: 401, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
+
+  const invoiceId = context.params.invoiceId;
+  if (!invoiceId) {
+    return NextResponse.json(
+      { error: "INVALID_INVOICE" },
+      { status: 400, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
+
+  const invoice = await getInvoiceForPdf(invoiceId);
+  if (!invoice) {
+    return NextResponse.json(
+      { error: "NOT_FOUND" },
+      { status: 404, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
+
+  const isOwner = invoice.userId === user.id;
+  const isAdmin = user.role === "ADMIN";
+  if (!isOwner && !isAdmin) {
+    return NextResponse.json(
+      { error: "FORBIDDEN" },
+      { status: 403, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
+
+  try {
+    const pdfBuffer = await generateInvoicePdf(invoice as InvoicePdfRecord);
+
+    const filename = `${invoice.number ?? invoice.id}.pdf`;
+    const cacheControl = FINALIZED_STATUSES.has(String(invoice.status))
+      ? CACHE_CONTROL_FINALIZED
+      : CACHE_CONTROL_DRAFT;
+
+    const headers = new Headers({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
+      "Cache-Control": cacheControl,
+    });
+
+    // Make a plain ArrayBuffer (avoid SAB union) and send as Blob.
+    const view = new Uint8Array(pdfBuffer.buffer, pdfBuffer.byteOffset, pdfBuffer.byteLength);
+    const copy = new Uint8Array(view.length);
+    copy.set(view);
+    const blob = new Blob([copy], { type: "application/pdf" });
+
+    return new NextResponse(blob, { status: 200, headers });
+  } catch (error) {
+    console.error("[invoice-pdf] Failed to render invoice PDF", {
+      invoiceId,
+      error,
+    });
+
+    return NextResponse.json(
+      { error: "PDF_RENDER_FAILED" },
+      { status: 500, headers: { "Cache-Control": CACHE_CONTROL_DRAFT } },
+    );
+  }
+}

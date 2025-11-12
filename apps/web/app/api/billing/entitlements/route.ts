@@ -1,5 +1,9 @@
 import { NextRequest } from "next/server";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 import { CAN_PUBLISH_PROFILE, JOB_POST_CREDIT } from "@/lib/billing/entitlementKeys";
 import { prisma } from "@/lib/db";
 import { badRequest, getQuery, ok } from "@/lib/http";
@@ -23,6 +27,12 @@ export async function GET(request: NextRequest) {
       expiresAt: true,
       remainingCredits: true,
     },
+  });
+
+  console.info("[api.billing.entitlements] responding with entitlements", {
+    userId,
+    count: entitlements.length,
+    timestamp: new Date().toISOString(),
   });
 
   type EntitlementResult = (typeof entitlements)[number];

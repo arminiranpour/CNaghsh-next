@@ -38,27 +38,31 @@ value if your local database credentials differ.
 > **Why the `schema=public` suffix?** Prisma issues migrations inside the specified schema. Explicitly pinning the schema prevents the CLI from falling back to a restricted default (which previously triggered `P1010` permission errors for the `postgres` user during `pnpm prisma migrate deploy`).
 
 If you prefer to manage environment variables manually, copy `apps/web/.env.example` to
-`apps/web/.env.local` (or export the variable in your shell) and adjust the connection string if
-needed:
-
-```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
-```
+`apps/web/.env.local` (or export the variables in your shell) and adjust the connection details if
+needed.
 ## Environment variables
 
 The web application reads configuration through a typed loader in `apps/web/lib/env.ts`. Provide these variables in `apps/web/.env.local` (or your shell):
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string. |
-| `PUBLIC_BASE_URL` | ✅ | Absolute origin for building return URLs (no trailing slash, e.g. `http://localhost:3000`). |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string (development defaults to port 5432 on `127.0.0.1`). |
+| `SHADOW_DATABASE_URL` | ✅ (Prisma migrate) | Shadow database used by Prisma Migrate. |
+| `BASE_URL` | ✅ | Canonical application origin for server-side URL helpers. |
+| `PUBLIC_BASE_URL` | ✅ | Public-facing origin for constructing webhook and email links. |
+| `NEXT_PUBLIC_BASE_URL` | ✅ | Browser-exposed origin for analytics and client-side helpers. |
+| `NEXTAUTH_URL` | ✅ | Base URL consumed by NextAuth callbacks. |
 | `WEBHOOK_SHARED_SECRET` | ❌ | Shared secret for webhook signature verification. Leave unset to skip signature checks during local development. |
 
 Example `apps/web/.env.local`:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+BASE_URL="http://localhost:3000"
 PUBLIC_BASE_URL="http://localhost:3000"
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3000"
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting?schema=public"
+SHADOW_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/casting_shadow?schema=public"
 # WEBHOOK_SHARED_SECRET="dev_secret"
 ```
 

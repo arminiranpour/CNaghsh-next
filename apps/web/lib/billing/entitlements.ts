@@ -112,14 +112,11 @@ export const applyEntitlements = async ({
     const key: EntitlementKey = CAN_PUBLISH_PROFILE;
 
     const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.userEntitlement.findUnique({
-        where: {
-          userId_key: {
-            userId,
-            key,
-          },
-        },
+      const existing = await tx.userEntitlement.findFirst({
+        where: { userId, key },
+        orderBy: { expiresAt: "desc" },
         select: {
+          id: true,
           expiresAt: true,
           updatedAt: true,
         },
@@ -132,19 +129,21 @@ export const applyEntitlements = async ({
       const anchor = existing?.expiresAt && existing.expiresAt > now ? existing.expiresAt : now;
       const newExpiry = addMonthsUtc(anchor, months);
 
-      const updated = await tx.userEntitlement.upsert({
-        where: {
-          userId_key: {
-            userId,
-            key,
+      if (existing) {
+        return tx.userEntitlement.update({
+          where: { id: existing.id },
+          data: { expiresAt: newExpiry },
+          select: {
+            expiresAt: true,
+            updatedAt: true,
           },
-        },
-        create: {
+        });
+      }
+
+      return tx.userEntitlement.create({
+        data: {
           userId,
           key,
-          expiresAt: newExpiry,
-        },
-        update: {
           expiresAt: newExpiry,
         },
         select: {
@@ -152,8 +151,6 @@ export const applyEntitlements = async ({
           updatedAt: true,
         },
       });
-
-      return updated;
     });
 
     return {
@@ -171,14 +168,11 @@ export const applyEntitlements = async ({
     const key: EntitlementKey = JOB_POST_CREDIT;
 
     const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.userEntitlement.findUnique({
-        where: {
-          userId_key: {
-            userId,
-            key,
-          },
-        },
+      const existing = await tx.userEntitlement.findFirst({
+        where: { userId, key },
+        orderBy: { updatedAt: "desc" },
         select: {
+          id: true,
           remainingCredits: true,
           updatedAt: true,
         },
@@ -190,19 +184,21 @@ export const applyEntitlements = async ({
 
       const nextCredits = (existing?.remainingCredits ?? 0) + 1;
 
-      const updated = await tx.userEntitlement.upsert({
-        where: {
-          userId_key: {
-            userId,
-            key,
+      if (existing) {
+        return tx.userEntitlement.update({
+          where: { id: existing.id },
+          data: { remainingCredits: nextCredits },
+          select: {
+            remainingCredits: true,
+            updatedAt: true,
           },
-        },
-        create: {
+        });
+      }
+
+      return tx.userEntitlement.create({
+        data: {
           userId,
           key,
-          remainingCredits: nextCredits,
-        },
-        update: {
           remainingCredits: nextCredits,
         },
         select: {
@@ -210,8 +206,6 @@ export const applyEntitlements = async ({
           updatedAt: true,
         },
       });
-
-      return updated;
     });
 
     return {

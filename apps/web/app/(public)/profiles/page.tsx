@@ -352,7 +352,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
                 قبلی
               </Link>
             ) : (
-              <>قبلی</>
+              <span>قبلی</span>
             )}
           </Button>
           <Button
@@ -368,7 +368,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
                 بعدی
               </Link>
             ) : (
-              <>بعدی</>
+              <span>بعدی</span>
             )}
           </Button>
         </div>

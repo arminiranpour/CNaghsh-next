@@ -3,7 +3,18 @@
 import { execSync } from "node:child_process";
 import { chromium } from "playwright";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const baseUrl =
+  process.env.PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.BASE_URL ??
+  process.env.NEXTAUTH_URL;
+
+if (!baseUrl) {
+  throw new Error("PUBLIC_BASE_URL (or equivalent) must be configured before running the analytics smoke test.");
+}
+
+const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
 
 function isMissingExecutableError(error) {
   return typeof error?.message === "string" && error.message.includes("Executable doesn't exist");
@@ -48,7 +59,7 @@ async function main() {
       };
     });
 
-    await page.goto(`${baseUrl}/jobs`, { waitUntil: "networkidle" });
+    await page.goto(`${normalizedBaseUrl}/jobs`, { waitUntil: "networkidle" });
 
     const initialEvents = await page.evaluate(() => window.__analyticsCalls.length);
     if (initialEvents !== 0) {

@@ -33,12 +33,18 @@ export async function fetchCheckoutSession(
       return null;
     }
 
-    const data = (await response.json()) as
-      | CheckoutSessionResponse
-      | CheckoutSessionError;
+    let data: CheckoutSessionResponse | CheckoutSessionError | null = null;
+    try {
+      data = (await response.json()) as
+        | CheckoutSessionResponse
+        | CheckoutSessionError;
+    } catch (error) {
+      console.error("Failed to parse checkout session response", error);
+      data = null;
+    }
 
-    if (!response.ok) {
-      if ("error" in data && data.error) {
+    if (!response.ok || !data) {
+      if (data && "error" in data && data.error) {
         return { error: data.error } satisfies CheckoutSessionError;
       }
 
