@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { loadStorageEnv } from "./env-loader";
+import "./env-loader";
 import { storageConfig } from "../../lib/storage/config";
 import { getSignedGetUrl } from "../../lib/storage/signing";
-
-loadStorageEnv();
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

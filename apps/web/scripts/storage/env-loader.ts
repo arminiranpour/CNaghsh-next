@@ -66,4 +66,10 @@ const loadStorageEnv = () => {
   initialized = true;
 };
 
+// Automatically load the storage environment variables as soon as this module
+// is imported so that downstream modules (for example the storage config
+// module) see the populated values during their module initialization. The
+// guard inside `loadStorageEnv` makes this call idempotent.
+loadStorageEnv();
+
 export { loadStorageEnv };

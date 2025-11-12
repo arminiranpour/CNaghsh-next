@@ -1,12 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { loadStorageEnv } from "./env-loader";
+import "./env-loader";
 import { cacheOriginal } from "../../lib/storage/headers";
 import { getOriginalKey } from "../../lib/storage/keys";
 import { head, putBuffer, remove } from "../../lib/storage/s3";
 import { resolveBucketForVisibility } from "../../lib/storage/visibility";
-
-loadStorageEnv();
 
 const run = async () => {
   const ownerId = randomUUID();
