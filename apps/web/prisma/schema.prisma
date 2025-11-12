@@ -31,6 +31,7 @@ model User {
   auditLogs           AuditLog[]
   notificationPreferences NotificationPreference[]
   notificationMessageLogs NotificationMessageLog[]
+  mediaAssets         MediaAsset[]
 
 }
 
@@ -434,6 +435,46 @@ model NotificationJob {
   @@index([status, runAt])
 }
 
+model MediaAsset {
+  id            String          @id @default(cuid())
+  type          MediaType
+  status        MediaStatus     @default(uploaded)
+  visibility    MediaVisibility @default(private)
+  ownerUserId   String
+  sourceKey     String
+  outputKey     String?         @unique
+  posterKey     String?
+  durationSec   Int?
+  width         Int?
+  height        Int?
+  codec         String?
+  bitrate       Int?
+  sizeBytes     BigInt?
+  errorMessage  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  owner         User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  transcodeJobs TranscodeJob[]
+
+  @@index([ownerUserId, type, status])
+  @@index([createdAt])
+}
+
+model TranscodeJob {
+  id           String             @id @default(cuid())
+  mediaAssetId String
+  attempt      Int                @default(1)
+  status       TranscodeJobStatus @default(queued)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  logs         Json?
+  createdAt    DateTime           @default(now())
+  mediaAsset   MediaAsset         @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([mediaAssetId, createdAt])
+  @@index([status])
+}
+
 enum ProductType {
   SUBSCRIPTION
   JOB_POST
@@ -561,6 +602,30 @@ enum NotificationJobStatus {
   COMPLETED
   FAILED
   SKIPPED
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum MediaStatus {
+  uploaded
+  processing
+  ready
+  failed
+}
+
+enum MediaVisibility {
+  public
+  private
+}
+
+enum TranscodeJobStatus {
+  queued
+  processing
+  done
+  failed
 }
 
 enum JobStatus {
