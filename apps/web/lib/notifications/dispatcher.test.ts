@@ -1,30 +1,42 @@
-import { NotificationChannel, NotificationType } from "@prisma/client";
+import {
+  NotificationCategory,
+  NotificationChannel,
+  NotificationDispatchStatus,
+  NotificationType,
+} from "@prisma/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const prismaMock = vi.hoisted(() => ({
-  notification: {
-    findFirst: vi.fn(),
-    create: vi.fn(),
+const createLogMock = vi.fn();
+const prismaMock = {
+  notificationMessageLog: {
+    create: createLogMock,
   },
-}));
-
-const emailMock = vi.hoisted(() => ({
-  isEmailConfigured: vi.fn(() => false),
-  sendEmail: vi.fn(),
-}));
+};
 
 vi.mock("@/lib/prisma", () => ({ prisma: prismaMock }));
 
-vi.mock("./email", () => emailMock);
+const enqueueJobMock = vi.fn();
+vi.mock("./jobs", () => ({ enqueueJob: enqueueJobMock }));
 
-describe("notification dispatcher", () => {
+const preferencesMock = {
+  isChannelEnabled: vi.fn(),
+  buildManagePreferencesLink: vi.fn(() => "https://example.com/manage"),
+  resolveCategoryForType: vi.fn(() => NotificationCategory.BILLING_TRANSACTIONAL),
+};
+
+vi.mock("./preferences", () => preferencesMock);
+
+describe("notifications dispatcher", () => {
   beforeEach(() => {
-    prismaMock.notification.findFirst.mockReset();
-    prismaMock.notification.create.mockReset();
-    emailMock.isEmailConfigured.mockReturnValue(false);
-    emailMock.sendEmail.mockReset();
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2024-03-10T09:00:00.000Z"));
+    vi.setSystemTime(new Date("2024-06-01T00:00:00.000Z"));
+    enqueueJobMock.mockReset();
+    createLogMock.mockReset();
+    preferencesMock.isChannelEnabled.mockReset();
+    preferencesMock.buildManagePreferencesLink.mockReturnValue("https://example.com/manage");
+    preferencesMock.resolveCategoryForType.mockReturnValue(
+      NotificationCategory.BILLING_TRANSACTIONAL,
+    );
   });
 
   afterEach(() => {
@@ -32,81 +44,102 @@ describe("notification dispatcher", () => {
     vi.resetModules();
   });
 
-  it("stores an in-app notification and emits instrumentation", async () => {
+  it("queues a notification job when the channel is enabled", async () => {
     const { notifyOnce, setNotificationDispatchObserver } = await import("./dispatcher");
 
-    prismaMock.notification.findFirst.mockResolvedValue(null);
-    prismaMock.notification.create.mockResolvedValue({ id: "n1" });
+    preferencesMock.isChannelEnabled.mockResolvedValue(true);
+    createLogMock.mockResolvedValue({ id: "log-1" });
 
-    const events: string[] = [];
+    const events: Array<{ status: string; channel: NotificationChannel }> = [];
     setNotificationDispatchObserver((event) => {
-      events.push(event.status);
-      expect(event.dedupeHash).toMatch(/[a-f0-9]{64}/);
-      expect(event.channels).toEqual([NotificationChannel.IN_APP]);
+      events.push({ status: event.status, channel: event.channel });
     });
 
     await notifyOnce({
-      userId: "user1",
-      type: NotificationType.MODERATION_APPROVED,
-      title: "Approved",
-      body: "Your job is approved",
-      payload: { context: "job", jobId: "job1" },
+      userId: "user-1",
+      type: NotificationType.BILLING_PAYMENT_FAILED,
+      title: "پرداخت ناموفق",
+      body: "لطفاً دوباره تلاش کنید.",
+      channels: [NotificationChannel.EMAIL],
+      dedupeKey: "invoice-1",
+      emailContent: {
+        subject: "پرداخت ناموفق بود",
+        headline: "پرداخت شما انجام نشد",
+        preheader: "لطفاً دوباره تلاش کنید.",
+        paragraphs: ["نمونه"],
+      },
+      emailRecipient: "user@example.com",
     });
 
-    expect(prismaMock.notification.create).toHaveBeenCalledWith(
+    expect(createLogMock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          userId: "user1",
+          eventType: NotificationType.BILLING_PAYMENT_FAILED,
+          channel: NotificationChannel.EMAIL,
+          status: NotificationDispatchStatus.QUEUED,
+        }),
+      }),
+    );
+    expect(enqueueJobMock).toHaveBeenCalledWith("log-1", expect.objectContaining({
+      channel: NotificationChannel.EMAIL,
+      userId: "user-1",
+      dedupeKey: "invoice-1",
+    }));
+    expect(events).toEqual([{ status: "queued", channel: NotificationChannel.EMAIL }]);
+  });
+
+  it("skips dispatch when the channel is disabled by user preferences", async () => {
+    const { notifyOnce, setNotificationDispatchObserver } = await import("./dispatcher");
+
+    preferencesMock.isChannelEnabled.mockResolvedValue(false);
+
+    const events: Array<{ status: string; channel: NotificationChannel }> = [];
+    setNotificationDispatchObserver((event) => {
+      events.push({ status: event.status, channel: event.channel });
+    });
+
+    await notifyOnce({
+      userId: "user-2",
+      type: NotificationType.BILLING_SUBSCRIPTION_EXPIRY_REMINDER,
+      title: "انقضای نزدیک",
+      body: "اشتراک شما رو به پایان است.",
+      channels: [NotificationChannel.IN_APP],
+      dedupeKey: "sub-1",
+    });
+
+    expect(createLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: NotificationDispatchStatus.SKIPPED,
           channel: NotificationChannel.IN_APP,
         }),
       }),
     );
-    expect(events).toEqual(["delivered"]);
+    expect(enqueueJobMock).not.toHaveBeenCalled();
+    expect(events).toEqual([{ status: "skipped", channel: NotificationChannel.IN_APP }]);
   });
 
-  it("deduplicates notifications within the time window", async () => {
-    const { notifyOnce } = await import("./dispatcher");
+  it("treats unique constraint errors as duplicates", async () => {
+    const { notifyOnce, setNotificationDispatchObserver } = await import("./dispatcher");
 
-    prismaMock.notification.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: "existing" });
+    preferencesMock.isChannelEnabled.mockResolvedValue(true);
+    createLogMock.mockRejectedValue({ code: "P2002" });
 
-    prismaMock.notification.create.mockResolvedValue({ id: "new" });
-
-    await notifyOnce({
-      userId: "user2",
-      type: NotificationType.MODERATION_PENDING,
-      title: "Pending",
-      body: "Job pending",
-      payload: { context: "job", jobId: "job2" },
+    const events: Array<{ status: string; channel: NotificationChannel }> = [];
+    setNotificationDispatchObserver((event) => {
+      events.push({ status: event.status, channel: event.channel });
     });
 
     await notifyOnce({
-      userId: "user2",
-      type: NotificationType.MODERATION_PENDING,
-      title: "Pending",
-      body: "Job pending",
-      payload: { context: "job", jobId: "job2" },
+      userId: "user-3",
+      type: NotificationType.BILLING_INVOICE_READY,
+      title: "رسید آماده است",
+      body: "رسید پرداخت شما صادر شد.",
+      channels: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+      dedupeKey: "invoice-duplicate",
     });
 
-    expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
-  });
-
-  it("sends email when configured", async () => {
-    const { notifyOnce } = await import("./dispatcher");
-
-    prismaMock.notification.findFirst.mockResolvedValue(null);
-    prismaMock.notification.create.mockResolvedValue({ id: "n2" });
-    emailMock.isEmailConfigured.mockReturnValue(true);
-
-    await notifyOnce({
-      userId: "user3",
-      type: NotificationType.MODERATION_PENDING,
-      title: "Pending",
-      body: "Job pending",
-      channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    });
-
-    expect(emailMock.sendEmail).toHaveBeenCalledWith("user3", "Pending", "Job pending");
+    expect(enqueueJobMock).not.toHaveBeenCalled();
+    expect(events[0]).toEqual({ status: "duplicate", channel: NotificationChannel.EMAIL });
   });
 });

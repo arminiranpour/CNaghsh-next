@@ -1,5 +1,8 @@
 import {
   EntitlementKey,
+  NotificationChannel,
+  NotificationDispatchStatus,
+  NotificationType,
   Prisma,
   type InvoiceStatus,
   type InvoiceType,
@@ -423,6 +426,92 @@ export async function listEntitlements({ filters, pagination, sort }: Entitlemen
   ]);
 
   return { items: entitlements, total, page, pageSize };
+}
+
+type NotificationLogSortField = "createdAt" | "status" | "channel" | "attempts";
+
+type NotificationLogFilters = {
+  channel?: NotificationChannel;
+  status?: NotificationDispatchStatus;
+  type?: NotificationType;
+  from?: Date;
+  to?: Date;
+  query?: string;
+};
+
+type NotificationLogListArgs = {
+  filters: NotificationLogFilters;
+  pagination?: Pagination;
+  sort?: { field: NotificationLogSortField; direction: SortDirection };
+};
+
+export async function listNotificationLogs({
+  filters,
+  pagination,
+  sort,
+}: NotificationLogListArgs) {
+  const page = pagination?.page && pagination.page > 0 ? pagination.page : 1;
+  const pageSize = pagination?.pageSize && pagination.pageSize > 0 ? pagination.pageSize : DEFAULT_PAGE_SIZE;
+
+  const where: Prisma.NotificationMessageLogWhereInput = {};
+
+  if (filters.channel) {
+    where.channel = filters.channel;
+  }
+
+  if (filters.status) {
+    where.status = filters.status;
+  }
+
+  if (filters.type) {
+    where.eventType = filters.type;
+  }
+
+  if (filters.from || filters.to) {
+    where.createdAt = {};
+    if (filters.from) {
+      where.createdAt.gte = filters.from;
+    }
+    if (filters.to) {
+      where.createdAt.lte = filters.to;
+    }
+  }
+
+  if (filters.query) {
+    const query = filters.query.trim();
+    if (query) {
+      where.OR = [
+        { dedupeKey: { contains: query, mode: "insensitive" } },
+        { eventType: { contains: query, mode: "insensitive" } },
+        { email: { contains: query, mode: "insensitive" } },
+        { providerMessageId: { contains: query, mode: "insensitive" } },
+        { user: { email: { contains: query, mode: "insensitive" } } },
+      ];
+    }
+  }
+
+  const orderBy: Prisma.NotificationMessageLogOrderByWithRelationInput[] = [];
+  if (sort) {
+    if (sort.field === "attempts") {
+      orderBy.push({ attempts: sort.direction });
+    } else {
+      orderBy.push({ [sort.field]: sort.direction } as Prisma.NotificationMessageLogOrderByWithRelationInput);
+    }
+  }
+  orderBy.push({ createdAt: "desc" });
+
+  const [total, logs] = await Promise.all([
+    prisma.notificationMessageLog.count({ where }),
+    prisma.notificationMessageLog.findMany({
+      where,
+      include: { user: { select: { id: true, email: true, name: true } } },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  return { items: logs, total, page, pageSize };
 }
 
 type WebhookSortField = "receivedAt" | "status";

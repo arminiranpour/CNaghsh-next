@@ -14,6 +14,7 @@ const navItems = [
   { href: "/admin/billing/invoices" as Route, label: "فاکتورها" },
   { href: "/admin/billing/entitlements" as Route, label: "دسترسی‌ها" },
   { href: "/admin/billing/webhooks" as Route, label: "وب‌هوک‌ها" },
+  { href: "/admin/billing/notifications" as Route, label: "اعلان‌ها" },
   { href: "/admin/billing/exports" as Route, label: "خروجی‌ها" },
   { href: "/admin/billing/activity" as Route, label: "گزارش عملیات" },
   { href: "/admin/billing/products" as Route, label: "محصولات" },

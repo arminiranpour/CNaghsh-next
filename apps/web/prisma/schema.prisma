@@ -14,20 +14,24 @@ model User {
   name                String?
   passwordHash        String?
   role                Role                 @default(USER)
-  auditLogs           AuditLog[]
+  timezone            String?              @db.VarChar(64)
   checkoutSessions    CheckoutSession[]
   emailLogs           EmailLog[]
   invoices            Invoice[]
   Job                 Job[]
-  jobCreditGrants     JobCreditGrant[]
   jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
   moderationEvents    ModerationEvent[]    @relation("ModerationActor")
   notifications       Notification[]
   payments            Payment[]
+  jobCreditGrants     JobCreditGrant[]
+  subscriptions       Subscription[]
   moderatedProfiles   Profile[]            @relation("ProfileModerators")
   profile             Profile?
-  subscriptions       Subscription?
   entitlements        UserEntitlement[]
+  auditLogs           AuditLog[]
+  notificationPreferences NotificationPreference[]
+  notificationMessageLogs NotificationMessageLog[]
+
 }
 
 model Profile {
@@ -140,7 +144,7 @@ model CheckoutSession {
 
 model Subscription {
   id                String             @id @default(cuid())
-  userId            String             @unique
+  userId            String
   planId            String
   status            SubscriptionStatus @default(active)
   startedAt         DateTime           @default(now())
@@ -150,9 +154,10 @@ model Subscription {
   providerRef       String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  plan              Plan               @relation(fields: [planId], references: [id])
+  plan              Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId])
   @@index([status])
   @@index([endsAt])
   @@index([planId])
@@ -173,10 +178,10 @@ model Payment {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   invoice           Invoice?
-  jobCreditGrants   JobCreditGrant?
   session           CheckoutSession     @relation(fields: [checkoutSessionId], references: [id], onDelete: Cascade)
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   webhookLogs       PaymentWebhookLog[]
+  jobCreditGrants   JobCreditGrant[]
 
   @@unique([provider, providerRef])
   @@index([status])
@@ -196,7 +201,7 @@ model PaymentWebhookLog {
   handledAt  DateTime?
   status     String?
   paymentId  String?
-  payment    Payment?  @relation(fields: [paymentId], references: [id])
+  payment    Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   @@unique([provider, externalId])
   @@index([receivedAt])
@@ -216,21 +221,21 @@ model Invoice {
   total            Int
   currency         String        @default("IRR")
   status           InvoiceStatus
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  relatedInvoiceId String?
-  notes            String?
-  periodEnd        DateTime?
-  periodStart      DateTime?
-  planCycle        PlanCycle?
   planId           String?
   planName         String?
-  quantity         Int?          @default(1)
+  planCycle        PlanCycle?
+  periodStart      DateTime?
+  periodEnd        DateTime?
   unitAmount       Int?
-  payment          Payment?      @relation(fields: [paymentId], references: [id])
-  relatedInvoice   Invoice?      @relation("InvoiceRelations", fields: [relatedInvoiceId], references: [id])
-  refunds          Invoice[]     @relation("InvoiceRelations")
+  quantity         Int?          @default(1)
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  payment          Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedInvoiceId String?
+  relatedInvoice   Invoice?      @relation("InvoiceRelations", fields: [relatedInvoiceId], references: [id], onDelete: SetNull)
+  refunds          Invoice[]     @relation("InvoiceRelations")
 
   @@index([userId])
   @@index([issuedAt])
@@ -256,6 +261,8 @@ model UserEntitlement {
   updatedAt        DateTime       @updatedAt
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// NOTE: Prisma does not support partial indexes.
+  /// Application logic ensures at most one active CAN_PUBLISH_PROFILE entitlement per user.
   @@unique([userId, key, expiresAt])
   @@index([userId, key])
   @@index([expiresAt])
@@ -270,29 +277,31 @@ model JobCreditGrant {
   reason    String   @default("JOB_CREDIT_PURCHASE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([createdAt])
 }
 
 model AuditLog {
-  id             String   @id @default(cuid())
-  actorId        String
-  actorEmail     String?
-  resourceType   String
-  resourceId     String
-  action         String
-  reason         String
-  before         Json?
-  after          Json?
-  metadata       Json?
-  ipAddress      String?
-  userAgent      String?
-  idempotencyKey String?  @unique
-  createdAt      DateTime @default(now())
-  actor          User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  id            String   @id @default(cuid())
+  actorId       String
+  actorEmail    String?
+  resourceType  String
+  resourceId    String
+  action        String
+  reason        String
+  before        Json?
+  after         Json?
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  idempotencyKey String? @unique
+  createdAt     DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([resourceType, resourceId, createdAt])
   @@index([actorId, createdAt])
@@ -349,11 +358,14 @@ model Notification {
   channel   NotificationChannel @default(IN_APP)
   readAt    DateTime?
   createdAt DateTime            @default(now())
+  dedupeKey String?             @db.VarChar(255)
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
+  @@index([dedupeKey])
+  @@unique([dedupeKey])
 }
 
 model EmailLog {
@@ -367,6 +379,59 @@ model EmailLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model NotificationPreference {
+  id           String                @id @default(cuid())
+  userId       String
+  category     NotificationCategory
+  emailEnabled Boolean              @default(true)
+  inAppEnabled Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([category])
+}
+
+model NotificationMessageLog {
+  id                String                      @id @default(cuid())
+  userId            String?
+  email             String?
+  eventType         String
+  channel           NotificationChannel
+  dedupeKey         String                      @db.VarChar(255)
+  status            NotificationDispatchStatus
+  attempts          Int                         @default(0)
+  providerMessageId String?
+  error             String?
+  metadata          Json?
+  lastAttemptAt     DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  user              User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  jobs              NotificationJob[]
+
+  @@index([userId])
+  @@index([channel])
+  @@unique([dedupeKey, channel])
+}
+
+model NotificationJob {
+  id          String                @id @default(cuid())
+  logId       String
+  status      NotificationJobStatus @default(PENDING)
+  attempts    Int                   @default(0)
+  maxAttempts Int                   @default(3)
+  runAt       DateTime              @default(now())
+  payload     Json
+  error       String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  messageLog  NotificationMessageLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
 }
 
 enum ProductType {
@@ -455,6 +520,11 @@ enum NotificationChannel {
   EMAIL
 }
 
+enum NotificationCategory {
+  BILLING_TRANSACTIONAL
+  BILLING_REMINDERS
+}
+
 enum NotificationType {
   MODERATION_APPROVED
   MODERATION_REJECTED
@@ -469,6 +539,28 @@ enum NotificationType {
   BILLING_REFUND_ISSUED
   BILLING_CANCEL_IMMEDIATE
   BILLING_CANCEL_SCHEDULED
+  BILLING_SUBSCRIPTION_RENEWED
+  BILLING_SUBSCRIPTION_EXPIRY_REMINDER
+  BILLING_SUBSCRIPTION_EXPIRED
+  BILLING_PAYMENT_FAILED
+  BILLING_INVOICE_READY
+  BILLING_INVOICE_REFUND_READY
+  BILLING_WEBHOOK_ALERT
+}
+
+enum NotificationDispatchStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum NotificationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
 }
 
 enum JobStatus {

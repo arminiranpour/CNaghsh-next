@@ -62,6 +62,7 @@ export async function replayNotifications(
     }
 
     const { payload, dedupeKey } = extractPayload(notification.payload);
+    const dedupeKeyValue = dedupeKey ?? notification.dedupeKey ?? notification.id;
 
     await notifyOnce({
       userId: notification.userId,
@@ -69,7 +70,7 @@ export async function replayNotifications(
       title: notification.title,
       body: notification.body,
       payload,
-      dedupeKey,
+      dedupeKey: dedupeKeyValue,
       channels: options.channels ?? [notification.channel ?? NotificationChannel.IN_APP],
     });
   }
