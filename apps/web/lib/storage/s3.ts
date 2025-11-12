@@ -41,6 +41,10 @@ const head = async (bucket: string, key: string): Promise<HeadObjectCommandOutpu
   );
 };
 
+const hasAsyncIterator = (value: unknown): value is AsyncIterable<unknown> => {
+  return typeof (value as { [Symbol.asyncIterator]?: () => AsyncIterator<unknown> })[Symbol.asyncIterator] === "function";
+};
+
 const exists = async (bucket: string, key: string) => {
   try {
     await head(bucket, key);
@@ -97,8 +101,8 @@ const getStream = async (bucket: string, key: string) => {
   if (typeof body === "string" || body instanceof Uint8Array || Array.isArray(body)) {
     return Readable.from(body as Iterable<unknown>);
   }
-  if (typeof (body as { [Symbol.asyncIterator]?: () => AsyncIterator<unknown> })[Symbol.asyncIterator] === "function") {
-    return Readable.from(body as AsyncIterable<unknown>);
+  if (hasAsyncIterator(body)) {
+    return Readable.from(body);
   }
   throw new Error("Unsupported S3 object body type");
 };
