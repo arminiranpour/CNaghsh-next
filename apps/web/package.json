@@ -32,9 +32,14 @@
     "qa:smoke": "node scripts/rollout-check.mjs",
     "qa:analytics": "node scripts/analytics-smoke.mjs",
     "qa:sprint": "tsx scripts/sprint-verification.mjs",
-    "pdf:smoke": "tsx scripts/pdf-smoke.tsx"
+    "pdf:smoke": "tsx scripts/pdf-smoke.tsx",
+    "storage:smoke:original": "tsx scripts/storage/put-and-get-original.ts",
+    "storage:smoke:signed-expiry": "tsx scripts/storage/signed-url-expiry-check.ts",
+    "storage:smoke:visibility": "tsx scripts/storage/visibility-routing-check.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.734.0",
+    "@aws-sdk/s3-request-presigner": "^3.734.0",
     "@acme/ui": "file:./vendor/ui",
     "@fontsource/vazirmatn": "^5.0.21",
     "@radix-ui/react-dialog": "^1.1.1",
