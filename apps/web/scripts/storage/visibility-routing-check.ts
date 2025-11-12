@@ -1,9 +1,8 @@
 import { loadStorageEnv } from "./env-loader";
+import { storageConfig } from "../../lib/storage/config";
+import { resolveBucketForVisibility } from "../../lib/storage/visibility";
 
 loadStorageEnv();
-
-const { storageConfig } = await import("../../lib/storage/config");
-const { resolveBucketForVisibility } = await import("../../lib/storage/visibility");
 
 const run = () => {
   const publicBucket = resolveBucketForVisibility("public");
