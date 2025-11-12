@@ -8,31 +8,30 @@ datasource db {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  createdAt           DateTime             @default(now())
-  name                String?
-  passwordHash        String?
-  role                Role                 @default(USER)
-  timezone            String?              @db.VarChar(64)
-  checkoutSessions    CheckoutSession[]
-  emailLogs           EmailLog[]
-  invoices            Invoice[]
-  Job                 Job[]
-  jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
-  moderationEvents    ModerationEvent[]    @relation("ModerationActor")
-  notifications       Notification[]
-  payments            Payment[]
-  jobCreditGrants     JobCreditGrant[]
-  subscriptions       Subscription[]
-  moderatedProfiles   Profile[]            @relation("ProfileModerators")
-  profile             Profile?
-  entitlements        UserEntitlement[]
-  auditLogs           AuditLog[]
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  createdAt               DateTime                 @default(now())
+  name                    String?
+  passwordHash            String?
+  role                    Role                     @default(USER)
+  timezone                String?                  @db.VarChar(64)
+  checkoutSessions        CheckoutSession[]
+  emailLogs               EmailLog[]
+  invoices                Invoice[]
+  Job                     Job[]
+  jobModerationEvents     JobModerationEvent[]     @relation("JobModerationAdmin")
+  moderationEvents        ModerationEvent[]        @relation("ModerationActor")
+  notifications           Notification[]
+  payments                Payment[]
+  jobCreditGrants         JobCreditGrant[]
+  subscriptions           Subscription[]
+  moderatedProfiles       Profile[]                @relation("ProfileModerators")
+  profile                 Profile?
+  entitlements            UserEntitlement[]
+  auditLogs               AuditLog[]
   notificationPreferences NotificationPreference[]
   notificationMessageLogs NotificationMessageLog[]
-  mediaAssets         MediaAsset[]
-
+  mediaAssets             MediaAsset[]
 }
 
 model Profile {
@@ -287,20 +286,20 @@ model JobCreditGrant {
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  actorId       String
-  actorEmail    String?
-  resourceType  String
-  resourceId    String
-  action        String
-  reason        String
-  before        Json?
-  after         Json?
-  metadata      Json?
-  ipAddress     String?
-  userAgent     String?
-  idempotencyKey String? @unique
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  actorId        String
+  actorEmail     String?
+  resourceType   String
+  resourceId     String
+  action         String
+  reason         String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
 
   actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
@@ -362,11 +361,11 @@ model Notification {
   dedupeKey String?             @db.VarChar(255)
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([dedupeKey])
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
   @@index([dedupeKey])
-  @@unique([dedupeKey])
 }
 
 model EmailLog {
@@ -383,7 +382,7 @@ model EmailLog {
 }
 
 model NotificationPreference {
-  id           String                @id @default(cuid())
+  id           String               @id @default(cuid())
   userId       String
   category     NotificationCategory
   emailEnabled Boolean              @default(true)
@@ -397,39 +396,39 @@ model NotificationPreference {
 }
 
 model NotificationMessageLog {
-  id                String                      @id @default(cuid())
+  id                String                     @id @default(cuid())
   userId            String?
   email             String?
   eventType         String
   channel           NotificationChannel
-  dedupeKey         String                      @db.VarChar(255)
+  dedupeKey         String                     @db.VarChar(255)
   status            NotificationDispatchStatus
-  attempts          Int                         @default(0)
+  attempts          Int                        @default(0)
   providerMessageId String?
   error             String?
   metadata          Json?
   lastAttemptAt     DateTime?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  user              User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  user              User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
   jobs              NotificationJob[]
 
+  @@unique([dedupeKey, channel])
   @@index([userId])
   @@index([channel])
-  @@unique([dedupeKey, channel])
 }
 
 model NotificationJob {
-  id          String                @id @default(cuid())
+  id          String                 @id @default(cuid())
   logId       String
-  status      NotificationJobStatus @default(PENDING)
-  attempts    Int                   @default(0)
-  maxAttempts Int                   @default(3)
-  runAt       DateTime              @default(now())
+  status      NotificationJobStatus  @default(PENDING)
+  attempts    Int                    @default(0)
+  maxAttempts Int                    @default(3)
+  runAt       DateTime               @default(now())
   payload     Json
   error       String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
   messageLog  NotificationMessageLog @relation(fields: [logId], references: [id], onDelete: Cascade)
 
   @@index([status, runAt])
