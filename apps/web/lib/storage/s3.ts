@@ -97,7 +97,10 @@ const getStream = async (bucket: string, key: string) => {
   if (typeof body === "string" || body instanceof Uint8Array || Array.isArray(body)) {
     return Readable.from(body as Iterable<unknown>);
   }
-  return Readable.from(body as AsyncIterable<unknown>);
+  if (typeof (body as { [Symbol.asyncIterator]?: () => AsyncIterator<unknown> })[Symbol.asyncIterator] === "function") {
+    return Readable.from(body as AsyncIterable<unknown>);
+  }
+  throw new Error("Unsupported S3 object body type");
 };
 
 const put = async ({ bucket, key, body, contentType, cacheControl, acl }: PutInput) => {
