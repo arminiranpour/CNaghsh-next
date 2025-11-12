@@ -19,3 +19,8 @@ apps/web/.next/
 apps/web/dist/
 apps/web/build/
 .turbo/
+node_modules/
+apps/web/.next/
+apps/web/dist/
+apps/web/build/
+.turbo/
