@@ -14,3 +14,8 @@ pnpm-lock.yaml
 .DS_Store
 .idea
 .vscode
+node_modules/
+apps/web/.next/
+apps/web/dist/
+apps/web/build/
+.turbo/
