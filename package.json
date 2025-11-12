@@ -24,6 +24,7 @@
     "dotenv-cli": "^7.4.4",
     "jsdom": "^27.1.0",
     "prisma": "6.16.3",
+    "server-only": "^0.0.1",
     "turbo": "^2.0.6",
     "typescript": "^5.6.2",
     "undici": "^7.16.0"
