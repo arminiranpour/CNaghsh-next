@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 
 import type { Job } from "bullmq";
 import { Worker } from "bullmq";
-import { MediaStatus, MediaType, TranscodeJobStatus } from "@prisma/client";
+import { MediaStatus, MediaType, Prisma, TranscodeJobStatus } from "@prisma/client";
 
 import { config } from "../config";
 import { transcodeConfig } from "../config.transcode";
@@ -298,10 +298,10 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const safeMessage = message.length > 500 ? `${message.slice(0, 497)}...` : message;
-    const failureLog: Record<string, unknown> = { error: safeMessage, attempt };
-    if (error instanceof Error && error.stack) {
-      failureLog.stack = error.stack;
-    }
+    const failureLog: Prisma.JsonObject =
+      error instanceof Error && error.stack
+        ? { error: safeMessage, attempt, stack: error.stack }
+        : { error: safeMessage, attempt };
     const finishedAt = new Date();
     try {
       if (transcodeJobRecord) {
