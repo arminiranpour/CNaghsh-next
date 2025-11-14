@@ -17,6 +17,7 @@ export type VideoPlayerProps = {
 
 type HlsConstructor = typeof import("hls.js") extends { default: infer T } ? T : never;
 type HlsInstance = InstanceType<HlsConstructor>;
+type HlsErrorData = import("hls.js").ErrorData;
 
 const VideoPlayer = ({
   mediaId,
@@ -170,7 +171,7 @@ const VideoPlayer = ({
       instance.on(Hls.Events.MEDIA_ATTACHED, () => {
         instance.loadSource(resolvedManifestUrl);
       });
-      instance.on(Hls.Events.ERROR, (_event, data) => {
+      instance.on(Hls.Events.ERROR, (_event: unknown, data: HlsErrorData) => {
         if (data?.fatal) {
           setError("پخش ویدیو ممکن نیست.");
         }
