@@ -1,4 +1,19 @@
-import type { CompletedEvent, FailedEvent, QueueEvents, StalledEvent } from "bullmq";
+import type { QueueEvents } from "bullmq";
+
+type CompletedEvent = {
+  jobId: string | number;
+  returnvalue?: unknown;
+};
+
+type FailedEvent = {
+  jobId: string | number;
+  failedReason?: string;
+  prev?: string | number | null;
+};
+
+type StalledEvent = {
+  jobId: string | number;
+};
 
 import { logger } from "../lib/logger";
 import { createQueueEvents } from "../lib/queue-connection";
@@ -43,7 +58,7 @@ const handleStalled = (event: StalledEvent) => {
 };
 
 const handleError = (queueEvents: QueueEvents) => {
-  queueEvents.on("error", (error) => {
+  queueEvents.on("error", (error: Error) => {
     logger.error("queue", "Queue events error", {
       queue: MEDIA_TRANSCODE_QUEUE_NAME,
       message: error.message,
