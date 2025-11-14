@@ -11,7 +11,9 @@
       "@/app/*": ["./app/*"],
       "@/lib/*": ["./lib/*"],
       "@acme/ui": ["../../packages/ui/src/index.ts"],
-      "@acme/ui/*": ["../../packages/ui/src/*"]
+      "@acme/ui/*": ["../../packages/ui/src/*"],
+      "@acme/contracts": ["../../packages/contracts/src/index.ts"],
+      "@acme/contracts/*": ["../../packages/contracts/src/*"]
     },
     "moduleResolution": "node",
     "skipLibCheck": true,
