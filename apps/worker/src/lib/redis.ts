@@ -4,7 +4,11 @@ import { config } from "../config";
 
 const globalForRedis = globalThis as unknown as { mediaWorkerRedis?: Redis };
 
-const createClient = () => new Redis(config.REDIS_URL);
+const createClient = () =>
+  new Redis(config.REDIS_URL, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: true,
+  });
 
 const redis = globalForRedis.mediaWorkerRedis ?? createClient();
 
