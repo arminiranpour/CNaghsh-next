@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -7,14 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
+import { getPlaybackInfoForMedia } from "@/lib/media/urls";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
 import { buildJobDetailMetadata, getJobOrganizationName } from "@/lib/jobs/seo";
+import { prisma } from "@/lib/prisma";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
 import { JobViewTracker } from "./JobViewTracker";
 
 export const revalidate = 300;
+
+const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), {
+  ssr: false,
+});
 
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {
@@ -138,7 +145,71 @@ export default async function JobDetailPage({
     notFound();
   }
 
-  const [cities] = await Promise.all([getCities()]);
+  const citiesPromise = getCities();
+
+  const jobMediaRelation = job as unknown as {
+    videoMediaAssetId?: string | null;
+    mediaAssetId?: string | null;
+    showcaseMediaAssetId?: string | null;
+  };
+
+  let jobVideo = jobMediaRelation.videoMediaAssetId
+    ? await prisma.mediaAsset.findFirst({
+        where: {
+          id: jobMediaRelation.videoMediaAssetId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+      })
+    : null;
+
+  if (!jobVideo && jobMediaRelation.mediaAssetId) {
+    jobVideo = await prisma.mediaAsset.findFirst({
+      where: {
+        id: jobMediaRelation.mediaAssetId,
+        status: "ready",
+        type: "video",
+        visibility: "public",
+        outputKey: { not: null },
+      },
+    });
+  }
+
+  if (!jobVideo && jobMediaRelation.showcaseMediaAssetId) {
+    jobVideo = await prisma.mediaAsset.findFirst({
+      where: {
+        id: jobMediaRelation.showcaseMediaAssetId,
+        status: "ready",
+        type: "video",
+        visibility: "public",
+        outputKey: { not: null },
+      },
+    });
+  }
+
+  if (!jobVideo) {
+    jobVideo = await prisma.mediaAsset.findFirst({
+      where: {
+        ownerUserId: job.userId,
+        status: "ready",
+        type: "video",
+        visibility: "public",
+        outputKey: { not: null },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  const playbackInfo = jobVideo ? getPlaybackInfoForMedia(jobVideo) : null;
+  const playbackKind = playbackInfo
+    ? playbackInfo.kind === "public-direct"
+      ? "public-direct"
+      : "private-proxy"
+    : null;
+
+  const cities = await citiesPromise;
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
   const cityName = job.cityId ? cityMap.get(job.cityId) ?? job.cityId : undefined;
@@ -191,6 +262,23 @@ export default async function JobDetailPage({
           remote: job.remote,
         }}
       />
+
+      {jobVideo && playbackInfo && playbackKind ? (
+        <Card className="border border-border shadow-sm">
+          <CardHeader>
+            <CardTitle>ویدیو معرفی</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VideoPlayer
+              mediaId={jobVideo.id}
+              manifestUrl={playbackInfo.manifestUrl}
+              playbackKind={playbackKind}
+              posterUrl={playbackInfo.posterUrl ?? undefined}
+              className="w-full"
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border border-border shadow-sm">
         <CardHeader className="space-y-4">

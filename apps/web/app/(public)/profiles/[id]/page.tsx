@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -5,6 +6,7 @@ import { ProfileViewAnalyticsTracker } from "@/components/analytics/ProfileViewA
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
+import { getPlaybackInfoForMedia } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
@@ -14,6 +16,10 @@ import { breadcrumbsJsonLd, profilePersonJsonLd } from "@/lib/seo/jsonld";
 import type { Metadata } from "next";
 
 export const revalidate = 300;
+
+const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), {
+  ssr: false,
+});
 
 type GalleryEntry = {
   url?: unknown;
@@ -144,9 +150,21 @@ export default async function PublicProfilePage({ params }: Props) {
     notFound();
   }
 
-  const [cities, socialLinks] = await Promise.all([
+  const videoPromise = prisma.mediaAsset.findFirst({
+    where: {
+      ownerUserId: profile.userId,
+      type: "video",
+      status: "ready",
+      visibility: "public",
+      outputKey: { not: null },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const [cities, socialLinks, featuredVideo] = await Promise.all([
     getCities(),
     Promise.resolve(extractSocialLinks(profile.socialLinks as SocialLinks)),
+    videoPromise,
   ]);
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
@@ -174,6 +192,13 @@ export default async function PublicProfilePage({ params }: Props) {
     cityName,
     socialLinks,
   });
+
+  const playbackInfo = featuredVideo ? getPlaybackInfoForMedia(featuredVideo) : null;
+  const playbackKind = playbackInfo
+    ? playbackInfo.kind === "public-direct"
+      ? "public-direct"
+      : "private-proxy"
+    : null;
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12" dir="rtl">
@@ -230,6 +255,19 @@ export default async function PublicProfilePage({ params }: Props) {
           </div>
         ) : null}
       </header>
+
+      {featuredVideo && playbackInfo && playbackKind ? (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">ویدیو معرفی</h2>
+          <VideoPlayer
+            mediaId={featuredVideo.id}
+            manifestUrl={playbackInfo.manifestUrl}
+            playbackKind={playbackKind}
+            posterUrl={playbackInfo.posterUrl ?? undefined}
+            className="w-full"
+          />
+        </section>
+      ) : null}
 
       {gallery.length ? (
         <section className="space-y-4">
