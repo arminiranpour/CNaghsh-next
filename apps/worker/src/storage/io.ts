@@ -50,12 +50,12 @@ const toReadable = (body: unknown) => {
 };
 
 const downloadToFile = async (bucket: string, key: string, localPath: string) => {
-  const response = await s3.send(
+  const response = (await s3.send(
     new GetObjectCommand({
       Bucket: bucket,
       Key: key,
     }),
-  );
+  )) as { Body?: unknown };
   const stream = toReadable(response.Body);
   const writer = createWriteStream(localPath);
   await pipeline(stream, writer);

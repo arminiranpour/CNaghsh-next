@@ -8,11 +8,21 @@ const variantSchema = z.object({
   audioBitrateKbps: z.coerce.number().int().positive(),
 });
 
-type VariantConfig = z.infer<typeof variantSchema>;
+type VariantConfig = {
+  name: string;
+  width: number;
+  height: number;
+  videoBitrateKbps: number;
+  audioBitrateKbps: number;
+};
+
+type VariantTransformContext = {
+  addIssue: (issue: { code: unknown; message?: string }) => void;
+};
 
 const parseVariants = z
   .string()
-  .transform((value, ctx) => {
+  .transform((value: string, ctx: VariantTransformContext) => {
     try {
       const parsed = JSON.parse(value);
       return parsed;

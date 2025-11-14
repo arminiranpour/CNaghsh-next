@@ -1,68 +1,80 @@
 import type { QueueEvents } from "bullmq";
 
-type CompletedEvent = {
-  jobId: string | number;
-  returnvalue?: unknown;
-};
-
-type FailedEvent = {
-  jobId: string | number;
-  failedReason?: string;
-  prev?: string | number | null;
-};
-
-type StalledEvent = {
-  jobId: string | number;
-};
-
 import { logger } from "../lib/logger";
 import { createQueueEvents } from "../lib/queue-connection";
 import { MEDIA_TRANSCODE_QUEUE_NAME } from "./mediaTranscode.constants";
 
-const handleCompleted = (event: CompletedEvent) => {
+const readJobId = (event: unknown): string | number | undefined => {
+  if (typeof event !== "object" || event === null) {
+    return undefined;
+  }
+  const candidate = event as { jobId?: unknown };
+  const jobId = candidate.jobId;
+  if (typeof jobId === "string" || typeof jobId === "number") {
+    return jobId;
+  }
+  return undefined;
+};
+
+const handleCompleted = (event: unknown) => {
+  const jobId = readJobId(event);
+  const returnvalue =
+    typeof event === "object" && event !== null && "returnvalue" in event
+      ? (event as { returnvalue?: unknown }).returnvalue
+      : undefined;
   logger.info("queue", "Job completed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
-    jobId: event.jobId,
-    returnvalue: event.returnvalue,
+    jobId,
+    returnvalue,
   });
 };
 
-const handleFailed = (event: FailedEvent) => {
+const handleFailed = (event: unknown) => {
+  const jobId = readJobId(event);
+  const failedReason =
+    typeof event === "object" && event !== null && "failedReason" in event
+      ? (event as { failedReason?: unknown }).failedReason
+      : undefined;
+  const prev =
+    typeof event === "object" && event !== null && "prev" in event
+      ? (event as { prev?: unknown }).prev
+      : undefined;
   logger.error("queue", "Job failed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
-    jobId: event.jobId,
-    failedReason: event.failedReason,
-    prev: event.prev,
+    jobId,
+    failedReason,
+    prev,
   });
 };
 
-const handleWaiting = (event: { jobId?: string }) => {
+const handleWaiting = (event: unknown) => {
   logger.info("queue", "Job waiting", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
-    jobId: event.jobId,
+    jobId: readJobId(event),
   });
 };
 
-const handleActive = (event: { jobId?: string }) => {
+const handleActive = (event: unknown) => {
   logger.info("queue", "Job active", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
-    jobId: event.jobId,
+    jobId: readJobId(event),
   });
 };
 
-const handleStalled = (event: StalledEvent) => {
+const handleStalled = (event: unknown) => {
   logger.warn("queue", "Job stalled", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
-    jobId: event.jobId,
+    jobId: readJobId(event),
   });
 };
 
 const handleError = (queueEvents: QueueEvents) => {
-  queueEvents.on("error", (error: Error) => {
+  queueEvents.on("error", (error: unknown) => {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
     logger.error("queue", "Queue events error", {
       queue: MEDIA_TRANSCODE_QUEUE_NAME,
-      message: error.message,
-      stack: error.stack,
+      message: normalizedError.message,
+      stack: normalizedError.stack,
     });
   });
 };

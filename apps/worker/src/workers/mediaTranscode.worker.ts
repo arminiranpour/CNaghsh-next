@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 
 import type { Job } from "bullmq";
 import { Worker } from "bullmq";
-import { MediaStatus, MediaType, Prisma, TranscodeJobStatus } from "@prisma/client";
+import { MediaStatus, MediaType, Prisma, PrismaClient, TranscodeJobStatus } from "@prisma/client";
 
 import { config } from "../config";
 import { transcodeConfig } from "../config.transcode";
@@ -100,7 +100,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
   }
 
   const startTime = new Date();
-  const transactionResult = await prisma.$transaction(async (tx) => {
+  const transactionResult = await prisma.$transaction(async (tx: PrismaClient) => {
     let activeJob = transcodeJobRecord;
     if (activeJob) {
       activeJob = await tx.transcodeJob.update({
@@ -254,7 +254,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
     const bitrate = metadata.bitrateKbps ? Math.max(Math.round(metadata.bitrateKbps), 1) : null;
 
     const finishedAt = new Date();
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: PrismaClient) => {
       await tx.mediaAsset.update({
         where: { id: mediaAssetId },
         data: {
@@ -347,32 +347,35 @@ export const mediaTranscodeWorker = new Worker<MediaTranscodeJobData, MediaTrans
     connection: createWorkerConnection(),
     concurrency: config.MEDIA_TRANSCODE_CONCURRENCY,
     settings: {
-      backoffStrategy: (attemptsMade) => calculateBackoff(attemptsMade),
+      backoffStrategy: (attemptsMade: number) => calculateBackoff(attemptsMade),
     },
   },
 );
 
-mediaTranscodeWorker.on("completed", (job) => {
+mediaTranscodeWorker.on("completed", (job: Job<MediaTranscodeJobData, MediaTranscodeJobResult>) => {
+  const result = job.returnvalue;
   logger.info("job", "Media transcode job completed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: job.id,
-    returnvalue: job.returnvalue,
+    returnvalue: result,
   });
 });
 
-mediaTranscodeWorker.on("failed", (job, error) => {
+mediaTranscodeWorker.on("failed", (job: Job<MediaTranscodeJobData>, error: unknown) => {
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
   logger.error("job", "Media transcode job failed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: job?.id,
-    failedReason: error.message,
-    stack: error.stack,
+    failedReason: normalizedError.message,
+    stack: normalizedError.stack,
     attemptsMade: job?.attemptsMade,
   });
 });
 
-mediaTranscodeWorker.on("error", (error) => {
+mediaTranscodeWorker.on("error", (error: unknown) => {
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
   logger.error("worker", "Worker runtime error", {
-    message: error.message,
-    stack: error.stack,
+    message: normalizedError.message,
+    stack: normalizedError.stack,
   });
 });
