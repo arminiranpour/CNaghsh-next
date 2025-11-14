@@ -1,6 +1,34 @@
-import { execa } from "execa";
+import * as execaModule from "execa";
 
 import { transcodeConfig } from "../config.transcode";
+
+type ExecaFn = typeof import("execa").execa;
+
+const resolveExeca = (): ExecaFn => {
+  const candidate = execaModule as unknown;
+
+  if (typeof candidate === "function") {
+    return candidate as ExecaFn;
+  }
+
+  if (
+    candidate &&
+    typeof (candidate as { execa?: unknown }).execa === "function"
+  ) {
+    return (candidate as { execa: ExecaFn }).execa;
+  }
+
+  if (
+    candidate &&
+    typeof (candidate as { default?: unknown }).default === "function"
+  ) {
+    return (candidate as { default: ExecaFn }).default;
+  }
+
+  throw new Error("Unable to resolve execa function export");
+};
+
+const execa = resolveExeca();
 
 const clampPosterTime = (durationSec: number, posterTimeFraction: number) => {
   const safeDuration = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 1;

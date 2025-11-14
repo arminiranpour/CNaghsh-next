@@ -1,9 +1,36 @@
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
-import { execa } from "execa";
-
+import * as execaModule from "execa";
 import { transcodeConfig, type VariantConfig } from "../config.transcode";
+
+type ExecaFn = typeof import("execa").execa;
+
+const resolveExeca = (): ExecaFn => {
+  const candidate = execaModule as unknown;
+
+  if (typeof candidate === "function") {
+    return candidate as ExecaFn;
+  }
+
+  if (
+    candidate &&
+    typeof (candidate as { execa?: unknown }).execa === "function"
+  ) {
+    return (candidate as { execa: ExecaFn }).execa;
+  }
+
+  if (
+    candidate &&
+    typeof (candidate as { default?: unknown }).default === "function"
+  ) {
+    return (candidate as { default: ExecaFn }).default;
+  }
+
+  throw new Error("Unable to resolve execa function export");
+};
+
+const execa = resolveExeca();
 
 type HlsVariantOutput = {
   name: string;
@@ -87,7 +114,16 @@ const transcodeToHls = async (
     await mkdir(variantDir, { recursive: true });
     const playlistPath = join(variantDir, "index.m3u8");
     const segmentPattern = join(variantDir, "segment_%05d.ts");
-    await execa(transcodeConfig.ffmpegPath, buildCommandArgs(inputPath, variant, segmentDurationSec, playlistPath, segmentPattern));
+    await execa(
+      transcodeConfig.ffmpegPath,
+      buildCommandArgs(
+        inputPath,
+        variant,
+        segmentDurationSec,
+        playlistPath,
+        segmentPattern,
+      ),
+    );
     const files = await readdir(variantDir);
     const segmentPaths = files
       .filter((file) => file.endsWith(".ts"))
@@ -106,7 +142,10 @@ const transcodeToHls = async (
     if (!variantOutput) {
       throw new Error(`Missing HLS output for variant ${variant.name}`);
     }
-    const bandwidth = Math.max(Math.round((variant.videoBitrateKbps + variant.audioBitrateKbps) * 1000), 1);
+    const bandwidth = Math.max(
+      Math.round((variant.videoBitrateKbps + variant.audioBitrateKbps) * 1000),
+      1,
+    );
     const averageBandwidth = Math.max(Math.round(bandwidth * 0.95), 1);
     const relativePath = toPosixPath(relative(outputDir, variantOutput.playlistPath));
     manifestLines.push(
