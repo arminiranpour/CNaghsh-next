@@ -151,11 +151,11 @@ const VideoPlayer = ({
     }
     let cancelled = false;
     const setup = async () => {
-      const module = await import("hls.js");
+      const hlsModule = await import("hls.js");
       if (cancelled) {
         return;
       }
-      const Hls = module.default;
+      const Hls = hlsModule.default;
       if (!Hls.isSupported()) {
         setError("پخش ویدیو ممکن نیست.");
         return;
@@ -266,8 +266,8 @@ const VideoPlayer = ({
     fallback.webkitEnterFullscreen?.();
   };
 
-  const playPauseIcon = isPlaying ? Pause : Play;
-  const volumeIcon = isMuted ? VolumeX : Volume2;
+  const PlayPauseIcon = isPlaying ? Pause : Play;
+  const VolumeIcon = isMuted ? VolumeX : Volume2;
 
   const showControls = !error;
 
@@ -326,7 +326,7 @@ const VideoPlayer = ({
                 aria-label={isPlaying ? "توقف" : "پخش"}
                 disabled={!resolvedManifestUrl}
               >
-                <playPauseIcon className="h-5 w-5" />
+                <PlayPauseIcon className="h-5 w-5" />
               </button>
               <button
                 type="button"
@@ -335,7 +335,7 @@ const VideoPlayer = ({
                 aria-label={isMuted ? "فعال کردن صدا" : "قطع صدا"}
                 disabled={!resolvedManifestUrl}
               >
-                <volumeIcon className="h-5 w-5" />
+                <VolumeIcon className="h-5 w-5" />
               </button>
             </div>
             <button
