@@ -9,7 +9,7 @@ const queue = new Queue(QUEUE_NAME, {
 });
 
 export const enqueueTranscode = async (mediaAssetId: string, attempt = 1): Promise<void> => {
-  const jobId = `${mediaAssetId}:${attempt}`;
+  const jobId = `media.transcode:${mediaAssetId}:${attempt}`;
   await queue.add(
     QUEUE_NAME,
     { mediaAssetId, attempt },
