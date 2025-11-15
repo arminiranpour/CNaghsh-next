@@ -1,8 +1,19 @@
 import { PrismaClient } from "@prisma/client";
 
 import { mediaCdnConfig } from "../../lib/media/cdn-config";
-import { getPlaybackInfoForMedia } from "../../lib/media/urls";
+import * as mediaUrls from "../../lib/media/urls";
 
+const getPlaybackInfoForMedia: typeof mediaUrls.getPlaybackInfoForMedia =
+  (mediaUrls as any).getPlaybackInfoForMedia ??
+  (mediaUrls as any).default?.getPlaybackInfoForMedia;
+
+if (typeof getPlaybackInfoForMedia !== "function") {
+  throw new Error(
+    `getPlaybackInfoForMedia not found on mediaUrls module. Exports: ${Object.keys(
+      mediaUrls as Record<string, unknown>,
+    ).join(", ")}`,
+  );
+}
 const prisma = new PrismaClient();
 
 async function run() {

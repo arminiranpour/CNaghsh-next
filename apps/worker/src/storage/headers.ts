@@ -3,7 +3,8 @@ import {
   getHlsSegmentCacheControl,
   getOriginalCacheControl,
   getPosterCacheControl,
-} from "../../web/lib/media/cache-config";
+} from "../../../web/lib/media/cache-config";
+
 
 const cacheHlsSegment = () => getHlsSegmentCacheControl();
 
