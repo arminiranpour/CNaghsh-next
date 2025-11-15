@@ -2,9 +2,9 @@ import "../storage/env-loader";
 
 import { PrismaClient } from "@prisma/client";
 
-import type { MediaCdnConfig } from "../../lib/media/cdn-config";
-import * as mediaCdnConfigModule from "../../lib/media/cdn-config";
-import * as mediaUrls from "../../lib/media/urls";
+import type { MediaCdnConfig } from "../../lib/media/cdn-config.ts";
+import * as mediaCdnConfigModule from "../../lib/media/cdn-config.ts";
+import * as mediaUrls from "../../lib/media/urls.ts";
 
 const mediaCdnConfig: MediaCdnConfig = (() => {
   const config =

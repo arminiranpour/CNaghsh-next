@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import * as mediaUrls from "../lib/media/urls";
+import * as mediaUrls from "../lib/media/urls.ts";
 
 const prisma = new PrismaClient();
 
