@@ -3,7 +3,7 @@ import type { Session } from "next-auth";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 
-type UserLike = User | { role?: string; email?: string } | null | undefined;
+type UserLike = User | { role?: string; email?: string | null } | null | undefined;
 
 const adminEmailSet: Set<string> = (() => {
   const raw = process.env.ADMIN_EMAILS;

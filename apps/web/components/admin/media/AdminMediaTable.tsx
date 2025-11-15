@@ -502,7 +502,7 @@ export function AdminMediaTable() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem
-                              onSelect={(event) => {
+                              onSelect={(event: Event) => {
                                 event.preventDefault();
                                 handleRequeue(row.id);
                               }}
@@ -510,7 +510,7 @@ export function AdminMediaTable() {
                               <RefreshCw className="ml-2 h-4 w-4" /> صف مجدد ترنسکد
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onSelect={(event) => {
+                              onSelect={(event: Event) => {
                                 event.preventDefault();
                                 openRejectDialog(row);
                               }}
@@ -518,7 +518,7 @@ export function AdminMediaTable() {
                               رد کردن
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onSelect={(event) => {
+                              onSelect={(event: Event) => {
                                 event.preventDefault();
                                 handleToggleVisibility(row);
                               }}
@@ -531,7 +531,7 @@ export function AdminMediaTable() {
                               تغییر نمایش
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onSelect={(event) => {
+                              onSelect={(event: Event) => {
                                 event.preventDefault();
                                 handleDelete(row.id);
                               }}

@@ -38,6 +38,7 @@ Selecting **جزئیات** opens a modal with:
 
 ## Metrics Endpoint & Script
 * **GET `/api/admin/media/metrics`** – بازگشت آمار کلی (تعداد ویدیوها/تصاویر، آماده، ناموفق، موارد در انتظار بررسی) و روند ۷ روز اخیر (آپلودها، آماده، ناموفق).
+  * برای دسترسی سیستمی یا با `curl`، هدر `x-admin-metrics-secret` یا پارامتر `?secret=` باید با مقدار `ADMIN_MEDIA_METRICS_SECRET` مطابقت داشته باشد؛ در غیر این صورت سشن ادمین الزامی است.
 * **Script** – `pnpm --filter @app/web admin:media-metrics` مستقیماً Prisma را اجرا می‌کند، پاسخ را لاگ و ساختار را اعتبارسنجی می‌نماید.
 
 این مرحله ابزارهای لازم برای پایش روزانه و رسیدگی سریع به مشکلات پردازش یا تصمیم‌های moderation را فراهم می‌کند.

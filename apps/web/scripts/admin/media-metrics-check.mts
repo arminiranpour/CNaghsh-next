@@ -1,8 +1,13 @@
 import "../storage/env-loader";
 
+import { createRequire } from "module";
+
 import { PrismaClient } from "@prisma/client";
 
-import { getAdminMediaMetrics } from "../../lib/media/admin/metrics";
+type AdminMediaMetricsModule = typeof import("../../lib/media/admin/metrics");
+
+const require = createRequire(import.meta.url);
+const { getAdminMediaMetrics } = require("../../lib/media/admin/metrics") as AdminMediaMetricsModule;
 
 const prisma = new PrismaClient();
 
