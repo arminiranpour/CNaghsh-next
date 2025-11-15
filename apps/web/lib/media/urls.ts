@@ -1,5 +1,6 @@
-import { publicBaseUrl } from "@/lib/storage/urls";
-import { resolveBucketForVisibility } from "@/lib/storage/visibility";
+import type { MediaAsset } from "@prisma/client";
+
+import { mediaCdnConfig } from "@/lib/media/cdn-config";
 
 export type MediaPlaybackKind = "public-direct" | "private-signed" | "private-proxy";
 
@@ -9,21 +10,6 @@ export type MediaPlaybackInfo = {
   posterUrl: string | null;
 };
 
-type MediaLike = {
-  id: string;
-  outputKey: string | null;
-  posterKey: string | null;
-  visibility: "public" | "private" | string;
-};
-
-const normalizedCdnBaseUrl = (() => {
-  const value = process.env.PUBLIC_MEDIA_CDN_BASE_URL?.trim();
-  if (!value || value.length === 0) {
-    return null;
-  }
-  return value.replace(/\/+$/, "");
-})();
-
 const encodeKey = (key: string) =>
   key
     .split("/")
@@ -32,31 +18,28 @@ const encodeKey = (key: string) =>
 
 const normalizeKey = (key: string) => key.replace(/^\/+/, "");
 
-export const buildPublicMediaUrlFromKey = (key: string) => {
+const buildUrl = (base: string, key: string) => {
   const normalizedKey = normalizeKey(key);
-  if (normalizedCdnBaseUrl) {
-    return `${normalizedCdnBaseUrl}/${encodeKey(normalizedKey)}`;
-  }
-  const bucket = resolveBucketForVisibility("public");
-  return publicBaseUrl(bucket, normalizedKey);
+  return `${base}/${encodeKey(normalizedKey)}`;
 };
 
-export const buildPosterUrlFromKey = (key: string, isPublic: boolean): string => {
-  if (!isPublic) {
-    return "";
-  }
-  return buildPublicMediaUrlFromKey(key);
-};
+export function getPublicMediaUrlFromKey(key: string): string {
+  return buildUrl(mediaCdnConfig.cdnBaseUrl, key);
+}
 
-export const getPlaybackInfoForMedia = (media: MediaLike): MediaPlaybackInfo => {
+export function getPrivateMediaOriginUrlFromKey(key: string): string {
+  return buildUrl(mediaCdnConfig.originBaseUrl, key);
+}
+
+export function getPlaybackInfoForMedia(media: MediaAsset): MediaPlaybackInfo {
   if (!media.outputKey) {
     throw new Error("Media output key is required for playback info.");
   }
   if (media.visibility === "public") {
     return {
       kind: "public-direct",
-      manifestUrl: buildPublicMediaUrlFromKey(media.outputKey),
-      posterUrl: media.posterKey ? buildPosterUrlFromKey(media.posterKey, true) : null,
+      manifestUrl: getPublicMediaUrlFromKey(media.outputKey),
+      posterUrl: media.posterKey ? getPublicMediaUrlFromKey(media.posterKey) : null,
     };
   }
   return {
@@ -64,4 +47,4 @@ export const getPlaybackInfoForMedia = (media: MediaLike): MediaPlaybackInfo => 
     manifestUrl: `/api/media/${media.id}/manifest`,
     posterUrl: null,
   };
-};
+}

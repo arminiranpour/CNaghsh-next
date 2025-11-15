@@ -6,6 +6,10 @@ export const PUBLIC_CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
 } as const;
 
+export const PRIVATE_SHORT_CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=60",
+} as const;
+
 const mergeHeaders = (overrides?: globalThis.HeadersInit) => {
   const headers = new Headers(NO_STORE_HEADERS);
 

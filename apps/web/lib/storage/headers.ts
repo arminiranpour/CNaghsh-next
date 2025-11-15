@@ -1,9 +1,16 @@
-const cacheHlsSegment = () => "public, max-age=31536000, immutable";
+import {
+  getHlsManifestCacheControl,
+  getHlsSegmentCacheControl,
+  getOriginalCacheControl,
+  getPosterCacheControl,
+} from "@/lib/media/cache-config";
 
-const cacheHlsManifest = () => "public, max-age=120";
+const cacheHlsSegment = () => getHlsSegmentCacheControl();
 
-const cachePoster = () => "public, max-age=31536000, immutable";
+const cacheHlsManifest = () => getHlsManifestCacheControl();
 
-const cacheOriginal = () => "private, max-age=0, no-store";
+const cachePoster = () => getPosterCacheControl();
+
+const cacheOriginal = () => getOriginalCacheControl();
 
 export { cacheHlsManifest, cacheHlsSegment, cacheOriginal, cachePoster };

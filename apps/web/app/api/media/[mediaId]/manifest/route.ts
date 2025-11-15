@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getServerAuthSession } from "@/lib/auth/session";
-import { NO_STORE_HEADERS } from "@/lib/http";
-import { buildPublicMediaUrlFromKey } from "@/lib/media/urls";
+import { NO_STORE_HEADERS, PRIVATE_SHORT_CACHE_HEADERS } from "@/lib/http";
+import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { getSignedGetUrl } from "@/lib/storage/signing";
 import { resolveBucketForVisibility } from "@/lib/storage/visibility";
@@ -31,10 +31,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     );
   }
   if (media.visibility === "public") {
-    const manifestUrl = buildPublicMediaUrlFromKey(media.outputKey);
+    const manifestUrl = getPublicMediaUrlFromKey(media.outputKey);
     return NextResponse.json(
       { ok: true, url: manifestUrl },
-      { headers: NO_STORE_HEADERS },
+      { headers: PRIVATE_SHORT_CACHE_HEADERS },
     );
   }
   const session = await getServerAuthSession();
@@ -54,6 +54,6 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const signedUrl = await getSignedGetUrl(bucket, media.outputKey);
   return NextResponse.json(
     { ok: true, url: signedUrl },
-    { headers: NO_STORE_HEADERS },
+    { headers: PRIVATE_SHORT_CACHE_HEADERS },
   );
 }
