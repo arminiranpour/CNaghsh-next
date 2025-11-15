@@ -32,6 +32,7 @@ model User {
   notificationPreferences NotificationPreference[]
   notificationMessageLogs NotificationMessageLog[]
   mediaAssets             MediaAsset[]
+  mediaModerationReviews  MediaAsset[]            @relation("MediaModerationReviewer")
 }
 
 model Profile {
@@ -450,13 +451,19 @@ model MediaAsset {
   bitrate       Int?
   sizeBytes     BigInt?
   errorMessage  String?
+  moderationStatus      MediaModerationStatus @default(pending)
+  moderationReason      String?
+  moderationReviewedAt  DateTime?
+  moderationReviewedById String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   owner         User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  moderationReviewedBy  User?            @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
   transcodeJobs TranscodeJob[]
 
   @@index([ownerUserId, type, status])
   @@index([createdAt])
+  @@index([moderationStatus])
 }
 
 model TranscodeJob {
@@ -618,6 +625,12 @@ enum MediaStatus {
 enum MediaVisibility {
   public
   private
+}
+
+enum MediaModerationStatus {
+  pending
+  approved
+  rejected
 }
 
 enum TranscodeJobStatus {

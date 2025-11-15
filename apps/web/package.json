@@ -36,7 +36,8 @@
     "storage:smoke:original": "tsx scripts/storage/put-and-get-original.ts",
     "storage:smoke:signed-expiry": "tsx scripts/storage/signed-url-expiry-check.ts",
     "storage:smoke:visibility": "tsx scripts/storage/visibility-routing-check.ts",
-    "media:cdn-url-check": "tsx scripts/media/cdn-url-check.mts"
+    "media:cdn-url-check": "tsx scripts/media/cdn-url-check.mts",
+    "admin:media-metrics": "tsx scripts/admin/media-metrics-check.mts"
   },
   "dependencies": {
     "@acme/contracts": "workspace:*",
