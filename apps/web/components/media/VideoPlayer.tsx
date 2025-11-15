@@ -171,7 +171,7 @@ const VideoPlayer = ({
       instance.on(Hls.Events.MEDIA_ATTACHED, () => {
         instance.loadSource(resolvedManifestUrl);
       });
-      instance.on(Hls.Events.ERROR, (_event: unknown, data: HlsErrorData) => {
+      instance.on(Hls.Events.ERROR, (_event: unknown, data?: HlsErrorData) => {
         if (data?.fatal) {
           setError("پخش ویدیو ممکن نیست.");
         }

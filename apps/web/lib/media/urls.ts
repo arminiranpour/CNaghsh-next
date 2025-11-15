@@ -1,5 +1,3 @@
-import type { MediaAsset } from "@prisma/client";
-
 import { publicBaseUrl } from "@/lib/storage/urls";
 import { resolveBucketForVisibility } from "@/lib/storage/visibility";
 
@@ -9,6 +7,13 @@ export type MediaPlaybackInfo = {
   kind: MediaPlaybackKind;
   manifestUrl: string;
   posterUrl: string | null;
+};
+
+type MediaLike = {
+  id: string;
+  outputKey: string | null;
+  posterKey: string | null;
+  visibility: "public" | "private" | string;
 };
 
 const normalizedCdnBaseUrl = (() => {
@@ -27,7 +32,7 @@ const encodeKey = (key: string) =>
 
 const normalizeKey = (key: string) => key.replace(/^\/+/, "");
 
-const buildPublicMediaUrlFromKey = (key: string) => {
+export const buildPublicMediaUrlFromKey = (key: string) => {
   const normalizedKey = normalizeKey(key);
   if (normalizedCdnBaseUrl) {
     return `${normalizedCdnBaseUrl}/${encodeKey(normalizedKey)}`;
@@ -43,7 +48,7 @@ export const buildPosterUrlFromKey = (key: string, isPublic: boolean): string =>
   return buildPublicMediaUrlFromKey(key);
 };
 
-export const getPlaybackInfoForMedia = (media: MediaAsset): MediaPlaybackInfo => {
+export const getPlaybackInfoForMedia = (media: MediaLike): MediaPlaybackInfo => {
   if (!media.outputKey) {
     throw new Error("Media output key is required for playback info.");
   }
@@ -52,13 +57,11 @@ export const getPlaybackInfoForMedia = (media: MediaAsset): MediaPlaybackInfo =>
       kind: "public-direct",
       manifestUrl: buildPublicMediaUrlFromKey(media.outputKey),
       posterUrl: media.posterKey ? buildPosterUrlFromKey(media.posterKey, true) : null,
-    } satisfies MediaPlaybackInfo;
+    };
   }
   return {
     kind: "private-proxy",
     manifestUrl: `/api/media/${media.id}/manifest`,
     posterUrl: null,
-  } satisfies MediaPlaybackInfo;
+  };
 };
-
-export { buildPublicMediaUrlFromKey };

@@ -1,7 +1,20 @@
-import { prisma } from "../lib/prisma";
-import { getPlaybackInfoForMedia } from "../lib/media/urls";
+import { PrismaClient } from "@prisma/client";
+import * as mediaUrls from "../lib/media/urls";
+
+const prisma = new PrismaClient();
+
+const getPlaybackInfoForMedia: any =
+  (mediaUrls as any).getPlaybackInfoForMedia ??
+  (mediaUrls as any).default?.getPlaybackInfoForMedia;
 
 async function run() {
+  console.log("mediaUrls exports:", Object.keys(mediaUrls));
+
+  if (typeof getPlaybackInfoForMedia !== "function") {
+    console.log("⚠️ getPlaybackInfoForMedia not found on mediaUrls, exports were:", Object.keys(mediaUrls));
+    return;
+  }
+
   const media = await prisma.mediaAsset.findFirst({
     where: {
       status: "ready",
@@ -17,6 +30,7 @@ async function run() {
   }
 
   const playback = getPlaybackInfoForMedia(media);
+
   console.log(`mediaId=${media.id} visibility=${media.visibility} kind=${playback.kind}`);
   console.log(`manifest=${playback.manifestUrl}`);
   if (playback.posterUrl) {
