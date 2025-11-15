@@ -1,19 +1,25 @@
+import "../storage/env-loader";
+
 import { PrismaClient } from "@prisma/client";
 
 import type { MediaCdnConfig } from "../../lib/media/cdn-config";
 import * as mediaCdnConfigModule from "../../lib/media/cdn-config";
 import * as mediaUrls from "../../lib/media/urls";
 
-const mediaCdnConfig: MediaCdnConfig | undefined =
-  (mediaCdnConfigModule as Partial<{ mediaCdnConfig: MediaCdnConfig }>)
-    .mediaCdnConfig ??
-  (mediaCdnConfigModule as Partial<{ default: MediaCdnConfig }>).default;
+const mediaCdnConfig: MediaCdnConfig = (() => {
+  const config =
+    (mediaCdnConfigModule as Partial<{ mediaCdnConfig: MediaCdnConfig }>)
+      .mediaCdnConfig ??
+    (mediaCdnConfigModule as Partial<{ default: MediaCdnConfig }>).default;
 
-if (!mediaCdnConfig) {
-  throw new Error(
-    "mediaCdnConfig export missing from ../../lib/media/cdn-config",
-  );
-}
+  if (!config) {
+    throw new Error(
+      "mediaCdnConfig export missing from ../../lib/media/cdn-config",
+    );
+  }
+
+  return config;
+})();
 
 const getPlaybackInfoForMedia: typeof mediaUrls.getPlaybackInfoForMedia =
   (mediaUrls as any).getPlaybackInfoForMedia ??
