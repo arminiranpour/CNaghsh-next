@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { LoginCharacter } from "@/components/auth/LoginCharacter";
-import { AuthTabs } from "@/components/auth/auth-tabs";
+import { LoginForm } from "@/components/auth/LoginForm";
 import type { AuthTab } from "@/lib/url/auth-tabs";
 
 type AuthPageClientProps = {
@@ -28,8 +28,7 @@ export function AuthPageClient({ initialTab, callbackUrl }: AuthPageClientProps)
 
         {/* RIGHT SIDE: Auth Panel (back to RTL) */}
         <div className="w-full max-w-xl" dir="rtl">
-          <AuthTabs
-            initialTab={initialTab}
+          <LoginForm
             callbackUrl={callbackUrl}
             onPasswordPhaseChange={setIsPasswordPhase}
           />
