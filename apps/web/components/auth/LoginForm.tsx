@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 
+
 type LoginFormProps = {
   callbackUrl?: string;
   onPasswordPhaseChange?: (isActive: boolean) => void;
@@ -188,60 +189,87 @@ export function LoginForm({
 
   return (
     <div className="w-full max-w-md mx-auto space-y-6" dir="rtl">
+        <div
+    className="
+      bg-white
+      rounded-[22px]
+      w-[564px]
+      h-[634px]
+      p-10
+      shadow-[0_4px_30px_rgba(0,0,0,0.1)]
+      flex
+      flex-col
+      justify-center
+    "
+  >
       {/* Welcome Message */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">خوش آمدید!</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-2xl font-bold text-black">خوش آمدید!</h1>
+        <p className="text-sm text-black">
           لطفا اطلاعات خودتون رو وارد کنید.
         </p>
       </div>
+{/* Toggle Switch */}
+<div className="relative bg-[#D9D9D9] rounded-full p-2 flex gap-2 mb-4">
+  <button
+    type="button"
+    onClick={() => {
+      setMode("register");
+      setError(null);
+      setShowPasswordStep(false);
+      setFormData({
+        username: "",
+        email: "",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+      });
+    }}
+    className={cn(
+      "flex-1 rounded-full px-6 py-3 text-base font-semibold transition-colors duration-200",
+      mode === "register"
+        ? "bg-black text-white"
+        : "bg-transparent text-black"
+    )}
+  >
+    ثبت نام
+  </button>
 
-      {/* Toggle Switch */}
-      <div className="relative bg-muted/50 rounded-lg p-1 flex gap-1">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("register");
-            setError(null);
-            setShowPasswordStep(false);
-            setFormData({ username: "", email: "", phone: "", password: "", confirmPassword: "" });
-          }}
-          className={cn(
-            "flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all",
-            mode === "register"
-              ? "bg-foreground text-background shadow-sm"
-              : "bg-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          ثبت نام
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("login");
-            setError(null);
-            setShowPasswordStep(false);
-            setFormData({ username: "", email: "", phone: "", password: "", confirmPassword: "" });
-          }}
-          className={cn(
-            "flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all",
-            mode === "login"
-              ? "bg-foreground text-background shadow-sm"
-              : "bg-transparent text-muted-foreground hover:text-foreground"
-          )}
-        >
-          ورود
-        </button>
-      </div>
+  <button
+    type="button"
+    onClick={() => {
+      setMode("login");
+      setError(null);
+      setShowPasswordStep(false);
+      setFormData({
+        username: "",
+        email: "",
+        phone: "",
+        password: "",
+        confirmPassword: "",
+      });
+    }}
+    className={cn(
+      "flex-1 rounded-full px-6 py-3 text-base font-semibold transition-colors duration-200",
+      mode === "login"
+        ? "bg-black text-white"
+        : "bg-transparent text-black"
+    )}
+  >
+    ورود
+  </button>
+</div>
+
+
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Username Field */}
         {mode === "register" && (
           <div className="relative">
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
               <div className="bg-muted rounded-md p-2 flex items-center justify-center">
-                <User className="h-4 w-4 text-foreground" />
+                <User className="h-5.5 w-8 text-foreground" />
               </div>
             </div>
             <Input
@@ -249,7 +277,7 @@ export function LoginForm({
               placeholder="نام کاربری"
               value={formData.username}
               onChange={(e) => handleInputChange("username", e.target.value)}
-              className="pr-12 bg-muted/50 border-muted rounded-lg"
+              className="pr-5 bg-white/50 border-muted rounded-lg"
               required={mode === "register"}
             />
           </div>
@@ -258,9 +286,9 @@ export function LoginForm({
         {/* Email Field */}
         {!showPasswordStep && (
           <div className="relative">
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
               <div className="bg-muted rounded-md p-2 flex items-center justify-center">
-                <Mail className="h-4 w-4 text-foreground" />
+                <Mail className="h-5.5 w-8 text-foreground" />
               </div>
             </div>
             <Input
@@ -268,8 +296,8 @@ export function LoginForm({
               placeholder="ایمیل"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
-              className="pr-12 bg-muted/50 border-muted rounded-lg"
-              dir="ltr"
+              className="pr-5 bg-white/50 border-muted rounded-lg"
+              dir="trl"
               required
               onFocus={() => onPasswordPhaseChange?.(true)}
               onBlur={() => onPasswordPhaseChange?.(false)}
@@ -280,9 +308,9 @@ export function LoginForm({
         {/* Phone Field */}
         {mode === "register" && !showPasswordStep && (
           <div className="relative">
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
               <div className="bg-muted rounded-md p-2 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-foreground" />
+                <Phone className="h-5.5 w-8 text-foreground" />
               </div>
             </div>
             <Input
@@ -290,8 +318,8 @@ export function LoginForm({
               placeholder="شماره تلفن"
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
-              className="pr-12 bg-muted/50 border-muted rounded-lg"
-              dir="ltr"
+              className="pr-5 bg-white/50 border-muted rounded-lg"
+              dir="rtl"
               required={mode === "register"}
             />
           </div>
@@ -409,6 +437,7 @@ export function LoginForm({
           <span>با اکانت گوگل وارد شوید.</span>
         </button>
       </div>
+    </div>
     </div>
   );
 }
