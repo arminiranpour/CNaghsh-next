@@ -29,6 +29,7 @@ export const MODERATION_PROFILE_SELECT = {
   address: true,
   gallery: true,
   skills: true,
+  introVideoMediaId: true,
   visibility: true,
   moderationStatus: true,
   moderationNotes: true,
@@ -57,6 +58,7 @@ const CRITICAL_FIELD_KEYS: Array<keyof ModerationProfileSnapshot> = [
   "address",
   "gallery",
   "skills",
+  "introVideoMediaId",
 ];
 
 function normalizeJson(value: unknown) {

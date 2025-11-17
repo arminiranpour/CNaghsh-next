@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { MediaStatus, MediaType, MediaVisibility, TranscodeJobStatus } from "@prisma/client";
+import { MediaStatus, MediaType, MediaVisibility } from "@prisma/client";
 import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,8 +9,8 @@ import { isDev } from "@/lib/env";
 import { NO_STORE_HEADERS, safeJson } from "@/lib/http";
 import { logError, logInfo } from "@/lib/logging";
 import { prisma } from "@/lib/prisma";
-import { enqueueTranscode } from "@/lib/queues/mediaTranscode.enqueue";
 import { uploadConfig } from "@/lib/media/config";
+import { queueMediaTranscode } from "@/lib/media/transcode";
 import {
   canUploadVideo,
   getUserMediaEntitlements,
@@ -113,35 +113,20 @@ const ensureDailyQuota = async (userId: string, sizeBytes: number) => {
   return null;
 };
 
-const createMediaAssetRecord = async (
-  ownerUserId: string,
-  extension: string,
-  sizeBytes: number,
-) => {
+const createMediaAssetRecord = async (ownerUserId: string, extension: string, sizeBytes: number) => {
   const mediaId = randomUUID();
   const sourceKey = getOriginalKey(ownerUserId, mediaId, extension);
-  const media = await prisma.$transaction(async (tx) => {
-    const created = await tx.mediaAsset.create({
-      data: {
-        id: mediaId,
-        type: MediaType.video,
-        status: MediaStatus.uploaded,
-        visibility: MediaVisibility.private,
-        ownerUserId,
-        sourceKey,
-        sizeBytes: BigInt(sizeBytes),
-      },
-    });
-    await tx.transcodeJob.create({
-      data: {
-        mediaAssetId: created.id,
-        status: TranscodeJobStatus.queued,
-        attempt: 1,
-      },
-    });
-    return created;
+  const media = await prisma.mediaAsset.create({
+    data: {
+      id: mediaId,
+      type: MediaType.video,
+      status: MediaStatus.uploaded,
+      visibility: MediaVisibility.private,
+      ownerUserId,
+      sourceKey,
+      sizeBytes: BigInt(sizeBytes),
+    },
   });
-  await enqueueTranscode(media.id);
   return media;
 };
 
@@ -151,6 +136,7 @@ const successResponse = (
   mode: UploadMode,
   signedUrl?: string,
 ) => {
+  const finalizeUrl = mode === "signed-put" ? `/api/media/${mediaId}/finalize` : undefined;
   const payload: UploadInitResponse = {
     ok: true,
     mediaId,
@@ -158,7 +144,7 @@ const successResponse = (
     sourceKey,
     signedUrl,
     maxSingleUploadBytes: uploadConfig.maxSingleUploadBytes,
-    next: { checkStatusUrl: `/api/media/${mediaId}/status` },
+    next: { checkStatusUrl: `/api/media/${mediaId}/status`, finalizeUrl },
   };
   return NextResponse.json(payload, { headers: NO_STORE_HEADERS });
 };
@@ -279,6 +265,7 @@ const prepareUpload = async (
 
   if (mode === "multipart" && fileBuffer) {
     await putBuffer(privateBucket, media.sourceKey, fileBuffer, normalizedMime, cacheOriginal());
+    await queueMediaTranscode(media.id);
   }
 
   const signedUrl =

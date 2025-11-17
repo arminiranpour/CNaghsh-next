@@ -1,3 +1,4 @@
+import { MediaStatus } from "@prisma/client";
 import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -43,12 +44,21 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         { status: 404, headers: NO_STORE_HEADERS },
       );
     }
+    let needsFinalize = false;
+    if (media.status === MediaStatus.uploaded) {
+      const existingJob = await prisma.transcodeJob.findFirst({
+        where: { mediaAssetId: media.id },
+        select: { id: true },
+      });
+      needsFinalize = !existingJob;
+    }
     logInfo("media.status.check", {
       mediaId,
       userId,
       result: "ok",
       status: media.status,
       visibility: media.visibility,
+      needsFinalize,
     });
     return NextResponse.json(
       {
@@ -61,6 +71,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         width: media.width ?? null,
         height: media.height ?? null,
         sizeBytes: media.sizeBytes ? Number(media.sizeBytes) : null,
+        needsFinalize,
       },
       { headers: NO_STORE_HEADERS },
     );

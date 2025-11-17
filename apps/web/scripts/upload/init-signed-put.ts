@@ -17,13 +17,21 @@ const run = async () => {
     },
     body: JSON.stringify(payload),
   });
-  const data = (await response.json()) as { ok?: boolean; signedUrl?: string; mediaId?: string };
+  const data = (await response.json()) as {
+    ok?: boolean;
+    signedUrl?: string;
+    mediaId?: string;
+    next?: { finalizeUrl?: string };
+  };
   if (!response.ok || !data?.ok || !data.mediaId) {
     throw new Error(`Upload init failed (${response.status})`);
   }
   console.log(`mediaId=${data.mediaId}`);
   if (data.signedUrl) {
     console.log(`signedUrl=${data.signedUrl}`);
+  }
+  if (data.next?.finalizeUrl) {
+    console.log(`finalizeUrl=${data.next.finalizeUrl}`);
   }
 };
 

@@ -12,6 +12,7 @@ const PAY_TYPE_REQUIRED = "نوع پرداخت نامعتبر است.";
 const PAY_TYPE_MAX = "نوع پرداخت حداکثر می‌تواند ۳۲ کاراکتر باشد.";
 const PAY_AMOUNT_INVALID = "مبلغ پرداخت باید یک عدد صحیح غیرمنفی باشد.";
 const CURRENCY_LENGTH = "کد ارز باید سه حرف باشد.";
+const INTRO_VIDEO_INVALID = "شناسه ویدیوی انتخاب شده معتبر نیست.";
 
 const jobBaseSchema = z.object({
   title: z
@@ -51,6 +52,11 @@ const jobBaseSchema = z.object({
     .length(3, { message: CURRENCY_LENGTH })
     .optional(),
   remote: z.boolean({ required_error: "وضعیت دورکاری مشخص نشده است." }),
+  introVideoMediaId: z
+    .string()
+    .trim()
+    .max(191, { message: INTRO_VIDEO_INVALID })
+    .optional(),
 });
 
 export const jobCreateSchema = jobBaseSchema;

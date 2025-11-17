@@ -38,6 +38,7 @@ export async function createJob(userId: string, data: CreateJobInput) {
       remote: data.remote,
       status: JobStatus.DRAFT,
       moderation: JobModeration.PENDING,
+      introVideoMediaId: data.introVideoMediaId ?? null,
     },
   });
 

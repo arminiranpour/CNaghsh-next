@@ -7,7 +7,7 @@ export type UploadInitResponse = {
   sourceKey: string;
   signedUrl?: string;
   maxSingleUploadBytes: number;
-  next: { checkStatusUrl: string };
+  next: { checkStatusUrl: string; finalizeUrl?: string };
 };
 
 export type UploadErrorCode =

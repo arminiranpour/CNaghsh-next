@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
+import { getManifestUrlForMedia } from "@/lib/media/manifest";
 import { JobViewTracker } from "./JobViewTracker";
 
 export const revalidate = 300;
@@ -151,63 +152,91 @@ export default async function JobDetailPage({
     videoMediaAssetId?: string | null;
     mediaAssetId?: string | null;
     showcaseMediaAssetId?: string | null;
+    introVideoMediaId?: string | null;
   };
 
-  let jobVideo = jobMediaRelation.videoMediaAssetId
-    ? await prisma.mediaAsset.findFirst({
+  let featuredVideoProps: {
+    mediaId: string;
+    manifestUrl: string;
+    playbackKind: "public-direct" | "private-proxy";
+    posterUrl?: string | null;
+  } | null = null;
+
+  if (jobMediaRelation.introVideoMediaId) {
+    const manifestUrl = await getManifestUrlForMedia(jobMediaRelation.introVideoMediaId);
+    if (manifestUrl) {
+      featuredVideoProps = {
+        mediaId: jobMediaRelation.introVideoMediaId,
+        manifestUrl,
+        playbackKind: "public-direct",
+      };
+    }
+  }
+
+  let fallbackVideo: Awaited<ReturnType<typeof prisma.mediaAsset.findFirst>> | null = null;
+
+  if (!featuredVideoProps) {
+    fallbackVideo = jobMediaRelation.videoMediaAssetId
+      ? await prisma.mediaAsset.findFirst({
+          where: {
+            id: jobMediaRelation.videoMediaAssetId,
+            status: "ready",
+            type: "video",
+            visibility: "public",
+            outputKey: { not: null },
+          },
+        })
+      : null;
+
+    if (!fallbackVideo && jobMediaRelation.mediaAssetId) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
         where: {
-          id: jobMediaRelation.videoMediaAssetId,
+          id: jobMediaRelation.mediaAssetId,
           status: "ready",
           type: "video",
           visibility: "public",
           outputKey: { not: null },
         },
-      })
-    : null;
+      });
+    }
 
-  if (!jobVideo && jobMediaRelation.mediaAssetId) {
-    jobVideo = await prisma.mediaAsset.findFirst({
-      where: {
-        id: jobMediaRelation.mediaAssetId,
-        status: "ready",
-        type: "video",
-        visibility: "public",
-        outputKey: { not: null },
-      },
-    });
+    if (!fallbackVideo && jobMediaRelation.showcaseMediaAssetId) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
+        where: {
+          id: jobMediaRelation.showcaseMediaAssetId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+      });
+    }
+
+    if (!fallbackVideo) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
+        where: {
+          ownerUserId: job.userId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+
+    if (fallbackVideo) {
+      const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
+      const playbackKind =
+        playbackInfo.kind === "public-direct" ? "public-direct" : "private-proxy";
+      featuredVideoProps = {
+        mediaId: fallbackVideo.id,
+        manifestUrl: playbackInfo.manifestUrl,
+        playbackKind,
+        posterUrl: playbackInfo.posterUrl ?? null,
+      };
+    }
   }
-
-  if (!jobVideo && jobMediaRelation.showcaseMediaAssetId) {
-    jobVideo = await prisma.mediaAsset.findFirst({
-      where: {
-        id: jobMediaRelation.showcaseMediaAssetId,
-        status: "ready",
-        type: "video",
-        visibility: "public",
-        outputKey: { not: null },
-      },
-    });
-  }
-
-  if (!jobVideo) {
-    jobVideo = await prisma.mediaAsset.findFirst({
-      where: {
-        ownerUserId: job.userId,
-        status: "ready",
-        type: "video",
-        visibility: "public",
-        outputKey: { not: null },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-  }
-
-  const playbackInfo = jobVideo ? getPlaybackInfoForMedia(jobVideo) : null;
-  const playbackKind = playbackInfo
-    ? playbackInfo.kind === "public-direct"
-      ? "public-direct"
-      : "private-proxy"
-    : null;
 
   const cities = await citiesPromise;
 
@@ -263,17 +292,17 @@ export default async function JobDetailPage({
         }}
       />
 
-      {jobVideo && playbackInfo && playbackKind ? (
+      {featuredVideoProps ? (
         <Card className="border border-border shadow-sm">
           <CardHeader>
             <CardTitle>ویدیو معرفی</CardTitle>
           </CardHeader>
           <CardContent>
             <VideoPlayer
-              mediaId={jobVideo.id}
-              manifestUrl={playbackInfo.manifestUrl}
-              playbackKind={playbackKind}
-              posterUrl={playbackInfo.posterUrl ?? undefined}
+              mediaId={featuredVideoProps.mediaId}
+              manifestUrl={featuredVideoProps.manifestUrl}
+              playbackKind={featuredVideoProps.playbackKind}
+              posterUrl={featuredVideoProps.posterUrl ?? undefined}
               className="w-full rounded-2xl border border-border bg-muted/40 shadow-sm"
             />
           </CardContent>

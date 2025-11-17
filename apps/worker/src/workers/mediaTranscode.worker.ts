@@ -143,7 +143,23 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
 
   try {
     sourcePath = await createTempFile("media-source", sourceExt);
-    await downloadToFile(storageConfig.privateBucket, media.sourceKey, sourcePath);
+    const originalsBucket = storageConfig.privateBucket;
+    logInfo("media.transcode.download.start", {
+      mediaAssetId,
+      bucket: originalsBucket,
+      key: media.sourceKey,
+    });
+    try {
+      await downloadToFile(originalsBucket, media.sourceKey, sourcePath);
+    } catch (error) {
+      logError("media.transcode.download.failure", {
+        mediaAssetId,
+        bucket: originalsBucket,
+        key: media.sourceKey,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+      throw error;
+    }
     const sourceStats = await stat(sourcePath);
 
     const metadata = await probeMedia(sourcePath);

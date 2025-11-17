@@ -47,6 +47,7 @@ model Profile {
   cityId           String?
   avatarUrl        String?
   bio              String?
+  introVideoMediaId String?
   gallery          Json?
   skills           Json?
   socialLinks      Json?
@@ -59,12 +60,14 @@ model Profile {
   moderatedBy      String?
   moderatedAt      DateTime?
   moderationEvents ModerationEvent[]
+  introVideoMedia  MediaAsset?       @relation("ProfileIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
   moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
   user             User              @relation(fields: [userId], references: [id])
 
   @@index([visibility])
   @@index([moderationStatus])
   @@index([updatedAt])
+  @@index([introVideoMediaId])
 }
 
 model ModerationEvent {
@@ -322,17 +325,20 @@ model Job {
   remote           Boolean              @default(false)
   status           JobStatus            @default(DRAFT)
   moderation       JobModeration        @default(PENDING)
+  introVideoMediaId String?
   featuredUntil    DateTime?
   views            Int                  @default(0)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   moderationEvents JobModerationEvent[]
+  introVideoMedia  MediaAsset?          @relation("JobIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
 
   @@index([status, moderation, featuredUntil])
   @@index([category])
   @@index([cityId])
   @@index([title])
+  @@index([introVideoMediaId])
 }
 
 model JobModerationEvent {
@@ -460,6 +466,8 @@ model MediaAsset {
   owner         User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   moderationReviewedBy  User?            @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
   transcodeJobs TranscodeJob[]
+  profileIntroVideoUsages Profile[] @relation("ProfileIntroVideo")
+  jobIntroVideoUsages     Job[]     @relation("JobIntroVideo")
 
   @@index([ownerUserId, type, status])
   @@index([createdAt])

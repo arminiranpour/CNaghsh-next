@@ -12,6 +12,7 @@ import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, profilePersonJsonLd } from "@/lib/seo/jsonld";
+import { getManifestUrlForMedia } from "@/lib/media/manifest";
 
 import type { Metadata } from "next";
 
@@ -150,7 +151,9 @@ export default async function PublicProfilePage({ params }: Props) {
     notFound();
   }
 
-  const videoPromise = prisma.mediaAsset.findFirst({
+  const introVideoMediaId = profile.introVideoMediaId ?? null;
+
+  const fallbackVideoPromise = prisma.mediaAsset.findFirst({
     where: {
       ownerUserId: profile.userId,
       type: "video",
@@ -161,10 +164,10 @@ export default async function PublicProfilePage({ params }: Props) {
     orderBy: { updatedAt: "desc" },
   });
 
-  const [cities, socialLinks, featuredVideo] = await Promise.all([
+  const [cities, socialLinks, fallbackVideo] = await Promise.all([
     getCities(),
     Promise.resolve(extractSocialLinks(profile.socialLinks as SocialLinks)),
-    videoPromise,
+    fallbackVideoPromise,
   ]);
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
@@ -193,12 +196,35 @@ export default async function PublicProfilePage({ params }: Props) {
     socialLinks,
   });
 
-  const playbackInfo = featuredVideo ? getPlaybackInfoForMedia(featuredVideo) : null;
-  const playbackKind = playbackInfo
-    ? playbackInfo.kind === "public-direct"
-      ? "public-direct"
-      : "private-proxy"
-    : null;
+  let featuredVideoProps: {
+    mediaId: string;
+    manifestUrl: string;
+    playbackKind: "public-direct" | "private-proxy";
+    posterUrl?: string | null;
+  } | null = null;
+
+  if (introVideoMediaId) {
+    const manifestUrl = await getManifestUrlForMedia(introVideoMediaId);
+    if (manifestUrl) {
+      featuredVideoProps = {
+        mediaId: introVideoMediaId,
+        manifestUrl,
+        playbackKind: "public-direct",
+      };
+    }
+  }
+
+  if (!featuredVideoProps && fallbackVideo) {
+    const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
+    const playbackKind =
+      playbackInfo.kind === "public-direct" ? "public-direct" : "private-proxy";
+    featuredVideoProps = {
+      mediaId: fallbackVideo.id,
+      manifestUrl: playbackInfo.manifestUrl,
+      playbackKind,
+      posterUrl: playbackInfo.posterUrl ?? null,
+    };
+  }
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12" dir="rtl">
@@ -258,15 +284,15 @@ export default async function PublicProfilePage({ params }: Props) {
         ) : null}
       </header>
 
-      {featuredVideo && playbackInfo && playbackKind ? (
+      {featuredVideoProps ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">ویدیو معرفی</h2>
           <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-black shadow-sm aspect-[9/16]">
             <VideoPlayer
-              mediaId={featuredVideo.id}
-              manifestUrl={playbackInfo.manifestUrl}
-              playbackKind={playbackKind}
-              posterUrl={playbackInfo.posterUrl ?? undefined}
+              mediaId={featuredVideoProps.mediaId}
+              manifestUrl={featuredVideoProps.manifestUrl}
+              playbackKind={featuredVideoProps.playbackKind}
+              posterUrl={featuredVideoProps.posterUrl ?? undefined}
               fillParent
               className="absolute inset-0"
             />

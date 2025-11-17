@@ -5,6 +5,7 @@ import { SKILL_KEYS, type SkillKey } from "./skills";
 const AVATAR_URL_ERROR = "لطفاً تصویر پروفایل معتبر انتخاب کنید.";
 
 const AVATAR_UPLOAD_REGEX = /^\/uploads\/[A-Za-z0-9/_.-]+$/;
+const INTRO_VIDEO_ERROR = "ویدیوی انتخاب شده معتبر نیست.";
 
 function isValidAvatarUrl(value: string): boolean {
   if (value === "") {
@@ -42,6 +43,12 @@ export const personalInfoSchema = z.object({
     .trim()
     .refine(isValidAvatarUrl, AVATAR_URL_ERROR),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
+  introVideoMediaId: z
+    .string()
+    .trim()
+    .max(191, INTRO_VIDEO_ERROR)
+    .optional()
+    .or(z.literal("")),
 });
 
 const SKILL_KEY_VALUES = SKILL_KEYS as [SkillKey, ...SkillKey[]];

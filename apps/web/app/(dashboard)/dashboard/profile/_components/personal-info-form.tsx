@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { VideoUploadField } from "@/components/media/VideoUploadField";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ type PersonalInfoFormValues = {
   cityId: string;
   avatarUrl: string;
   bio: string;
+  introVideoMediaId: string;
 };
 
 type FieldErrors = Partial<Record<keyof PersonalInfoFormValues, string>>;
@@ -48,6 +50,7 @@ type PersonalInfoFormProps = {
     cityId?: string | null;
     avatarUrl?: string | null;
     bio?: string | null;
+    introVideoMediaId?: string | null;
   };
 };
 
@@ -65,9 +68,11 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
     cityId: initialValues.cityId ?? "",
     avatarUrl: initialValues.avatarUrl ?? "",
     bio: initialValues.bio ?? "",
+    introVideoMediaId: initialValues.introVideoMediaId ?? "",
   });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [isVideoBusy, setIsVideoBusy] = useState(false);
 
   const updateValue = (field: keyof PersonalInfoFormValues) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -98,6 +103,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
     formData.set("cityId", values.cityId.trim());
     formData.set("bio", values.bio.trim());
     formData.set("avatarUrl", values.avatarUrl.trim());
+    formData.set("introVideoMediaId", values.introVideoMediaId.trim());
 
     startTransition(() => {
       upsertPersonalInfo(formData)
@@ -127,6 +133,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       <input type="hidden" name="avatarUrl" value={values.avatarUrl} />
+      <input type="hidden" name="introVideoMediaId" value={values.introVideoMediaId} />
 
       <div className="grid gap-4 md:grid-cols-2" dir="rtl">
         <div className="space-y-2">
@@ -298,6 +305,23 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
       </div>
 
       <div className="space-y-2">
+        <VideoUploadField
+          label="ویدیوی معرفی"
+          description="ویدیوی کوتاهی از خود بارگذاری کنید. فرمت‌های mp4، webm یا mov پذیرفته می‌شوند."
+          value={values.introVideoMediaId ? values.introVideoMediaId : null}
+          onValueChange={(mediaId) => {
+            setValues((prev) => ({ ...prev, introVideoMediaId: mediaId ?? "" }));
+            setFieldErrors((prev) => ({ ...prev, introVideoMediaId: undefined }));
+          }}
+          onBusyChange={setIsVideoBusy}
+          disabled={isPending}
+        />
+        {fieldErrors.introVideoMediaId ? (
+          <p className="text-sm text-destructive">{fieldErrors.introVideoMediaId}</p>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="bio">بیوگرافی (اختیاری)</Label>
         <Textarea
           id="bio"
@@ -317,7 +341,7 @@ export function PersonalInfoForm({ cities, initialValues }: PersonalInfoFormProp
       {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
 
       <div className="flex items-center justify-end gap-3">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isVideoBusy}>
           {isPending ? "در حال ذخیره..." : "ذخیره اطلاعات"}
         </Button>
       </div>
