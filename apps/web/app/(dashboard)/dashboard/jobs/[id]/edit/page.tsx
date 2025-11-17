@@ -14,7 +14,7 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
   const session = await getServerAuthSession();
 
   if (!session?.user?.id) {
-    redirect("/auth/signin");
+    redirect("/auth?tab=signin");
   }
 
   const job = await prisma.job.findFirst({

@@ -66,7 +66,7 @@ type CheckoutStartError = {
   error?: string;
 };
 
-const SIGN_IN_URL = "/auth/signin?callbackUrl=%2Fpricing";
+const SIGN_IN_URL = "/auth?tab=signin&callbackUrl=%2Fpricing";
 
 const resolveGroupCadence = (
   group: PricingPlanGroupData,

@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   const userId = session?.user?.id;
 
   if (!userId) {
-    redirect("/auth/signin");
+    redirect("/auth?tab=signin");
   }
 
   const user = await prisma.user.findUnique({
@@ -31,7 +31,7 @@ export default async function SettingsPage() {
   });
 
   if (!user?.email) {
-    redirect("/auth/signin");
+    redirect("/auth?tab=signin");
   }
 
   return (

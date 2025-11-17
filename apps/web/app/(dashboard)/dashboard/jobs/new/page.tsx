@@ -9,7 +9,7 @@ export default async function NewJobPage() {
   const session = await getServerAuthSession();
 
   if (!session?.user?.id) {
-    redirect("/auth/signin");
+    redirect("/auth?tab=signin");
   }
 
   const cities = await getCities();

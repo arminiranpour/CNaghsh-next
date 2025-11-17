@@ -55,7 +55,7 @@ export function getAuthConfig(prisma: PrismaClient): NextAuthOptions {
       strategy: "jwt",
     },
     pages: {
-      signIn: "/auth/signin",
+      signIn: "/auth",
     },
     providers: [
       Credentials({

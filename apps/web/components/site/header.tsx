@@ -158,13 +158,13 @@ export async function Header({ navigation }: { navigation: NavigationItem[] }) {
           ) : (
             <div className="flex items-center gap-3 text-sm">
               <Link
-                href={{ pathname: "/auth/signin" }}
+                href={{ pathname: "/auth", query: { tab: "signin" } }}
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 ورود
               </Link>
               <Link
-                href={{ pathname: "/auth/signup" }}
+                href={{ pathname: "/auth", query: { tab: "signup" } }}
                 className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 ثبت‌نام

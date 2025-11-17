@@ -42,7 +42,7 @@ export default async function DashboardJobsPage({
   const session = await getServerAuthSession();
 
   if (!session?.user?.id) {
-    redirect("/auth/signin");
+    redirect("/auth?tab=signin");
   }
 
   const userId = session.user.id;
