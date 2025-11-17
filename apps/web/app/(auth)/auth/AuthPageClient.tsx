@@ -15,7 +15,15 @@ export function AuthPageClient({ initialTab, callbackUrl }: AuthPageClientProps)
   const [isPasswordPhase, setIsPasswordPhase] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      style={{
+        backgroundImage: "url(/images/auth-bg.jpg)",
+        backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "100% auto",  // ← FIX: fill width, no cropping
+      }}
+    >
       {/* LAYOUT IS LTR so the character stays on the left */}
       <div 
         className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-12 md:flex-row md:gap-12"
