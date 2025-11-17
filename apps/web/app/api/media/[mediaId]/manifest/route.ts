@@ -1,7 +1,9 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import { NO_STORE_HEADERS, PRIVATE_SHORT_CACHE_HEADERS } from "@/lib/http";
+import { logError, logInfo } from "@/lib/logging";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { getSignedGetUrl } from "@/lib/storage/signing";
@@ -18,42 +20,72 @@ type RouteContext = {
 export async function GET(_request: NextRequest, context: RouteContext) {
   const mediaId = context.params.mediaId;
   if (!mediaId) {
+    logInfo("media.manifest.fetch", { result: "missing_media_id" });
     return NextResponse.json(
       { error: "NOT_FOUND" },
       { status: 404, headers: NO_STORE_HEADERS },
     );
   }
-  const media = await prisma.mediaAsset.findUnique({ where: { id: mediaId } });
-  if (!media || media.status !== "ready" || media.type !== "video" || !media.outputKey) {
+  try {
+    const media = await prisma.mediaAsset.findUnique({ where: { id: mediaId } });
+    if (!media || media.status !== "ready" || media.type !== "video" || !media.outputKey) {
+      logInfo("media.manifest.fetch", { mediaId, result: "not_found" });
+      return NextResponse.json(
+        { error: "NOT_FOUND" },
+        { status: 404, headers: NO_STORE_HEADERS },
+      );
+    }
+    if (media.visibility === "public") {
+      const manifestUrl = getPublicMediaUrlFromKey(media.outputKey);
+      logInfo("media.manifest.fetch", {
+        mediaId,
+        result: "ok",
+        visibility: media.visibility,
+        mode: "public",
+      });
+      return NextResponse.json(
+        { ok: true, url: manifestUrl },
+        { headers: PRIVATE_SHORT_CACHE_HEADERS },
+      );
+    }
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      logInfo("media.manifest.fetch", { mediaId, result: "unauthorized" });
+      return NextResponse.json(
+        { error: "UNAUTHORIZED" },
+        { status: 401, headers: NO_STORE_HEADERS },
+      );
+    }
+    if (session.user.id !== media.ownerUserId) {
+      logInfo("media.manifest.fetch", { mediaId, userId: session.user.id, result: "forbidden" });
+      return NextResponse.json(
+        { error: "FORBIDDEN" },
+        { status: 403, headers: NO_STORE_HEADERS },
+      );
+    }
+    const bucket = resolveBucketForVisibility(media.visibility);
+    const signedUrl = await getSignedGetUrl(bucket, media.outputKey);
+    logInfo("media.manifest.fetch", {
+      mediaId,
+      userId: session.user.id,
+      result: "ok",
+      visibility: media.visibility,
+      mode: "signed",
+    });
     return NextResponse.json(
-      { error: "NOT_FOUND" },
-      { status: 404, headers: NO_STORE_HEADERS },
-    );
-  }
-  if (media.visibility === "public") {
-    const manifestUrl = getPublicMediaUrlFromKey(media.outputKey);
-    return NextResponse.json(
-      { ok: true, url: manifestUrl },
+      { ok: true, url: signedUrl },
       { headers: PRIVATE_SHORT_CACHE_HEADERS },
     );
-  }
-  const session = await getServerAuthSession();
-  if (!session?.user?.id) {
+  } catch (error) {
+    Sentry.captureException(error);
+    logError("media.manifest.fetch", {
+      mediaId,
+      result: "error",
+      message: error instanceof Error ? error.message : "unknown",
+    });
     return NextResponse.json(
-      { error: "UNAUTHORIZED" },
-      { status: 401, headers: NO_STORE_HEADERS },
+      { error: "ERROR" },
+      { status: 500, headers: NO_STORE_HEADERS },
     );
   }
-  if (session.user.id !== media.ownerUserId) {
-    return NextResponse.json(
-      { error: "FORBIDDEN" },
-      { status: 403, headers: NO_STORE_HEADERS },
-    );
-  }
-  const bucket = resolveBucketForVisibility(media.visibility);
-  const signedUrl = await getSignedGetUrl(bucket, media.outputKey);
-  return NextResponse.json(
-    { ok: true, url: signedUrl },
-    { headers: PRIVATE_SHORT_CACHE_HEADERS },
-  );
 }

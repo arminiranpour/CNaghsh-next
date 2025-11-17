@@ -1,15 +1,31 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
+import localFont from "next/font/local";
 import "./globals.css";
 
 import { ConsentGate } from "@/components/analytics/ConsentGate";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
 import { Header, type NavigationItem } from "@/components/site/header";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { ThemeProvider } from "@/components/theme-provider";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
+
+const AppToaster = dynamic(() => import("@/components/ui/toaster").then((mod) => ({ default: mod.Toaster })), {
+  ssr: false,
+  loading: () => null,
+});
+
+const vazirmatn = localFont({
+  src: [
+    { path: "../public/fonts/Vazirmatn-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../public/fonts/Vazirmatn-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../public/fonts/Vazirmatn-Bold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-vazirmatn",
+  display: "swap",
+});
 const navigation = [
   { href: "/", label: "خانه" },
   { href: "/castings", label: "فراخوان‌ها" },
@@ -68,7 +84,7 @@ export default function RootLayout({
 
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className={`${vazirmatn.variable} min-h-screen bg-background font-sans antialiased`}>
         <ThemeProvider>
           <div className="flex min-h-screen flex-col bg-background">
             <Header navigation={navigation} />
@@ -82,7 +98,7 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
-          <Toaster />
+          <AppToaster />
         </ThemeProvider>
       </body>
     </html>

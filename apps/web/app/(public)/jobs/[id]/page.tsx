@@ -274,7 +274,7 @@ export default async function JobDetailPage({
               manifestUrl={playbackInfo.manifestUrl}
               playbackKind={playbackKind}
               posterUrl={playbackInfo.posterUrl ?? undefined}
-              className="w-full"
+              className="w-full rounded-2xl border border-border bg-muted/40 shadow-sm"
             />
           </CardContent>
         </Card>

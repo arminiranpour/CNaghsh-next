@@ -214,6 +214,8 @@ export default async function PublicProfilePage({ params }: Props) {
                 width={256}
                 height={256}
                 className="h-full w-full object-cover"
+                sizes="(max-width: 640px) 40vw, 160px"
+                priority
               />
             </div>
           ) : null}
@@ -259,13 +261,16 @@ export default async function PublicProfilePage({ params }: Props) {
       {featuredVideo && playbackInfo && playbackKind ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">ویدیو معرفی</h2>
-          <VideoPlayer
-            mediaId={featuredVideo.id}
-            manifestUrl={playbackInfo.manifestUrl}
-            playbackKind={playbackKind}
-            posterUrl={playbackInfo.posterUrl ?? undefined}
-            className="w-full"
-          />
+          <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-black shadow-sm aspect-[9/16]">
+            <VideoPlayer
+              mediaId={featuredVideo.id}
+              manifestUrl={playbackInfo.manifestUrl}
+              playbackKind={playbackKind}
+              posterUrl={playbackInfo.posterUrl ?? undefined}
+              fillParent
+              className="absolute inset-0"
+            />
+          </div>
         </section>
       ) : null}
 
@@ -276,13 +281,15 @@ export default async function PublicProfilePage({ params }: Props) {
             {gallery.map((item) => (
               <Card key={item.url}>
                 <CardContent className="p-0">
-                  <Image
-                    src={item.url}
-                    alt={`تصویر ${displayName}`}
-                    width={600}
-                    height={400}
-                    className="h-64 w-full rounded-md object-cover"
-                  />
+                  <div className="relative w-full overflow-hidden rounded-md aspect-[3/2]">
+                    <Image
+                      src={item.url}
+                      alt={`تصویر ${displayName}`}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             ))}

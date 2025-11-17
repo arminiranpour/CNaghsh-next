@@ -28,7 +28,8 @@
     "orchestrators:smoke": "tsx scripts/smoke-orchestrators.ts",
     "seo:smoke:profiles": "tsx scripts/seo-smoke-profiles.ts",
     "seo:smoke:jobs": "tsx scripts/seo-smoke-jobs.ts",
-    "cwv:smoke": "node scripts/cwv-smoke.mjs",
+    "cwv:smoke": "tsx scripts/cwv-smoke.mjs",
+    "cwv:budgets": "tsx scripts/cwv-budgets-check.mts",
     "qa:smoke": "node scripts/rollout-check.mjs",
     "qa:analytics": "node scripts/analytics-smoke.mjs",
     "qa:sprint": "tsx scripts/sprint-verification.mjs",
@@ -37,6 +38,8 @@
     "storage:smoke:signed-expiry": "tsx scripts/storage/signed-url-expiry-check.ts",
     "storage:smoke:visibility": "tsx scripts/storage/visibility-routing-check.ts",
     "media:cdn-url-check": "tsx scripts/media/cdn-url-check.mts",
+    "media:alert-check": "tsx scripts/media/alert-check.mts",
+    "media:health-check": "tsx scripts/media/health-check.mts",
     "admin:media-metrics": "tsx scripts/admin/media-metrics-check.mts"
   },
   "dependencies": {

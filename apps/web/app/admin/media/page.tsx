@@ -1,4 +1,5 @@
 import { requireAdminSession } from "@/lib/auth/admin";
+import { AdminMediaHealthOverview } from "@/components/admin/media/AdminMediaHealthOverview";
 import { AdminMediaStats } from "@/components/admin/media/AdminMediaStats";
 import { AdminMediaTable } from "@/components/admin/media/AdminMediaTable";
 
@@ -15,6 +16,10 @@ export default async function AdminMediaPage() {
           تمامی ویدیوها و تصاویر بارگذاری‌شده را مشاهده، فیلتر و مدیریت کنید. وضعیت پردازش، نمایش و نتیجه بررسی هر رسانه در اینجا قابل دسترسی است.
         </p>
       </header>
+
+      <section>
+        <AdminMediaHealthOverview />
+      </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">آمار کلی</h2>

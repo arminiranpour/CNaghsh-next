@@ -1,0 +1,15 @@
+{
+  "route": "/profiles/[id]",
+  "testedUrl": "http://localhost:3000/profiles/cmhmhvmco0005uax0ksyr8cdg",
+  "metrics": {
+    "lcp": 640.499,
+    "cls": 0,
+    "inp": null
+  },
+  "budget": {
+    "route": "/profiles/[id]",
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "inpMs": 200
+  }
+}

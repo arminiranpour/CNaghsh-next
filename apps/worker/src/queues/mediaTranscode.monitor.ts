@@ -1,6 +1,6 @@
 import type { QueueEvents } from "bullmq";
 
-import { logger } from "../lib/logger";
+import { log, logError, logInfo, logWarn } from "../lib/logger";
 import { createQueueEvents } from "../lib/queue-connection";
 import { MEDIA_TRANSCODE_QUEUE_NAME } from "./mediaTranscode.constants";
 
@@ -22,7 +22,7 @@ const handleCompleted = (event: unknown) => {
     typeof event === "object" && event !== null && "returnvalue" in event
       ? (event as { returnvalue?: unknown }).returnvalue
       : undefined;
-  logger.info("queue", "Job completed", {
+  logInfo("queue.media_transcode.completed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId,
     returnvalue,
@@ -39,7 +39,7 @@ const handleFailed = (event: unknown) => {
     typeof event === "object" && event !== null && "prev" in event
       ? (event as { prev?: unknown }).prev
       : undefined;
-  logger.error("queue", "Job failed", {
+  logError("queue.media_transcode.failed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId,
     failedReason,
@@ -48,21 +48,21 @@ const handleFailed = (event: unknown) => {
 };
 
 const handleWaiting = (event: unknown) => {
-  logger.info("queue", "Job waiting", {
+  logInfo("queue.media_transcode.waiting", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: readJobId(event),
   });
 };
 
 const handleActive = (event: unknown) => {
-  logger.info("queue", "Job active", {
+  log("info", "queue.media_transcode.active", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: readJobId(event),
   });
 };
 
 const handleStalled = (event: unknown) => {
-  logger.warn("queue", "Job stalled", {
+  logWarn("queue.media_transcode.stalled", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: readJobId(event),
   });
@@ -71,7 +71,7 @@ const handleStalled = (event: unknown) => {
 const handleError = (queueEvents: QueueEvents) => {
   queueEvents.on("error", (error: unknown) => {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
-    logger.error("queue", "Queue events error", {
+    logError("queue.media_transcode.error", {
       queue: MEDIA_TRANSCODE_QUEUE_NAME,
       message: normalizedError.message,
       stack: normalizedError.stack,
@@ -88,7 +88,7 @@ export const startMediaTranscodeQueueMonitor = async () => {
   queueEvents.on("stalled", handleStalled);
   handleError(queueEvents);
   await queueEvents.waitUntilReady();
-  logger.info("queue", "Queue events listener ready", {
+  logInfo("queue.media_transcode.monitor_ready", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
   });
   return queueEvents;

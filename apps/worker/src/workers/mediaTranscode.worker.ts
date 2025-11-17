@@ -7,7 +7,7 @@ import { MediaStatus, MediaType, Prisma, PrismaClient, TranscodeJobStatus } from
 
 import { config } from "../config";
 import { transcodeConfig } from "../config.transcode";
-import { logger } from "../lib/logger";
+import { logError, logInfo, logWarn } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { createWorkerConnection } from "../lib/queue-connection";
 import { cleanupPath, createTempDir, createTempFile } from "../lib/tmp";
@@ -21,6 +21,7 @@ import { cacheHlsManifest, cacheHlsSegment, cachePoster } from "../storage/heade
 import { downloadToFile, uploadFile } from "../storage/io";
 import { getHlsManifestKey, getHlsVariantPrefix, getPosterKey, joinKey } from "../storage/keys";
 import { resolveBucketForVisibility } from "../storage/visibility";
+import { captureWorkerException } from "../sentry";
 
 type MediaTranscodeJobResult = { mediaAssetId: string; attempt: number };
 
@@ -38,7 +39,7 @@ const safeCleanup = async (path: string | null, label: string) => {
   try {
     await cleanupPath(path);
   } catch (error) {
-    logger.warn("worker", "Failed to cleanup temporary path", {
+    logWarn("media.transcode.cleanup_failure", {
       path,
       label,
       message: error instanceof Error ? error.message : String(error),
@@ -52,7 +53,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
   if (!mediaAssetId) {
     throw new Error("Missing mediaAssetId");
   }
-  logger.info("worker", "Processing media transcode job", {
+  logInfo("media.transcode.start", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: job.id,
     mediaAssetId,
@@ -92,7 +93,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
         },
       });
     }
-    logger.info("worker", "Skipping transcode for already ready media", {
+    logInfo("media.transcode.skip", {
       mediaAssetId,
       jobId: job.id,
     });
@@ -287,7 +288,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
       });
     });
 
-    logger.info("worker", "Media transcode job finished", {
+    logInfo("media.transcode.success", {
       mediaAssetId,
       jobId: job.id,
       manifestKey,
@@ -322,16 +323,17 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
         },
       });
     } catch (updateError) {
-      logger.error("worker", "Failed to persist failure state", {
+      logError("media.transcode.failure_persist", {
         mediaAssetId,
         message: updateError instanceof Error ? updateError.message : String(updateError),
       });
     }
-    logger.error("worker", "Media transcode job failed", {
+    logError("media.transcode.failure", {
       mediaAssetId,
       jobId: job.id,
       message: safeMessage,
     });
+    captureWorkerException(error);
     throw error;
   } finally {
     await safeCleanup(posterPath, "poster");
@@ -354,7 +356,7 @@ export const mediaTranscodeWorker = new Worker<MediaTranscodeJobData, MediaTrans
 
 mediaTranscodeWorker.on("completed", (job: Job<MediaTranscodeJobData, MediaTranscodeJobResult>) => {
   const result = job.returnvalue;
-  logger.info("job", "Media transcode job completed", {
+  logInfo("media.transcode.worker.completed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: job.id,
     returnvalue: result,
@@ -363,7 +365,7 @@ mediaTranscodeWorker.on("completed", (job: Job<MediaTranscodeJobData, MediaTrans
 
 mediaTranscodeWorker.on("failed", (job: Job<MediaTranscodeJobData>, error: unknown) => {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
-  logger.error("job", "Media transcode job failed", {
+  logError("media.transcode.worker.failed", {
     queue: MEDIA_TRANSCODE_QUEUE_NAME,
     jobId: job?.id,
     failedReason: normalizedError.message,
@@ -374,7 +376,7 @@ mediaTranscodeWorker.on("failed", (job: Job<MediaTranscodeJobData>, error: unkno
 
 mediaTranscodeWorker.on("error", (error: unknown) => {
   const normalizedError = error instanceof Error ? error : new Error(String(error));
-  logger.error("worker", "Worker runtime error", {
+  logError("media.transcode.worker.error", {
     message: normalizedError.message,
     stack: normalizedError.stack,
   });

@@ -12,6 +12,7 @@ export type VideoPlayerProps = {
   posterUrl?: string | null;
   autoPlayMuted?: boolean;
   loop?: boolean;
+  fillParent?: boolean;
   className?: string;
 };
 
@@ -26,6 +27,7 @@ const VideoPlayer = ({
   posterUrl,
   autoPlayMuted = true,
   loop = false,
+  fillParent = false,
   className,
 }: VideoPlayerProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -274,8 +276,15 @@ const VideoPlayer = ({
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      <div className="relative overflow-hidden rounded-xl bg-black">
-        <div className="aspect-video w-full bg-black">
+      <div
+        className={cn("relative overflow-hidden rounded-xl bg-black", fillParent ? "h-full" : undefined)}
+      >
+        <div
+          className={cn(
+            fillParent ? "absolute inset-0 h-full w-full" : "relative aspect-video w-full",
+            "bg-black",
+          )}
+        >
           <video
             ref={videoRef}
             className="h-full w-full bg-black object-contain"

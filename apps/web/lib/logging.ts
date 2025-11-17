@@ -2,7 +2,7 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 
 type LogFields = Record<string, unknown> | undefined;
 
-const SERVICE_NAME = "media-worker";
+const SERVICE_NAME = "web";
 
 const write = (level: LogLevel, payload: Record<string, unknown>) => {
   const method = (console as Record<LogLevel, (message?: unknown, ...optional: unknown[]) => void>)[level] ?? console.log;
@@ -10,14 +10,14 @@ const write = (level: LogLevel, payload: Record<string, unknown>) => {
 };
 
 export function log(level: LogLevel, event: string, fields?: LogFields): void {
-  const payload = {
+  const body = {
     service: SERVICE_NAME,
     event,
     level,
     timestamp: new Date().toISOString(),
     fields: fields ?? {},
   };
-  write(level, payload);
+  write(level, body);
 }
 
 export function logInfo(event: string, fields?: LogFields): void {
@@ -26,12 +26,4 @@ export function logInfo(event: string, fields?: LogFields): void {
 
 export function logError(event: string, fields?: LogFields): void {
   log("error", event, fields);
-}
-
-export function logWarn(event: string, fields?: LogFields): void {
-  log("warn", event, fields);
-}
-
-export function logDebug(event: string, fields?: LogFields): void {
-  log("debug", event, fields);
 }

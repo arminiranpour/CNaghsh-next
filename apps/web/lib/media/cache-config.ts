@@ -10,7 +10,7 @@ const positiveInt = (label: string, fallback: number) =>
         .gt(0, `${label} must be positive`),
       z.undefined(),
     ])
-    .transform((value) => value ?? fallback);
+    .transform((value: number | undefined) => value ?? fallback);
 
 const schema = z.object({
   HLS_SEGMENT_MAX_AGE_SEC: positiveInt("HLS_SEGMENT_MAX_AGE_SEC", 31_536_000),

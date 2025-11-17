@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 
 import { MediaStatus, MediaType, MediaVisibility, TranscodeJobStatus } from "@prisma/client";
+import * as Sentry from "@sentry/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import { isDev } from "@/lib/env";
 import { NO_STORE_HEADERS, safeJson } from "@/lib/http";
+import { logError, logInfo } from "@/lib/logging";
 import { prisma } from "@/lib/prisma";
 import { enqueueTranscode } from "@/lib/queues/mediaTranscode.enqueue";
 import { uploadConfig } from "@/lib/media/config";
@@ -79,14 +81,34 @@ const errorResponse = ({ status, code, message }: ErrorTuple) => {
   );
 };
 
+const respondWithError = (
+  error: ErrorTuple,
+  fields?: Record<string, unknown>,
+) => {
+  logError("upload.init.failure", {
+    status: error.status,
+    code: error.code,
+    ...(fields ?? {}),
+  });
+  return errorResponse(error);
+};
+
 const ensureDailyQuota = async (userId: string, sizeBytes: number) => {
   const todayBytes = await getDailyBytes(userId);
   if (todayBytes + sizeBytes > uploadConfig.dailyUserCapBytes) {
-    return errorResponse({
-      status: 429,
-      code: "QUOTA_EXCEEDED",
-      message: "سقف روزانه حجم آپلود شما تکمیل شده است.",
-    });
+    return respondWithError(
+      {
+        status: 429,
+        code: "QUOTA_EXCEEDED",
+        message: "سقف روزانه حجم آپلود شما تکمیل شده است.",
+      },
+      {
+        userId,
+        todayBytes,
+        sizeBytes,
+        reason: "quota_exceeded",
+      },
+    );
   }
   return null;
 };
@@ -148,11 +170,19 @@ const evaluatePlanLimits = async (
   const entitlements = await getUserMediaEntitlements(userId);
   const estimatedDuration = metadata.estimatedDurationSec ?? 0;
   if (!validateDuration(estimatedDuration, entitlements.maxDurationPerVideoSec)) {
-    return errorResponse({
-      status: 422,
-      code: "DURATION_EXCEEDED",
-      message: "مدت ویدیو از سقف طرح شما بیشتر است.",
-    });
+    return respondWithError(
+      {
+        status: 422,
+        code: "DURATION_EXCEEDED",
+        message: "مدت ویدیو از سقف طرح شما بیشتر است.",
+      },
+      {
+        userId,
+        reason: "duration_limit",
+        estimatedDurationSec: estimatedDuration,
+        planDurationLimitSec: entitlements.maxDurationPerVideoSec,
+      },
+    );
   }
   const decision = await canUploadVideo(
     userId,
@@ -165,11 +195,19 @@ const evaluatePlanLimits = async (
       decision.reason === "DURATION_LIMIT"
         ? "مدت ویدیو از سقف طرح شما بیشتر است."
         : "شما به سقف مجاز بارگذاری رسیده‌اید.";
-    return errorResponse({
-      status: 429,
-      code: decision.reason === "DURATION_LIMIT" ? "DURATION_EXCEEDED" : "QUOTA_EXCEEDED",
-      message,
-    });
+    return respondWithError(
+      {
+        status: 429,
+        code: decision.reason === "DURATION_LIMIT" ? "DURATION_EXCEEDED" : "QUOTA_EXCEEDED",
+        message,
+      },
+      {
+        userId,
+        reason: decision.reason,
+        sizeBytes: metadata.sizeBytes,
+        estimatedDurationSec: estimatedDuration,
+      },
+    );
   }
   return null;
 };
@@ -182,19 +220,33 @@ const prepareUpload = async (
 ) => {
   const normalizedMime = normalizeMime(metadata.contentType);
   if (!normalizedMime || !isAllowedMime(normalizedMime)) {
-    return errorResponse({
-      status: 415,
-      code: "INVALID_MIME",
-      message: "نوع فایل مجاز نیست.",
-    });
+    return respondWithError(
+      {
+        status: 415,
+        code: "INVALID_MIME",
+        message: "نوع فایل مجاز نیست.",
+      },
+      {
+        userId,
+        reason: "invalid_mime",
+        contentType: metadata.contentType,
+      },
+    );
   }
 
   if (!isWithinSizeLimit(metadata.sizeBytes)) {
-    return errorResponse({
-      status: 413,
-      code: "TOO_LARGE",
-      message: "حجم فایل از حد مجاز بیشتر است.",
-    });
+    return respondWithError(
+      {
+        status: 413,
+        code: "TOO_LARGE",
+        message: "حجم فایل از حد مجاز بیشتر است.",
+      },
+      {
+        userId,
+        reason: "size_limit",
+        sizeBytes: metadata.sizeBytes,
+      },
+    );
   }
 
   const quotaError = await ensureDailyQuota(userId, metadata.sizeBytes);
@@ -209,11 +261,18 @@ const prepareUpload = async (
 
   const extension = MIME_EXTENSIONS[normalizedMime];
   if (!extension) {
-    return errorResponse({
-      status: 415,
-      code: "INVALID_MIME",
-      message: "نوع فایل مجاز نیست.",
-    });
+    return respondWithError(
+      {
+        status: 415,
+        code: "INVALID_MIME",
+        message: "نوع فایل مجاز نیست.",
+      },
+      {
+        userId,
+        reason: "missing_extension",
+        normalizedMime,
+      },
+    );
   }
 
   const media = await createMediaAssetRecord(userId, extension, metadata.sizeBytes);
@@ -229,30 +288,46 @@ const prepareUpload = async (
 
   await trackDailyBytes(userId, metadata.sizeBytes);
 
+  logInfo("upload.init.success", {
+    userId,
+    mediaId: media.id,
+    mode,
+    contentType: normalizedMime,
+    sizeBytes: metadata.sizeBytes,
+    estimatedDurationSec: metadata.estimatedDurationSec ?? null,
+  });
+
   return successResponse(media.id, media.sourceKey, mode, signedUrl);
 };
 
 const parseMultipartMetadata = async (
   request: NextRequest,
-): Promise<{ metadata?: MultipartMetadata; error?: ReturnType<typeof errorResponse> }> => {
+  userId: string,
+): Promise<{ metadata?: MultipartMetadata; error?: NextResponse }> => {
   if (!isDev) {
     return {
-      error: errorResponse({
-        status: 405,
-        code: "UNKNOWN",
-        message: "این حالت در محیط فعلی فعال نیست.",
-      }),
+      error: respondWithError(
+        {
+          status: 405,
+          code: "UNKNOWN",
+          message: "این حالت در محیط فعلی فعال نیست.",
+        },
+        { userId, reason: "multipart_disabled" },
+      ),
     };
   }
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) {
     return {
-      error: errorResponse({
-        status: 400,
-        code: "UNKNOWN",
-        message: "فایل ارسال‌شده معتبر نیست.",
-      }),
+      error: respondWithError(
+        {
+          status: 400,
+          code: "UNKNOWN",
+          message: "فایل ارسال‌شده معتبر نیست.",
+        },
+        { userId, reason: "missing_file_field" },
+      ),
     };
   }
   const fileName = file.name && file.name.length > 0 ? file.name : `upload-${Date.now()}`;
@@ -280,22 +355,28 @@ const parseMultipartMetadata = async (
 export async function POST(request: NextRequest) {
   const session = await getServerAuthSession();
   if (!session?.user?.id) {
-    return errorResponse({
-      status: 401,
-      code: "UNKNOWN",
-      message: "لطفاً ابتدا وارد حساب کاربری شوید.",
-    });
+    return respondWithError(
+      {
+        status: 401,
+        code: "UNKNOWN",
+        message: "لطفاً ابتدا وارد حساب کاربری شوید.",
+      },
+      { reason: "unauthenticated" },
+    );
   }
   const ownerUserId = session.user.id;
   try {
     await assertWithinRateLimit({ userId: ownerUserId, ip: getClientIp(request) });
   } catch (error) {
     if (error instanceof RateLimitExceededError) {
-      return errorResponse({
-        status: 429,
-        code: "RATE_LIMITED",
-        message: "درخواست‌های شما بیش از حد مجاز است. بعداً دوباره تلاش کنید.",
-      });
+      return respondWithError(
+        {
+          status: 429,
+          code: "RATE_LIMITED",
+          message: "درخواست‌های شما بیش از حد مجاز است. بعداً دوباره تلاش کنید.",
+        },
+        { userId: ownerUserId, reason: "rate_limit" },
+      );
     }
     throw error;
   }
@@ -303,32 +384,41 @@ export async function POST(request: NextRequest) {
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
   try {
     if (contentType.includes("multipart/form-data")) {
-      const { metadata, error } = await parseMultipartMetadata(request);
+      const { metadata, error } = await parseMultipartMetadata(request, ownerUserId);
       if (error) {
         return error;
       }
       if (!metadata) {
-        return errorResponse({
-          status: 400,
-          code: "UNKNOWN",
-          message: "داده‌های ارسالی معتبر نیست.",
-        });
+        return respondWithError(
+          {
+            status: 400,
+            code: "UNKNOWN",
+            message: "داده‌های ارسالی معتبر نیست.",
+          },
+          { userId: ownerUserId, reason: "missing_metadata", mode: "multipart" },
+        );
       }
       const normalizedMime = normalizeMime(metadata.contentType);
       if (!normalizedMime) {
-        return errorResponse({
-          status: 415,
-          code: "INVALID_MIME",
-          message: "نوع فایل مجاز نیست.",
-        });
+        return respondWithError(
+          {
+            status: 415,
+            code: "INVALID_MIME",
+            message: "نوع فایل مجاز نیست.",
+          },
+          { userId: ownerUserId, reason: "invalid_mime", mode: "multipart" },
+        );
       }
       const sniffed = await sniffMimeFromFile(metadata.file);
       if (sniffed && sniffed !== normalizedMime) {
-        return errorResponse({
-          status: 415,
-          code: "INVALID_MIME",
-          message: "نوع فایل مجاز نیست.",
-        });
+        return respondWithError(
+          {
+            status: 415,
+            code: "INVALID_MIME",
+            message: "نوع فایل مجاز نیست.",
+          },
+          { userId: ownerUserId, reason: "sniff_mismatch", mode: "multipart", sniffed },
+        );
       }
       const buffer = Buffer.from(await metadata.file.arrayBuffer());
       return prepareUpload(
@@ -346,21 +436,27 @@ export async function POST(request: NextRequest) {
 
     const parsed = await safeJson<unknown>(request);
     if (!parsed.ok) {
-      return errorResponse({
-        status: 400,
-        code: "UNKNOWN",
-        message: "داده‌های ارسالی معتبر نیست.",
-      });
+      return respondWithError(
+        {
+          status: 400,
+          code: "UNKNOWN",
+          message: "داده‌های ارسالی معتبر نیست.",
+        },
+        { userId: ownerUserId, reason: "invalid_json" },
+      );
     }
     let metadata: UploadMetadata;
     try {
       metadata = parseUploadRequest(parsed.data);
     } catch (error) {
-      return errorResponse({
-        status: 400,
-        code: "UNKNOWN",
-        message: "داده‌های ارسالی معتبر نیست.",
-      });
+      return respondWithError(
+        {
+          status: 400,
+          code: "UNKNOWN",
+          message: "داده‌های ارسالی معتبر نیست.",
+        },
+        { userId: ownerUserId, reason: "invalid_payload" },
+      );
     }
     const normalizedMime = normalizeMime(metadata.contentType);
     return prepareUpload(
@@ -374,11 +470,20 @@ export async function POST(request: NextRequest) {
       "signed-put",
     );
   } catch (error) {
-    console.error("[api.media.upload] unexpected_error", error);
-    return errorResponse({
-      status: 500,
-      code: "UNKNOWN",
-      message: "خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید.",
-    });
+    Sentry.captureException(error);
+    const message = error instanceof Error ? error.message : "unknown";
+    return respondWithError(
+      {
+        status: 500,
+        code: "UNKNOWN",
+        message: "خطای غیرمنتظره رخ داد. لطفاً دوباره تلاش کنید.",
+      },
+      {
+        userId: ownerUserId,
+        reason: "unexpected",
+        errorMessage: message,
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+    );
   }
 }
