@@ -10,6 +10,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
+import { iransans } from "./fonts";
 
 const navigation = [
   { href: "/", label: "خانه" },
@@ -66,9 +67,12 @@ export default function RootLayout({
 
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className={`${iransans.variable} font-iransans antialiased`}>
         <ThemeProvider>
-          <div className="flex min-h-screen flex-col bg-background">
+          <div
+  className="flex min-h-screen flex-col bg-background"
+  data-layout="chrome"
+>
             <Header navigation={navigation} />
             <ConsentGate />
             <main className="flex-1">{children}</main>
