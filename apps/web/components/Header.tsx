@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { CineMenuOverlay } from "@/components/header/CineMenuOverlay";
 
 const FRAME_WIDTH = 1200;
 const TOP = 108;
@@ -21,49 +22,50 @@ const LOGO_W = 140;
 const LOGO_H = 43;
 
 export default function Header() {
-  // برای هاور شدن هر آیتم
   const [hovered, setHovered] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // فیلتر نارنجی (مثل قبل)
   const orangeFilter =
     "brightness(0) saturate(100%) invert(61%) sepia(61%) saturate(1043%) hue-rotate(351deg) brightness(98%) contrast(98%)";
 
   return (
-    <header
-      style={{
-        position: "absolute",
-        top: TOP,
-        left: "48%",
-        transform: "translateX(-50%)",
-        width: FRAME_WIDTH,
-        height: 0,
-        zIndex: 60,
-        pointerEvents: "none",
-        direction: "rtl",
-        fontFamily: "IRANSans",
-        color: "#fff",
-      }}
-    >
-      <div
+    <>
+      <header
         style={{
           position: "absolute",
-          right: RIGHT_PADDING,
-          top: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-          pointerEvents: "auto",
+          top: TOP,
+          left: "48%",
+          transform: "translateX(-50%)",
+          width: FRAME_WIDTH,
+          height: 0,
+          zIndex: 60,
+          pointerEvents: "none",
+          direction: "rtl",
+          fontFamily: "IRANSans",
+          color: "#fff",
         }}
       >
-        {/* راست: آیکن‌ها + متن‌ها */}
-        <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
-          {/* آیکن‌ها */}
-          <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
-            {/* Menu */}
-            <a
-              href="#"
-              aria-label="menu"
+        <div
+          style={{
+            position: "absolute",
+            right: RIGHT_PADDING,
+            top: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            pointerEvents: "auto",
+          }}
+        >
+          {/* راست: آیکن‌ها + متن‌ها */}
+          <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
+            {/* آیکن‌ها */}
+            <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
+              {/* Menu */}
+            <button
+              type="button"
+              aria-label={menuOpen ? "close menu" : "open menu"}
+              onClick={() => setMenuOpen((prev) => !prev)}
               onMouseEnter={() => setHovered("menu")}
               onMouseLeave={() => setHovered(null)}
               style={{
@@ -77,10 +79,15 @@ export default function Header() {
               }}
             >
               <Image
-                src="/cineflash/home/header/menu.png"
+                src={
+                  menuOpen
+                    ? "/cineflash/home/header/vecteezy_simple-close-button-icon-for-ui-ux_58235344 [Converted].png" 
+                    : "/cineflash/home/header/menu.png"       
+                }
                 alt="Menu"
-                width={MENU_W}
-                height={MENU_H}
+                width={50}
+                height={30}
+                className="w-[50px] h-[30px] object-contain"
                 unoptimized
                 priority
                 style={{
@@ -91,103 +98,108 @@ export default function Header() {
                   transform: hovered === "menu" ? "translateY(-1px)" : "none",
                 }}
               />
-            </a>
+            </button>
 
-            {/* User */}
-            <a
-              href="#"
-              aria-label="user"
-              onMouseEnter={() => setHovered("user")}
-              onMouseLeave={() => setHovered(null)}
+
+              {/* User */}
+              <button
+                type="button"
+                aria-label="user"
+                onMouseEnter={() => setHovered("user")}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  border: 0,
+                  background: "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <Image
+                  src="/cineflash/home/header/user.png"
+                  alt="User"
+                  width={USER_W}
+                  height={USER_H}
+                  unoptimized
+                  priority
+                  style={{
+                    display: "block",
+                    transition: "filter .2s ease, transform .15s ease",
+                    filter: hovered === "user" ? orangeFilter : "none",
+                    transform: hovered === "user" ? "translateY(-1px)" : "none",
+                  }}
+                />
+              </button>
+            </div>
+
+            {/* متن‌ها */}
+            <nav
               style={{
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                border: 0,
-                background: "transparent",
-                cursor: "pointer",
+                gap: GAP_TEXTS,
+                fontSize: 22,
+                fontWeight: 500,
+                lineHeight: 1,
+                whiteSpace: "nowrap",
               }}
             >
-              <Image
-                src="/cineflash/home/header/user.png"
-                alt="User"
-                width={USER_W}
-                height={USER_H}
-                unoptimized
-                priority
+              <Link
+                href="/auth/register"
+                onMouseEnter={() => setHovered("register")}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  display: "block",
-                  transition: "filter .2s ease, transform .15s ease",
-                  filter: hovered === "user" ? orangeFilter : "none",
-                  transform: hovered === "user" ? "translateY(-1px)" : "none",
+                  textDecoration: "none",
+                  color: hovered === "register" ? "#F58A1F" : "inherit",
+                  transition: "color .2s ease",
+                  cursor: "pointer",
                 }}
-              />
-            </a>
+              >
+                ثبت نام
+              </Link>
+
+              <Link
+                href="/talents/search"
+                onMouseEnter={() => setHovered("search")}
+                onMouseLeave={() => setHovered(null)}
+                style={{
+                  textDecoration: "none",
+                  color: hovered === "search" ? "#F58A1F" : "inherit",
+                  transition: "color .2s ease",
+                  cursor: "pointer",
+                }}
+              >
+                جست‌ و جوی هنرمندان
+              </Link>
+            </nav>
           </div>
 
-          {/* متن‌ها */}
-          <nav
+          {/* چپ: لوگو */}
+          <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: GAP_TEXTS,
-              fontSize: 22,
-              fontWeight: 500,
-              lineHeight: 1,
-              whiteSpace: "nowrap",
+              position: "relative",
+              width: LOGO_W,
+              height: LOGO_H,
+              marginLeft: GAP_LOGO,
             }}
           >
-            <Link
-              href="/auth/register"
-              onMouseEnter={() => setHovered("register")}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                textDecoration: "none",
-                color: hovered === "register" ? "#F58A1F" : "inherit",
-                transition: "color .2s ease",
-                cursor: "pointer",
-              }}
-            >
-              ثبت نام
-            </Link>
-
-            <Link
-              href="/talents/search"
-              onMouseEnter={() => setHovered("search")}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                textDecoration: "none",
-                color: hovered === "search" ? "#F58A1F" : "inherit",
-                transition: "color .2s ease",
-                cursor: "pointer",
-              }}
-            >
-              جست‌ و جوی هنرمندان
-            </Link>
-          </nav>
+            <Image
+              src="/cineflash/home/header/cnaghsh-logo.png"
+              alt="CNAGHSH ART GROUP"
+              fill
+              sizes="130px"
+              style={{ objectFit: "contain" }}
+              unoptimized
+              priority
+            />
+          </div>
         </div>
+      </header>
 
-        {/* چپ: لوگو (بدون تغییر) */}
-        <div
-          style={{
-            position: "relative",
-            width: LOGO_W,
-            height: LOGO_H,
-            marginLeft: GAP_LOGO,
-          }}
-        >
-          <Image
-            src="/cineflash/home/header/cnaghsh-logo.png"
-            alt="CNAGHSH ART GROUP"
-            fill
-            sizes="130px"
-            style={{ objectFit: "contain" }}
-            unoptimized
-            priority
-          />
-        </div>
-      </div>
-    </header>
+      {/* Overlay menu */}
+      <CineMenuOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </>
   );
 }
