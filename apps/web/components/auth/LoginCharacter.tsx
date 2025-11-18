@@ -63,8 +63,7 @@ export function LoginCharacter({ isPasswordPhase }: LoginCharacterProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-[260px] h-[260px] md:w-[320px] md:h-[320px]"
-    >
+      className="relative w-[500px] h-full md:w-[500px] md:h-full"    >
       <img
         src={src}
         alt="login character"

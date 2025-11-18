@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { headers } from "next/headers";
 
 import { ConsentGate } from "@/components/analytics/ConsentGate";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -65,26 +66,76 @@ export default function RootLayout({
     url: baseUrl,
     logoUrl: `${baseUrl}${SITE_LOGO_PATH}`,
   });
+  const isAuthRoute = isAuthPath();
 
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
           <div className="flex min-h-screen flex-col bg-background">
-            <Header navigation={navigation} />
+            {!isAuthRoute ? <Header navigation={navigation} /> : null}
             <ConsentGate />
             <main className="flex-1">{children}</main>
             <JsonLd data={organizationJsonLd} />
-            <footer className="border-t border-border bg-card/50">
-              <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
-                <span>ساخته شده برای اسپرینت صفر</span>
-              </div>
-            </footer>
+            {!isAuthRoute ? (
+              <footer className="border-t border-border bg-card/50">
+                <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
+                  <span>ساخته شده برای اسپرینت صفر</span>
+                </div>
+              </footer>
+            ) : null}
           </div>
           <Toaster />
         </ThemeProvider>
       </body>
     </html>
   );
+}
+
+function isAuthPath() {
+  const headerList = headers();
+  const headerCandidates = ["x-invoke-path", "x-matched-path", "next-url"] as const;
+  let pathname: string | null = null;
+
+  for (const name of headerCandidates) {
+    const value = headerList.get(name);
+    if (!value) continue;
+
+    if (name === "next-url") {
+      pathname = extractPathname(value);
+    } else {
+      pathname = value;
+    }
+
+    if (pathname) {
+      break;
+    }
+  }
+
+  if (!pathname) {
+    return false;
+  }
+
+  const normalizedPathname = pathname.replace(/\/\([^/]+\)/g, "");
+  const authRoutes = ["/auth", "/signin", "/signup"];
+
+  return authRoutes.some((route) => {
+    return (
+      normalizedPathname === route ||
+      normalizedPathname.startsWith(`${route}/`)
+    );
+  });
+}
+
+function extractPathname(value: string) {
+  try {
+    const parsed =
+      value.startsWith("http://") || value.startsWith("https://")
+        ? new URL(value)
+        : new URL(value, "http://localhost");
+    return parsed.pathname;
+  } catch {
+    return value.startsWith("/") ? value : `/${value}`;
+  }
 }

@@ -37,7 +37,7 @@ export default async function AuthPage({
       className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/images/auth-bg.jpg')" }}
     >
-      <div className="w-full max-w-6xl px-4 py-12">
+      <div className="w-full h-full px-4 py-12">
         <AuthPageClient initialTab={initialTab} callbackUrl={callbackUrl} />
       </div>
     </main>
