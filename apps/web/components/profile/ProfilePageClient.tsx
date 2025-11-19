@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
+import { CenterPane } from "@/components/profile/CenterPane/CenterPane";
 
 export type ProfileTabId = "personal" | "gallery" | "videos" | "audio" | "awards";
 
@@ -11,7 +12,7 @@ export function ProfilePageClient() {
   return (
     <>
       <LeftRail activeTab={activeTab} onTabChange={setActiveTab} />
-      {/* بعداً همین activeTab را به CenterPane و RightCard هم پاس می‌دهیم */}
+      <CenterPane activeTab={activeTab} />
     </>
   );
 }
