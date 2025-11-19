@@ -1,27 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+import { iransans } from "./fonts";
 import "./globals.css";
 
-import { ConsentGate } from "@/components/analytics/ConsentGate";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import { Header, type NavigationItem } from "@/components/site/header";
-import { JsonLd } from "@/components/seo/JsonLd";
-import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
-import { getBaseUrl } from "@/lib/seo/baseUrl";
-import { siteOrganizationJsonLd } from "@/lib/seo/jsonld";
-
-const navigation = [
-  { href: "/", label: "خانه" },
-  { href: "/castings", label: "فراخوان‌ها" },
-  {
-    href: {
-      pathname: "/users/[id]",
-      query: { id: "123" }
-    },
-    label: "کاربران",
-  },
-] satisfies NavigationItem[];
+import {
+  SITE_DESCRIPTION,
+  SITE_LOCALE,
+  SITE_NAME,
+} from "@/lib/seo/constants";
 
 const isStaging = process.env.NEXT_PUBLIC_ENV === "staging";
 
@@ -52,10 +39,7 @@ export const metadata: Metadata = {
     : undefined,
 };
 
-import "./globals.css";
-import { iransans } from "./fonts";
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fa" dir="rtl">
       <body className={`${iransans.variable} font-iransans antialiased`}>
