@@ -12,8 +12,8 @@ export function ProfilePageLayout({ bgUrl, children }: Props) {
   const background = bgUrl
     ? `url(${bgUrl}) center / cover no-repeat fixed`
     : [
-        "radial-gradient(900px 900px at 0% 0%, rgba(252, 154, 72, 0.85), transparent 80%)",
-        "radial-gradient(900px 900px at 100% 0%, rgba(112, 203, 212, 0.90), transparent 90%)",
+        "radial-gradient(900px 900px at 0% 0%, rgba(252, 154, 72, 0.85), transparent 95%)",
+        "radial-gradient(900px 900px at 100% 0%, rgba(112, 203, 212, 0.90), transparent 100%)",
         "radial-gradient(900px 900px at 100% 100%, rgba(252, 154, 72, 0.85), transparent 80%)",
         "radial-gradient(900px 900px at 0% 100%, rgba(112, 203, 212, 0.90), transparent 80%)",
         "radial-gradient(1000px 800px at 50% 50%, rgba(243, 238, 230, 0.85), transparent 50%)",
@@ -32,8 +32,7 @@ export function ProfilePageLayout({ bgUrl, children }: Props) {
         backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
         position: "relative",
-        overflowX: "hidden",       // فقط عرض را محدود کن
-        // overflowY را حذف می‌کنیم تا اسکرول عمودی آزاد باشد
+        overflowX: "hidden",      
       }}
     >
       {/* مخفی کردن هدر/فوتر اصلی و تنظیم پوزیشن هدر خودت */}

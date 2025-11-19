@@ -1,0 +1,496 @@
+"use client";
+
+import Image from "next/image";
+
+const GREEN = "#3BBF35";
+const GRAY_BORDER = "#DDDDDD";
+
+type Skill = { label: string };
+type Language = { label: string; level: number; total: number };
+type Accent = { label: string };
+
+const SKILLS: Skill[] = [
+  { label: "کمدی" },
+  { label: "صداپیشگی" },
+  { label: "پانتومیم" },
+  { label: "خواندن دوبله" },
+];
+
+const LANGUAGES: Language[] = [
+  { label: "فارسی", level: 5, total: 5 },
+  { label: "انگلیسی", level: 3, total: 5 },
+  { label: "ترکی", level: 4, total: 5 },
+];
+
+const ACCENTS: Accent[] = [
+  { label: "فارسی" },
+  { label: "ترکی" },
+];
+
+export function RightPane() {
+  return (
+    <section
+      aria-label="پنل کناری پروفایل"
+      style={{
+        position: "absolute",
+        left: 1095,
+        top: 315,
+        width: 265,
+        height: 804,
+        borderRadius: 20,
+        backgroundColor: "#FFFFFF",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
+        overflow: "visible",
+        direction: "rtl",
+        fontFamily: "IRANSans, sans-serif",
+      }}
+    >
+      {/* تصویر پروفایل */}
+      <div
+        style={{
+          position: "absolute",
+          width: 169,
+          height: 169,
+          left: "50%",
+          top: -100,
+          transform: "translateX(-50%)",
+          borderRadius: 20,
+          overflow: "hidden",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+        }}
+      >
+        <Image
+          src="/cineflash/profile/example.jpg"
+          alt="Profile"
+          width={169}
+          height={169}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      </div>
+
+      {/* نام بازیگر */}
+      <h2
+        style={{
+          position: "absolute",
+          top: 100,
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: 20,
+          fontWeight: 700,
+          margin: 0,
+          color: "#FF7F19",
+          whiteSpace: "nowrap",
+        }}
+      >
+        فرید مقدم‌پور
+      </h2>
+
+      {/* سن */}
+      <div
+        style={{
+          position: "absolute",
+          top: 140,
+          left: "50%",
+          transform: "translateX(-50%)",
+          fontSize: 13,
+          fontWeight: 500,
+          color: "#000000",
+          whiteSpace: "nowrap",
+        }}
+      >
+        سن ۳۲ سال
+      </div>
+
+      {/* دکمه پیشرفته */}
+      <div
+        style={{
+          position: "absolute",
+          top: 170,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 85,
+          height: 26,
+          borderRadius: 16,
+          backgroundColor: "#FF7F19",
+          color: "#FFFFFF",
+          fontSize: 14,
+          fontWeight: 400,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          whiteSpace: "nowrap",
+          cursor: "pointer",
+        }}
+      >
+        پیشرفته
+      </div>
+
+      {/* ستاره امتیاز */}
+      <div
+        style={{
+          position: "absolute",
+          top: 208,
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 18,
+            fontWeight: 400,
+            color: "#FF7F19",
+          }}
+        >
+          ۲۵۳۹
+        </span>
+        <Image
+          src="/cineflash/profile/star.png"
+          alt="star"
+          width={19}
+          height={18}
+        />
+      </div>
+
+      {/* باکس طوسی اطلاعات جزئی */}
+      <div
+        style={{
+          position: "absolute",
+          top: 260,
+          left: (265 - 209) / 2,
+          width: 209,
+          borderRadius: 11,
+          backgroundColor: "#EFEFEF",
+          padding: "18px 16px",
+          boxSizing: "border-box",
+          direction: "rtl",
+          textAlign: "right",
+        }}
+      >
+        {/* موقعیت */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 6,
+            marginBottom: 12,
+          }}
+        >
+          <Image
+            src="/cineflash/profile/location.png"
+            alt="location"
+            width={12}
+            height={12}
+          />
+          <span style={{ fontSize: 13, fontWeight: 500 }}>تهران، تهران</span>
+        </div>
+
+        <div
+          style={{
+            height: 1,
+            backgroundColor: GRAY_BORDER,
+            marginBottom: 12,
+          }}
+        />
+
+        {/* تحصیلات */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 6,
+            marginBottom: 8,
+          }}
+        >
+          <Image
+            src="/cineflash/profile/education.png"
+            alt="education"
+            width={22}
+            height={22}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 500,
+              whiteSpace: "nowrap",
+            }}
+          >
+            کارشناسی ارشد ادبیات نمایشی
+          </span>
+        </div>
+
+        <div
+          style={{
+            height: 1,
+            backgroundColor: GRAY_BORDER,
+            margin: "12px 0",
+          }}
+        />
+
+        {/* مهارت‌ها */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
+          <Image
+            src="/cineflash/profile/skills.png"
+            alt="skills"
+            width={13}
+            height={13}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            مهارت‌ها
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            marginBottom: 12,
+          }}
+        >
+          {SKILLS.map((skill) => (
+            <div
+              key={skill.label}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: 6,
+                fontSize: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 1,
+                  backgroundColor: "#000000",
+                }}
+              />
+              <span>{skill.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            height: 1,
+            backgroundColor: GRAY_BORDER,
+            margin: "12px 0",
+          }}
+        />
+
+        {/* زبان‌ها */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
+          <Image
+            src="/cineflash/profile/language.png"
+            alt="language"
+            width={13}
+            height={13}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            زبان
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            marginBottom: 14,
+          }}
+        >
+          {LANGUAGES.map((lang) => (
+            <div
+              key={lang.label}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  minWidth: 50,
+                }}
+              >
+                {lang.label}
+              </span>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row-reverse",
+                  gap: 4,
+                }}
+              >
+                {Array.from({ length: lang.total }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "999px",
+                      backgroundColor:
+                        idx < lang.level ? "#000000" : "#C6C6C6",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            height: 1,
+            backgroundColor: GRAY_BORDER,
+            margin: "10px 0 12px",
+          }}
+        />
+
+        {/* لهجه */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            gap: 6,
+            marginBottom: 8,
+          }}
+        >
+          <Image
+            src="/cineflash/profile/accent.png"
+            alt="accent"
+            width={13}
+            height={13}
+          />
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            لهجه
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+            marginBottom: 18,
+          }}
+        >
+          {ACCENTS.map((accent) => (
+            <div
+              key={accent.label}
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: 6,
+                fontSize: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 1,
+                  backgroundColor: "#000000",
+                }}
+              />
+              <span>{accent.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* دکمه انتخاب این بازیگر */}
+        <button
+          type="button"
+          style={{
+            width: 144,
+            height: 29,
+            borderRadius: 19,
+            border: "none",
+            backgroundColor: GREEN,
+            color: "#FFFFFF",
+            fontSize: 14,
+            fontWeight: 400,
+            cursor: "pointer",
+            margin: "0 auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            whiteSpace: "nowrap",
+          }}
+        >
+          انتخاب این بازیگر
+        </button>
+      </div>
+   
+      {/* ــــــــــــــــــــــــــــــــــــــــــــــــ
+          اسپیسِر نامرئی برای زیاد کردن ارتفاع صفحه
+          ــــــــــــــــــــــــــــــــــــــــــــــــ */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          top: 880,        // کمی پایین‌تر از انتهای کارت
+          left: 0,
+          right: 0,
+          height: 220,     // هرچقدر فضای اضافه می‌خوای اینو کم/زیاد کن
+          pointerEvents: "none",
+          background: "transparent",
+        }}
+      />
+    </section>
+  );
+}
