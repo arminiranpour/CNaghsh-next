@@ -177,6 +177,7 @@ export function RightPane() {
         <div
           style={{
             display: "flex",
+            color: "#000000",
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "flex-start",
@@ -204,7 +205,8 @@ export function RightPane() {
         {/* تحصیلات */}
         <div
           style={{
-            display: "flex",
+            display: "flex",          
+            color: "#000000",
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "flex-start",
@@ -242,6 +244,7 @@ export function RightPane() {
           style={{
             display: "flex",
             flexDirection: "row",
+            color: "#000000",
             alignItems: "center",
             justifyContent: "flex-start",
             gap: 6,
@@ -278,6 +281,8 @@ export function RightPane() {
               style={{
                 display: "flex",
                 flexDirection: "row",
+                 color: "#000000",
+
                 alignItems: "center",
                 justifyContent: "flex-start",
                 gap: 6,
@@ -310,6 +315,7 @@ export function RightPane() {
           style={{
             display: "flex",
             flexDirection: "row",
+           color: "#000000",
             alignItems: "center",
             justifyContent: "flex-start",
             gap: 6,
@@ -346,6 +352,7 @@ export function RightPane() {
               style={{
                 display: "flex",
                 flexDirection: "row",
+                color: "#000000",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 8,
@@ -397,6 +404,7 @@ export function RightPane() {
           style={{
             display: "flex",
             flexDirection: "row",
+              color: "#000000",
             alignItems: "center",
             justifyContent: "flex-start",
             gap: 6,
@@ -433,6 +441,7 @@ export function RightPane() {
               style={{
                 display: "flex",
                 flexDirection: "row",
+                color: "#000000",
                 alignItems: "center",
                 justifyContent: "flex-start",
                 gap: 6,
