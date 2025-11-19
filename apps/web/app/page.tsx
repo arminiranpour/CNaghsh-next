@@ -30,7 +30,7 @@ export default function HomePage() {
         </section>
 
         <section className="flex justify-center mt-[150px]">
-          <div className="relative w-[1526px] mx-auto">
+          <div className="relative w-[1407px] mx-auto">
             <FeaturedHeader />
             <div className="mt-8" />
             <FeaturedCard />
