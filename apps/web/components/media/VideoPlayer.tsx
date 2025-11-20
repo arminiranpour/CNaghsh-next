@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Maximize, Minimize, Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import type { MediaPlaybackKind } from "@/lib/media/urls";
 
 export type VideoPlayerProps = {
   mediaId: string;
   manifestUrl?: string;
-  playbackKind: "public-direct" | "private-proxy";
+  playbackKind: MediaPlaybackKind;
   posterUrl?: string | null;
   autoPlayMuted?: boolean;
   loop?: boolean;
@@ -40,15 +41,30 @@ const VideoPlayer = ({
     }
     return manifestUrl ?? null;
   }, [mediaId, manifestUrl, playbackKind]);
+const isDirectPlayback =
+  playbackKind === "public-direct" || playbackKind === "private-signed";
   const [resolvedManifestUrl, setResolvedManifestUrl] = useState<string | null>(
-    playbackKind === "public-direct" ? manifestEndpoint : null,
+    isDirectPlayback ? manifestEndpoint : null,
   );
-  const [isResolving, setIsResolving] = useState(playbackKind === "private-proxy");
+  const [isResolving, setIsResolving] = useState(!isDirectPlayback);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(autoPlayMuted !== false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const logError = useCallback(
+    (message: string, extra?: Record<string, unknown>) => {
+      console.error("[VideoPlayer]", message, {
+        mediaId,
+        playbackKind,
+        manifestUrl: manifestEndpoint ?? manifestUrl ?? null,
+        resolvedManifestUrl,
+        ...extra,
+      });
+    },
+    [manifestEndpoint, manifestUrl, mediaId, playbackKind, resolvedManifestUrl],
+  );
 
   useEffect(() => {
     const node = containerRef.current;
@@ -70,19 +86,23 @@ const VideoPlayer = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (playbackKind === "public-direct") {
-      if (!manifestEndpoint) {
-        setError("پخش ویدیو ممکن نیست.");
-        return;
-      }
-      setResolvedManifestUrl(manifestEndpoint);
-      setIsResolving(false);
-    } else {
-      setResolvedManifestUrl(null);
-      setIsResolving(true);
-    }
-  }, [manifestEndpoint, playbackKind]);
+useEffect(() => {
+  if (!isDirectPlayback) {
+    return;
+  }
+
+  if (!manifestEndpoint) {
+    logError("Missing manifest URL for direct playback");
+    setError("پخش ویدیو ممکن نیست.");
+    setResolvedManifestUrl(null);
+    setIsResolving(false);
+    return;
+  }
+
+  setResolvedManifestUrl(manifestEndpoint);
+  setIsResolving(false);
+}, [isDirectPlayback, logError, manifestEndpoint]);
+
 
   useEffect(() => {
     if (playbackKind !== "private-proxy") {
@@ -92,6 +112,7 @@ const VideoPlayer = ({
       return;
     }
     if (!manifestEndpoint) {
+      logError("Missing manifest endpoint for proxy playback");
       setError("پخش ویدیو ممکن نیست.");
       setIsResolving(false);
       return;
@@ -108,16 +129,28 @@ const VideoPlayer = ({
         if (!response.ok) {
           throw new Error(`HTTP_${response.status}`);
         }
-        return response.json() as Promise<{ ok?: boolean; url?: string }>;
+        return response.json() as Promise<{
+          ok?: boolean;
+          url?: string;
+          manifestUrl?: string;
+          posterUrl?: string | null;
+        }>;
       })
       .then((data) => {
         if (!active) {
           return;
         }
-        if (!data?.ok || typeof data.url !== "string") {
+        const nextManifestUrl =
+          typeof data.manifestUrl === "string"
+            ? data.manifestUrl
+            : typeof data.url === "string"
+              ? data.url
+              : null;
+        if (!data?.ok || !nextManifestUrl) {
+          logError("Manifest endpoint returned invalid payload", { data });
           throw new Error("INVALID_RESPONSE");
         }
-        setResolvedManifestUrl(data.url);
+        setResolvedManifestUrl(nextManifestUrl);
         setIsResolving(false);
       })
       .catch((reason) => {
@@ -127,6 +160,9 @@ const VideoPlayer = ({
         if ((reason as Error)?.name === "AbortError") {
           return;
         }
+        logError("Failed to resolve manifest via proxy", {
+          error: reason instanceof Error ? reason.message : String(reason),
+        });
         setError("پخش ویدیو ممکن نیست.");
         setIsResolving(false);
       });
@@ -134,7 +170,7 @@ const VideoPlayer = ({
       active = false;
       controller.abort();
     };
-  }, [manifestEndpoint, playbackKind, hasIntersected, resolvedManifestUrl]);
+  }, [hasIntersected, logError, manifestEndpoint, playbackKind, resolvedManifestUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -160,6 +196,7 @@ const VideoPlayer = ({
       }
       const Hls = hlsModule.default;
       if (!Hls.isSupported()) {
+        logError("HLS.js is not supported in this browser");
         setError("پخش ویدیو ممکن نیست.");
         return;
       }
@@ -175,6 +212,7 @@ const VideoPlayer = ({
       });
       instance.on(Hls.Events.ERROR, (_event: unknown, data?: HlsErrorData) => {
         if (data?.fatal) {
+          logError("Fatal HLS error", { error: data });
           setError("پخش ویدیو ممکن نیست.");
         }
       });
@@ -183,7 +221,7 @@ const VideoPlayer = ({
     return () => {
       cancelled = true;
     };
-  }, [resolvedManifestUrl, hasIntersected]);
+  }, [resolvedManifestUrl, hasIntersected, logError]);
 
   useEffect(() => {
     return () => {
@@ -233,7 +271,10 @@ const VideoPlayer = ({
         .then(() => {
           setIsPlaying(true);
         })
-        .catch(() => {
+        .catch((err) => {
+          logError("Video playback failed to start", {
+            error: err instanceof Error ? err.message : String(err),
+          });
           setError("پخش ویدیو ممکن نیست.");
         });
     } else {
@@ -308,7 +349,12 @@ const VideoPlayer = ({
             onCanPlay={() => setIsReady(true)}
             onWaiting={() => setIsReady(false)}
             onStalled={() => setIsReady(false)}
-            onError={() => setError("پخش ویدیو ممکن نیست.")}
+            onError={(event) => {
+              logError("HTML video error event", {
+                error: event.currentTarget.error?.message ?? event.type,
+              });
+              setError("پخش ویدیو ممکن نیست.");
+            }}
             onVolumeChange={(event) => setIsMuted(event.currentTarget.muted)}
           />
         </div>

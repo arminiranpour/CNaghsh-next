@@ -6,7 +6,7 @@ import { ProfileViewAnalyticsTracker } from "@/components/analytics/ProfileViewA
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
-import { getPlaybackInfoForMedia } from "@/lib/media/urls";
+import { getPlaybackInfoForMedia, type MediaPlaybackKind } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
@@ -199,31 +199,44 @@ export default async function PublicProfilePage({ params }: Props) {
   let featuredVideoProps: {
     mediaId: string;
     manifestUrl: string;
-    playbackKind: "public-direct" | "private-proxy";
+    playbackKind: MediaPlaybackKind;
     posterUrl?: string | null;
   } | null = null;
 
   if (introVideoMediaId) {
-    const manifestUrl = await getManifestUrlForMedia(introVideoMediaId);
-    if (manifestUrl) {
+    const manifestInfo = await getManifestUrlForMedia(introVideoMediaId);
+    if (manifestInfo?.manifestUrl) {
       featuredVideoProps = {
         mediaId: introVideoMediaId,
-        manifestUrl,
-        playbackKind: "public-direct",
+        manifestUrl: manifestInfo.manifestUrl,
+        playbackKind: manifestInfo.kind,
+        posterUrl: manifestInfo.posterUrl ?? undefined,
       };
+    } else {
+      console.warn("[profile] Intro video manifest unavailable", {
+        profileId: profile.id,
+        mediaId: introVideoMediaId,
+      });
     }
   }
 
   if (!featuredVideoProps && fallbackVideo) {
     const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
-    const playbackKind =
-      playbackInfo.kind === "public-direct" ? "public-direct" : "private-proxy";
     featuredVideoProps = {
       mediaId: fallbackVideo.id,
       manifestUrl: playbackInfo.manifestUrl,
-      playbackKind,
+      playbackKind: playbackInfo.kind,
       posterUrl: playbackInfo.posterUrl ?? null,
     };
+  }
+
+  if (featuredVideoProps) {
+    console.log("[profile] Rendering VideoPlayer", {
+      profileId: profile.id,
+      mediaId: featuredVideoProps.mediaId,
+      manifestUrl: featuredVideoProps.manifestUrl,
+      playbackKind: featuredVideoProps.playbackKind,
+    });
   }
 
   return (

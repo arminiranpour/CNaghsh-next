@@ -37,14 +37,23 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     }
     if (media.visibility === "public") {
       const manifestUrl = getPublicMediaUrlFromKey(media.outputKey);
+      const posterUrl = media.posterKey ? getPublicMediaUrlFromKey(media.posterKey) : null;
       logInfo("media.manifest.fetch", {
         mediaId,
         result: "ok",
         visibility: media.visibility,
         mode: "public",
+        manifestUrl,
+        posterUrl,
       });
       return NextResponse.json(
-        { ok: true, url: manifestUrl },
+        {
+          ok: true,
+          mode: "public",
+          manifestUrl,
+          posterUrl,
+          url: manifestUrl,
+        },
         { headers: PRIVATE_SHORT_CACHE_HEADERS },
       );
     }
@@ -64,16 +73,27 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       );
     }
     const bucket = resolveBucketForVisibility(media.visibility);
-    const signedUrl = await getSignedGetUrl(bucket, media.outputKey);
+    const [signedUrl, posterUrl] = await Promise.all([
+      getSignedGetUrl(bucket, media.outputKey),
+      media.posterKey ? getSignedGetUrl(bucket, media.posterKey) : Promise.resolve<string | null>(null),
+    ]);
     logInfo("media.manifest.fetch", {
       mediaId,
       userId: session.user.id,
       result: "ok",
       visibility: media.visibility,
       mode: "signed",
+      manifestUrl: signedUrl,
+      posterUrl,
     });
     return NextResponse.json(
-      { ok: true, url: signedUrl },
+      {
+        ok: true,
+        mode: "signed",
+        manifestUrl: signedUrl,
+        posterUrl,
+        url: signedUrl,
+      },
       { headers: PRIVATE_SHORT_CACHE_HEADERS },
     );
   } catch (error) {

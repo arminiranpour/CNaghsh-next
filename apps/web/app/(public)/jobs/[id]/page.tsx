@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
-import { getPlaybackInfoForMedia } from "@/lib/media/urls";
+import { getPlaybackInfoForMedia, type MediaPlaybackKind } from "@/lib/media/urls";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
 import { buildJobDetailMetadata, getJobOrganizationName } from "@/lib/jobs/seo";
 import { prisma } from "@/lib/prisma";
@@ -158,18 +158,24 @@ export default async function JobDetailPage({
   let featuredVideoProps: {
     mediaId: string;
     manifestUrl: string;
-    playbackKind: "public-direct" | "private-proxy";
+    playbackKind: MediaPlaybackKind;
     posterUrl?: string | null;
   } | null = null;
 
   if (jobMediaRelation.introVideoMediaId) {
-    const manifestUrl = await getManifestUrlForMedia(jobMediaRelation.introVideoMediaId);
-    if (manifestUrl) {
+    const manifestInfo = await getManifestUrlForMedia(jobMediaRelation.introVideoMediaId);
+    if (manifestInfo?.manifestUrl) {
       featuredVideoProps = {
         mediaId: jobMediaRelation.introVideoMediaId,
-        manifestUrl,
-        playbackKind: "public-direct",
+        manifestUrl: manifestInfo.manifestUrl,
+        playbackKind: manifestInfo.kind,
+        posterUrl: manifestInfo.posterUrl ?? undefined,
       };
+    } else {
+      console.warn("[job] Intro video manifest unavailable", {
+        jobId: job.id,
+        mediaId: jobMediaRelation.introVideoMediaId,
+      });
     }
   }
 
@@ -227,15 +233,22 @@ export default async function JobDetailPage({
 
     if (fallbackVideo) {
       const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
-      const playbackKind =
-        playbackInfo.kind === "public-direct" ? "public-direct" : "private-proxy";
       featuredVideoProps = {
         mediaId: fallbackVideo.id,
         manifestUrl: playbackInfo.manifestUrl,
-        playbackKind,
+        playbackKind: playbackInfo.kind,
         posterUrl: playbackInfo.posterUrl ?? null,
       };
     }
+  }
+
+  if (featuredVideoProps) {
+    console.log("[job] Rendering VideoPlayer", {
+      jobId: job.id,
+      mediaId: featuredVideoProps.mediaId,
+      manifestUrl: featuredVideoProps.manifestUrl,
+      playbackKind: featuredVideoProps.playbackKind,
+    });
   }
 
   const cities = await citiesPromise;
