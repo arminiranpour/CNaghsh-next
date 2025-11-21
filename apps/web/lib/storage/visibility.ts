@@ -2,11 +2,14 @@ import { storageConfig } from "./config";
 
 type Visibility = "public" | "private";
 
+const PUBLIC_BUCKET = storageConfig.publicBucket || "media-public";
+const PRIVATE_BUCKET = storageConfig.privateBucket;
+
 const resolveBucketForVisibility = (visibility: Visibility) => {
   if (visibility === "public") {
-    return storageConfig.publicBucket;
+    return PUBLIC_BUCKET;
   }
-  return storageConfig.privateBucket;
+  return PRIVATE_BUCKET;
 };
 
 export { resolveBucketForVisibility };

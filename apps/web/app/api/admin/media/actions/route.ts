@@ -134,16 +134,15 @@ const handleDelete = async (mediaId: string) => {
 
   const deleteTasks: Array<Promise<unknown>> = [];
   const privateBucket = resolveBucketForVisibility("private");
+  const outputBucket = resolveBucketForVisibility("public");
   deleteTasks.push(
     remove(privateBucket, media.sourceKey).catch(() => undefined),
   );
   if (media.outputKey) {
-    const bucket = resolveBucketForVisibility(media.visibility);
-    deleteTasks.push(remove(bucket, media.outputKey).catch(() => undefined));
+    deleteTasks.push(remove(outputBucket, media.outputKey).catch(() => undefined));
   }
   if (media.posterKey) {
-    const bucket = resolveBucketForVisibility(media.visibility);
-    deleteTasks.push(remove(bucket, media.posterKey).catch(() => undefined));
+    deleteTasks.push(remove(outputBucket, media.posterKey).catch(() => undefined));
   }
   await Promise.allSettled(deleteTasks);
 

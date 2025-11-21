@@ -24,7 +24,7 @@ const buildUrl = (base: string, key: string) => {
 };
 
 export function getPublicMediaUrlFromKey(key: string): string {
-  return buildUrl(mediaCdnConfig.cdnBaseUrl, key);
+  return buildUrl(mediaCdnConfig.publicBaseUrl, key);
 }
 
 export function getPrivateMediaOriginUrlFromKey(key: string): string {

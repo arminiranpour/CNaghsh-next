@@ -182,9 +182,18 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
 
     const manifestKey = getHlsManifestKey(media.id);
     const posterKey = getPosterKey(media.id);
-    const outputBucket = resolveBucketForVisibility(media.visibility);
+    const outputBucket = resolveBucketForVisibility("public");
+    const logUploadTarget = (kind: string, key: string, fields?: Record<string, unknown>) =>
+      logInfo("media.transcode.upload", {
+        mediaAssetId,
+        bucket: outputBucket,
+        kind,
+        key,
+        ...(fields ?? {}),
+      });
 
     const manifestStat = await stat(hlsResult.manifestPath);
+    logUploadTarget("manifest", manifestKey);
     await uploadFile(
       {
         bucket: outputBucket,
@@ -213,6 +222,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
       const variantPrefix = getHlsVariantPrefix(media.id, variantOutput.name);
       const variantPlaylistKey = joinKey(variantPrefix, "index.m3u8");
       const playlistStat = await stat(variantOutput.playlistPath);
+      logUploadTarget("variant-playlist", variantPlaylistKey, { variant: variantConfig.name });
       await uploadFile(
         {
           bucket: outputBucket,
@@ -229,6 +239,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
         const segmentName = basename(segmentPath);
         const segmentKey = joinKey(variantPrefix, segmentName);
         const segmentStat = await stat(segmentPath);
+        logUploadTarget("segment", segmentKey, { variant: variantConfig.name });
         await uploadFile(
           {
             bucket: outputBucket,
@@ -254,6 +265,7 @@ const processJob = async (job: Job<MediaTranscodeJobData>): Promise<MediaTransco
     }
 
     const posterStat = await stat(posterPath);
+    logUploadTarget("poster", posterKey);
     await uploadFile(
       {
         bucket: outputBucket,

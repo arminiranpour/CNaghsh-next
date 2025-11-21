@@ -3,8 +3,9 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/media/cdn-config", () => ({
   mediaCdnConfig: {
-    cdnBaseUrl: "https://cdn.example.com/media",
-    originBaseUrl: "https://origin.example.com/media",
+    publicBaseUrl: "https://cdn.example.com/media-public",
+    cdnBaseUrl: "https://cdn.example.com/media-public",
+    originBaseUrl: "https://origin.example.com/media-public",
     isSignedCdn: false,
   },
 }));
@@ -53,10 +54,10 @@ describe("getPlaybackInfoForMedia", () => {
 
     expect(playback.kind).toBe("public-direct");
     expect(playback.manifestUrl).toBe(
-      "https://cdn.example.com/media/processed/hls/example/index.m3u8",
+      "https://cdn.example.com/media-public/processed/hls/example/index.m3u8",
     );
     expect(playback.posterUrl).toBe(
-      "https://cdn.example.com/media/processed/posters/example.jpg",
+      "https://cdn.example.com/media-public/processed/posters/example.jpg",
     );
   });
 });

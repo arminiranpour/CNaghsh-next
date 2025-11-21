@@ -37,7 +37,6 @@ export async function getManifestUrlForMedia(mediaId: string): Promise<MediaPlay
         ...(cookieHeader ? { cookie: cookieHeader } : {}),
       },
       cache: "no-store",
-      next: { revalidate: 0 },
     });
 
     if (!response.ok) {

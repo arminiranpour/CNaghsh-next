@@ -24,7 +24,7 @@ const absoluteUrl = (label: string) =>
     .transform((value) => value.replace(/\/+$/, ""));
 
 const schema = z.object({
-  MEDIA_CDN_BASE_URL: absoluteUrl("MEDIA_CDN_BASE_URL"),
+  MEDIA_PUBLIC_BASE_URL: absoluteUrl("MEDIA_PUBLIC_BASE_URL or MEDIA_CDN_BASE_URL"),
   MEDIA_ORIGIN_BASE_URL: absoluteUrl("MEDIA_ORIGIN_BASE_URL"),
   MEDIA_CDN_SIGNED: z
     .union([z.literal("0"), z.literal("1")])
@@ -32,13 +32,14 @@ const schema = z.object({
 });
 
 const config = schema.parse({
-  MEDIA_CDN_BASE_URL: process.env.MEDIA_CDN_BASE_URL,
+  MEDIA_PUBLIC_BASE_URL: process.env.MEDIA_PUBLIC_BASE_URL ?? process.env.MEDIA_CDN_BASE_URL,
   MEDIA_ORIGIN_BASE_URL: process.env.MEDIA_ORIGIN_BASE_URL,
   MEDIA_CDN_SIGNED: process.env.MEDIA_CDN_SIGNED ?? undefined,
 });
 
 export const mediaCdnConfig = {
-  cdnBaseUrl: config.MEDIA_CDN_BASE_URL,
+  publicBaseUrl: config.MEDIA_PUBLIC_BASE_URL,
+  cdnBaseUrl: config.MEDIA_PUBLIC_BASE_URL,
   originBaseUrl: config.MEDIA_ORIGIN_BASE_URL,
   isSignedCdn: config.MEDIA_CDN_SIGNED === "1",
 } as const;

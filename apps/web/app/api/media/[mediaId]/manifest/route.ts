@@ -38,6 +38,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (media.visibility === "public") {
       const manifestUrl = getPublicMediaUrlFromKey(media.outputKey);
       const posterUrl = media.posterKey ? getPublicMediaUrlFromKey(media.posterKey) : null;
+      console.log("[debug] manifestUrl =", manifestUrl);
+      console.log("[debug] posterUrl =", posterUrl);
       logInfo("media.manifest.fetch", {
         mediaId,
         result: "ok",
@@ -72,7 +74,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         { status: 403, headers: NO_STORE_HEADERS },
       );
     }
-    const bucket = resolveBucketForVisibility(media.visibility);
+    const bucket = resolveBucketForVisibility("public");
     const [signedUrl, posterUrl] = await Promise.all([
       getSignedGetUrl(bucket, media.outputKey),
       media.posterKey ? getSignedGetUrl(bucket, media.posterKey) : Promise.resolve<string | null>(null),
