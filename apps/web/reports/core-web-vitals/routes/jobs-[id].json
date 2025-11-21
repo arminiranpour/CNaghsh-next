@@ -1,0 +1,15 @@
+{
+  "route": "/jobs/[id]",
+  "testedUrl": "http://localhost:3000/jobs",
+  "metrics": {
+    "lcp": 895.2405,
+    "cls": 0,
+    "inp": null
+  },
+  "budget": {
+    "route": "/jobs/[id]",
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "inpMs": 200
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "route": "/",
+  "testedUrl": "http://localhost:3000/",
+  "metrics": {
+    "lcp": 908.8530000000001,
+    "cls": 0,
+    "inp": null
+  },
+  "budget": {
+    "route": "/",
+    "lcpMs": 2500,
+    "cls": 0.1,
+    "inpMs": 200
+  }
+}

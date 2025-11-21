@@ -53,6 +53,7 @@ export async function updateJob(
         data.currency ? data.currency.toUpperCase() : data.currency,
       ),
       remote: data.remote,
+      introVideoMediaId: data.introVideoMediaId ?? null,
     },
   });
 

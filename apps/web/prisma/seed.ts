@@ -1,8 +1,12 @@
 import {
+  MediaStatus,
+  MediaType,
+  MediaVisibility,
   PlanCycle,
   Prisma,
   PrismaClient,
   ProductType,
+  TranscodeJobStatus,
 } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -59,6 +63,68 @@ function isRetryableDatabaseError(error: unknown) {
 
 const JOB_PRODUCT_NAME = 'ثبت آگهی شغلی';
 const JOB_PRICE_AMOUNT = 1_500_000;
+
+const MEDIA_SEED_USER_EMAIL = 'media-seed@example.com';
+
+async function ensureSeedUser() {
+  const existingUser = await prisma.user.findFirst();
+
+  if (existingUser) {
+    return existingUser;
+  }
+
+  return prisma.user.create({
+    data: {
+      email: MEDIA_SEED_USER_EMAIL,
+      name: 'Media Seed User',
+    },
+  });
+}
+
+async function ensureSeedMediaAsset(ownerId: string) {
+  const sourceKey = `uploads/originals/${ownerId}/seed-video.mp4`;
+
+  let mediaAsset = await prisma.mediaAsset.findFirst({
+    where: {
+      ownerUserId: ownerId,
+      sourceKey,
+    },
+  });
+
+  if (!mediaAsset) {
+    mediaAsset = await prisma.mediaAsset.create({
+      data: {
+        ownerUserId: ownerId,
+        type: MediaType.video,
+        status: MediaStatus.uploaded,
+        visibility: MediaVisibility.private,
+        sourceKey,
+      },
+    });
+  }
+
+  let transcodeJob = await prisma.transcodeJob.findFirst({
+    where: {
+      mediaAssetId: mediaAsset.id,
+      attempt: 1,
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  if (!transcodeJob) {
+    transcodeJob = await prisma.transcodeJob.create({
+      data: {
+        mediaAssetId: mediaAsset.id,
+        attempt: 1,
+        status: TranscodeJobStatus.queued,
+      },
+    });
+  }
+
+  return { mediaAsset, transcodeJob };
+}
 
 async function ensureProduct(type: ProductType, name: string) {
   const existing = await prisma.product.findFirst({
@@ -221,6 +287,8 @@ async function ensureProductPrice(productId: string, amount: number) {
 async function main() {
     await waitForDatabase();
 
+  const seedUser = await ensureSeedUser();
+
   const subscriptionProduct = await ensureProduct(
     ProductType.SUBSCRIPTION,
     SUBSCRIPTION_PRODUCT_NAME,
@@ -244,12 +312,17 @@ async function main() {
 
   const jobPrice = await ensureProductPrice(jobProduct.id, JOB_PRICE_AMOUNT);
 
+  const { mediaAsset, transcodeJob } = await ensureSeedMediaAsset(seedUser.id);
+
   console.log('Seed ensured records:');
   console.log('Subscription product:', subscriptionProduct.id);
   console.log('Subscription plan:', subscriptionPlan.id);
   console.log('Subscription price:', subscriptionPrice.id);
   console.log('Job post product:', jobProduct.id);
   console.log('Job post price:', jobPrice.id);
+  console.log('Media seed user:', seedUser.id);
+  console.log('Media asset:', mediaAsset.id);
+  console.log('Transcode job:', transcodeJob.id);
 }
 
 main()

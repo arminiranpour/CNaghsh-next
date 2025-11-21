@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -7,14 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
+import { getPlaybackInfoForMedia, type MediaPlaybackKind } from "@/lib/media/urls";
 import { getPublicJobById } from "@/lib/jobs/publicQueries";
 import { buildJobDetailMetadata, getJobOrganizationName } from "@/lib/jobs/seo";
+import { prisma } from "@/lib/prisma";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, jobPostingJsonLd } from "@/lib/seo/jsonld";
+import { getManifestUrlForMedia } from "@/lib/media/manifest";
 import { JobViewTracker } from "./JobViewTracker";
 
 export const revalidate = 300;
+
+const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), {
+  ssr: false,
+});
 
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {
@@ -138,7 +146,112 @@ export default async function JobDetailPage({
     notFound();
   }
 
-  const [cities] = await Promise.all([getCities()]);
+  const citiesPromise = getCities();
+
+  const jobMediaRelation = job as unknown as {
+    videoMediaAssetId?: string | null;
+    mediaAssetId?: string | null;
+    showcaseMediaAssetId?: string | null;
+    introVideoMediaId?: string | null;
+  };
+
+  let featuredVideoProps: {
+    mediaId: string;
+    manifestUrl: string;
+    playbackKind: MediaPlaybackKind;
+    posterUrl?: string | null;
+  } | null = null;
+
+  if (jobMediaRelation.introVideoMediaId) {
+    const manifestInfo = await getManifestUrlForMedia(jobMediaRelation.introVideoMediaId);
+    if (manifestInfo?.manifestUrl) {
+      featuredVideoProps = {
+        mediaId: jobMediaRelation.introVideoMediaId,
+        manifestUrl: manifestInfo.manifestUrl,
+        playbackKind: manifestInfo.kind,
+        posterUrl: manifestInfo.posterUrl ?? undefined,
+      };
+    } else {
+      console.warn("[job] Intro video manifest unavailable", {
+        jobId: job.id,
+        mediaId: jobMediaRelation.introVideoMediaId,
+      });
+    }
+  }
+
+  let fallbackVideo: Awaited<ReturnType<typeof prisma.mediaAsset.findFirst>> | null = null;
+
+  if (!featuredVideoProps) {
+    fallbackVideo = jobMediaRelation.videoMediaAssetId
+      ? await prisma.mediaAsset.findFirst({
+          where: {
+            id: jobMediaRelation.videoMediaAssetId,
+            status: "ready",
+            type: "video",
+            visibility: "public",
+            outputKey: { not: null },
+          },
+        })
+      : null;
+
+    if (!fallbackVideo && jobMediaRelation.mediaAssetId) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
+        where: {
+          id: jobMediaRelation.mediaAssetId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+      });
+    }
+
+    if (!fallbackVideo && jobMediaRelation.showcaseMediaAssetId) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
+        where: {
+          id: jobMediaRelation.showcaseMediaAssetId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+      });
+    }
+
+    if (!fallbackVideo) {
+      fallbackVideo = await prisma.mediaAsset.findFirst({
+        where: {
+          ownerUserId: job.userId,
+          status: "ready",
+          type: "video",
+          visibility: "public",
+          outputKey: { not: null },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+
+    if (fallbackVideo) {
+      const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
+      featuredVideoProps = {
+        mediaId: fallbackVideo.id,
+        manifestUrl: playbackInfo.manifestUrl,
+        playbackKind: playbackInfo.kind,
+        posterUrl: playbackInfo.posterUrl ?? null,
+      };
+    }
+  }
+
+  if (featuredVideoProps) {
+    console.log("[job] Rendering VideoPlayer", {
+      jobId: job.id,
+      mediaId: featuredVideoProps.mediaId,
+      manifestUrl: featuredVideoProps.manifestUrl,
+      playbackKind: featuredVideoProps.playbackKind,
+    });
+  }
+
+  const cities = await citiesPromise;
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
   const cityName = job.cityId ? cityMap.get(job.cityId) ?? job.cityId : undefined;
@@ -191,6 +304,23 @@ export default async function JobDetailPage({
           remote: job.remote,
         }}
       />
+
+      {featuredVideoProps ? (
+        <Card className="border border-border shadow-sm">
+          <CardHeader>
+            <CardTitle>ویدیو معرفی</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VideoPlayer
+              mediaId={featuredVideoProps.mediaId}
+              manifestUrl={featuredVideoProps.manifestUrl}
+              playbackKind={featuredVideoProps.playbackKind}
+              posterUrl={featuredVideoProps.posterUrl ?? undefined}
+              className="w-full rounded-2xl border border-border bg-muted/40 shadow-sm"
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border border-border shadow-sm">
         <CardHeader className="space-y-4">

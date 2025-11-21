@@ -43,6 +43,7 @@ export default async function NewJobPage() {
               payAmount: null,
               currency: "",
               remote: false,
+              introVideoMediaId: "",
             }}
           />
         </CardContent>

@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2025-11-16T04:11:18.498Z",
+  "baseUrl": "http://localhost:3000/",
+  "results": [
+    {
+      "route": "/",
+      "testedUrl": "http://localhost:3000/",
+      "metrics": {
+        "lcp": 908.8530000000001,
+        "cls": 0,
+        "inp": null
+      },
+      "budget": {
+        "route": "/",
+        "lcpMs": 2500,
+        "cls": 0.1,
+        "inpMs": 200
+      },
+      "passed": true
+    },
+    {
+      "route": "/profiles/[id]",
+      "testedUrl": "http://localhost:3000/profiles/cmhmhvmco0005uax0ksyr8cdg",
+      "metrics": {
+        "lcp": 640.499,
+        "cls": 0,
+        "inp": null
+      },
+      "budget": {
+        "route": "/profiles/[id]",
+        "lcpMs": 2500,
+        "cls": 0.1,
+        "inpMs": 200
+      },
+      "passed": true
+    },
+    {
+      "route": "/jobs/[id]",
+      "testedUrl": "http://localhost:3000/jobs",
+      "metrics": {
+        "lcp": 895.2405,
+        "cls": 0,
+        "inp": null
+      },
+      "budget": {
+        "route": "/jobs/[id]",
+        "lcpMs": 2500,
+        "cls": 0.1,
+        "inpMs": 200
+      },
+      "passed": true
+    }
+  ]
+}

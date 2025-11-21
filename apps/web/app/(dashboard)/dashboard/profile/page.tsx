@@ -106,6 +106,7 @@ export default async function DashboardProfilePage() {
         cityId: profile.cityId ?? "",
         avatarUrl: profile.avatarUrl ?? "",
         bio: profile.bio ?? "",
+        introVideoMediaId: profile.introVideoMediaId ?? "",
       })
     : null;
 
@@ -141,6 +142,7 @@ export default async function DashboardProfilePage() {
               cityId: profile?.cityId ?? "",
               avatarUrl: profile?.avatarUrl ?? "",
               bio: profile?.bio ?? "",
+              introVideoMediaId: profile?.introVideoMediaId ?? "",
             }}
           />
         </CardContent>

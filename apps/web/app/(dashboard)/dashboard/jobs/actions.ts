@@ -15,6 +15,7 @@ import { createJob } from "@/lib/jobs/createJob";
 import { republishJob } from "@/lib/jobs/republishJob";
 import { updateJob } from "@/lib/jobs/updateJob";
 import { jobCreateSchema, jobUpdateSchema } from "@/lib/zod/jobSchemas";
+import { validateOwnedReadyVideo } from "@/lib/media/ownership";
 import {
   ExpiredJobCreditsError,
   InsufficientJobCreditsError,
@@ -69,6 +70,7 @@ export type JobFormInput = {
   payAmount?: string | number | null;
   currency?: string | null;
   remote: boolean;
+  introVideoMediaId?: string | null;
 };
 
 type FieldErrors = Partial<Record<keyof JobFormValues, string>>;
@@ -96,6 +98,7 @@ type SanitizedJobInput = {
   payAmount?: string | number;
   currency?: string;
   remote: boolean;
+  introVideoMediaId?: string;
 };
 
 function normalizeDigits(value: string): string {
@@ -118,6 +121,7 @@ function sanitizeJobInput(input: JobFormInput): SanitizedJobInput {
   const cityId = trimToUndefined(input.cityId ?? undefined);
   const payType = trimToUndefined(input.payType ?? undefined);
   const currency = trimToUndefined(input.currency ?? undefined)?.toUpperCase();
+  const introVideoMediaId = trimToUndefined(input.introVideoMediaId ?? undefined);
 
   let payAmount: string | number | undefined;
 
@@ -141,6 +145,7 @@ function sanitizeJobInput(input: JobFormInput): SanitizedJobInput {
     payAmount,
     currency,
     remote: Boolean(input.remote),
+    introVideoMediaId,
   };
 }
 
@@ -234,7 +239,20 @@ export async function createJobAction(input: JobFormInput): Promise<FormActionRe
       return { ok: false, fieldErrors: mapZodErrors(parsed.error) };
     }
 
-    const job = await createJob(userId, parsed.data);
+    let introVideoMediaId: string | undefined;
+
+    if (parsed.data.introVideoMediaId) {
+      const validation = await validateOwnedReadyVideo(userId, parsed.data.introVideoMediaId);
+      if (!validation.ok) {
+        return {
+          ok: false,
+          fieldErrors: { introVideoMediaId: validation.error },
+        };
+      }
+      introVideoMediaId = validation.mediaId;
+    }
+
+    const job = await createJob(userId, { ...parsed.data, introVideoMediaId });
 
     return { ok: true, jobId: job.id };
   } catch (error) {
@@ -262,7 +280,20 @@ export async function updateJobAction(
       return { ok: false, fieldErrors: mapZodErrors(parsed.error) };
     }
 
-    await updateJob(userId, jobId, parsed.data);
+    let introVideoMediaId: string | undefined;
+
+    if (parsed.data.introVideoMediaId) {
+      const validation = await validateOwnedReadyVideo(userId, parsed.data.introVideoMediaId);
+      if (!validation.ok) {
+        return {
+          ok: false,
+          fieldErrors: { introVideoMediaId: validation.error },
+        };
+      }
+      introVideoMediaId = validation.mediaId;
+    }
+
+    await updateJob(userId, jobId, { ...parsed.data, introVideoMediaId });
 
     return { ok: true, jobId };
   } catch (error) {

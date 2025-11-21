@@ -4,6 +4,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { VideoUploadField } from "@/components/media/VideoUploadField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +48,7 @@ type JobFormProps = {
     payAmount?: number | null;
     currency?: string | null;
     remote: boolean;
+    introVideoMediaId?: string | null;
   };
 };
 
@@ -68,9 +70,11 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
         : "",
     currency: initialValues.currency ?? "",
     remote: initialValues.remote ?? false,
+    introVideoMediaId: initialValues.introVideoMediaId ?? "",
   });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [isVideoBusy, setIsVideoBusy] = useState(false);
 
   const updateValue = (field: keyof typeof values) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -105,6 +109,9 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
       payAmount: values.payAmount.trim(),
       currency: values.currency.trim() ? values.currency.trim() : undefined,
       remote: values.remote,
+      introVideoMediaId: values.introVideoMediaId.trim()
+        ? values.introVideoMediaId.trim()
+        : undefined,
     };
 
     startTransition(() => {
@@ -218,6 +225,23 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
         ) : null}
       </div>
 
+      <div className="space-y-2">
+        <VideoUploadField
+          label="ویدیوی معرفی شغل"
+          description="ویدیوی کوتاهی از محیط کار یا توضیحات پروژه بارگذاری کنید. حداکثر چند صد مگابایت."
+          value={values.introVideoMediaId ? values.introVideoMediaId : null}
+          onValueChange={(mediaId) => {
+            setValues((prev) => ({ ...prev, introVideoMediaId: mediaId ?? "" }));
+            setFieldErrors((prev) => ({ ...prev, introVideoMediaId: undefined }));
+          }}
+          onBusyChange={setIsVideoBusy}
+          disabled={isPending}
+        />
+        {fieldErrors.introVideoMediaId ? (
+          <p className="text-sm text-destructive">{fieldErrors.introVideoMediaId}</p>
+        ) : null}
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-2">
           <Label>شهر</Label>
@@ -321,11 +345,10 @@ export function JobForm({ mode, jobId, cities, initialValues }: JobFormProps) {
       ) : null}
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={isPending || isVideoBusy}>
           {mode === "create" ? "ذخیره پیش‌نویس" : "ذخیره تغییرات"}
         </Button>
       </div>
     </form>
   );
 }
-

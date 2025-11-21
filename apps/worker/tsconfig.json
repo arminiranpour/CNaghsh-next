@@ -2,13 +2,16 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "module": "CommonJS",
-    "moduleResolution": "node",
     "esModuleInterop": true,
     "types": ["node"],
-    "incremental": false
-    },
-  "include": ["src/**/*"],
+    "incremental": false,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@acme/contracts": ["../../packages/contracts/src/index.ts"],
+      "@acme/contracts/*": ["../../packages/contracts/src/*"]
+    }
+  },
+  "include": ["src/**/*", "types/**/*.d.ts"],
   "exclude": ["dist", "node_modules"]
 }

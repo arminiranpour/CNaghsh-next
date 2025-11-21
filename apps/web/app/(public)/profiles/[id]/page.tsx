@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -5,15 +6,21 @@ import { ProfileViewAnalyticsTracker } from "@/components/analytics/ProfileViewA
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCities } from "@/lib/location/cities";
+import { getPlaybackInfoForMedia, type MediaPlaybackKind } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 import { SITE_LOCALE, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { breadcrumbsJsonLd, profilePersonJsonLd } from "@/lib/seo/jsonld";
+import { getManifestUrlForMedia } from "@/lib/media/manifest";
 
 import type { Metadata } from "next";
 
 export const revalidate = 300;
+
+const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), {
+  ssr: false,
+});
 
 type GalleryEntry = {
   url?: unknown;
@@ -144,9 +151,23 @@ export default async function PublicProfilePage({ params }: Props) {
     notFound();
   }
 
-  const [cities, socialLinks] = await Promise.all([
+  const introVideoMediaId = profile.introVideoMediaId ?? null;
+
+  const fallbackVideoPromise = prisma.mediaAsset.findFirst({
+    where: {
+      ownerUserId: profile.userId,
+      type: "video",
+      status: "ready",
+      visibility: "public",
+      outputKey: { not: null },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const [cities, socialLinks, fallbackVideo] = await Promise.all([
     getCities(),
     Promise.resolve(extractSocialLinks(profile.socialLinks as SocialLinks)),
+    fallbackVideoPromise,
   ]);
 
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
@@ -175,6 +196,49 @@ export default async function PublicProfilePage({ params }: Props) {
     socialLinks,
   });
 
+  let featuredVideoProps: {
+    mediaId: string;
+    manifestUrl: string;
+    playbackKind: MediaPlaybackKind;
+    posterUrl?: string | null;
+  } | null = null;
+
+  if (introVideoMediaId) {
+    const manifestInfo = await getManifestUrlForMedia(introVideoMediaId);
+    if (manifestInfo?.manifestUrl) {
+      featuredVideoProps = {
+        mediaId: introVideoMediaId,
+        manifestUrl: manifestInfo.manifestUrl,
+        playbackKind: manifestInfo.kind,
+        posterUrl: manifestInfo.posterUrl ?? undefined,
+      };
+    } else {
+      console.warn("[profile] Intro video manifest unavailable", {
+        profileId: profile.id,
+        mediaId: introVideoMediaId,
+      });
+    }
+  }
+
+  if (!featuredVideoProps && fallbackVideo) {
+    const playbackInfo = getPlaybackInfoForMedia(fallbackVideo);
+    featuredVideoProps = {
+      mediaId: fallbackVideo.id,
+      manifestUrl: playbackInfo.manifestUrl,
+      playbackKind: playbackInfo.kind,
+      posterUrl: playbackInfo.posterUrl ?? null,
+    };
+  }
+
+  if (featuredVideoProps) {
+    console.log("[profile] Rendering VideoPlayer", {
+      profileId: profile.id,
+      mediaId: featuredVideoProps.mediaId,
+      manifestUrl: featuredVideoProps.manifestUrl,
+      playbackKind: featuredVideoProps.playbackKind,
+    });
+  }
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-12" dir="rtl">
       <JsonLd data={[breadcrumbs, personJsonLd]} />
@@ -189,6 +253,8 @@ export default async function PublicProfilePage({ params }: Props) {
                 width={256}
                 height={256}
                 className="h-full w-full object-cover"
+                sizes="(max-width: 640px) 40vw, 160px"
+                priority
               />
             </div>
           ) : null}
@@ -231,6 +297,22 @@ export default async function PublicProfilePage({ params }: Props) {
         ) : null}
       </header>
 
+      {featuredVideoProps ? (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">ویدیو معرفی</h2>
+          <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-black shadow-sm aspect-[9/16]">
+            <VideoPlayer
+              mediaId={featuredVideoProps.mediaId}
+              manifestUrl={featuredVideoProps.manifestUrl}
+              playbackKind={featuredVideoProps.playbackKind}
+              posterUrl={featuredVideoProps.posterUrl ?? undefined}
+              fillParent
+              className="absolute inset-0"
+            />
+          </div>
+        </section>
+      ) : null}
+
       {gallery.length ? (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">گالری تصاویر</h2>
@@ -238,13 +320,15 @@ export default async function PublicProfilePage({ params }: Props) {
             {gallery.map((item) => (
               <Card key={item.url}>
                 <CardContent className="p-0">
-                  <Image
-                    src={item.url}
-                    alt={`تصویر ${displayName}`}
-                    width={600}
-                    height={400}
-                    className="h-64 w-full rounded-md object-cover"
-                  />
+                  <div className="relative w-full overflow-hidden rounded-md aspect-[3/2]">
+                    <Image
+                      src={item.url}
+                      alt={`تصویر ${displayName}`}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             ))}

@@ -19,6 +19,7 @@ import {
   emitUserPublishSubmitted,
   emitUserUnpublished,
 } from "@/lib/notifications/events";
+import { validateOwnedReadyVideo } from "@/lib/media/ownership";
 
 const GENERIC_ERROR = "خطایی رخ داد. لطفاً دوباره تلاش کنید.";
 const AUTH_ERROR = "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.";
@@ -133,6 +134,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       cityId: (formData.get("cityId") ?? "").toString().trim(),
       avatarUrl: typeof rawAvatarUrl === "string" ? rawAvatarUrl.trim() : "",
       bio: (formData.get("bio") ?? "").toString().trim(),
+      introVideoMediaId: (formData.get("introVideoMediaId") ?? "").toString().trim(),
     } satisfies Record<keyof z.infer<typeof personalInfoSchema>, unknown>;
 
     let uploadedAvatarUrl: string | null = null;
@@ -159,6 +161,19 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
 
     const data = parsed.data;
 
+    let introVideoMediaId: string | null = null;
+
+    if (data.introVideoMediaId && data.introVideoMediaId.trim()) {
+      const validation = await validateOwnedReadyVideo(userId, data.introVideoMediaId);
+      if (!validation.ok) {
+        return {
+          ok: false,
+          fieldErrors: { introVideoMediaId: validation.error },
+        };
+      }
+      introVideoMediaId = validation.mediaId;
+    }
+
     const previousProfile = await prisma.profile.findUnique({
       where: { userId },
       select: MODERATION_PROFILE_SELECT,
@@ -177,6 +192,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
         cityId: data.cityId,
         avatarUrl: data.avatarUrl,
         bio: data.bio?.trim() ? data.bio.trim() : null,
+        introVideoMediaId,
       },
       update: {
         firstName: data.firstName,
@@ -188,6 +204,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
         cityId: data.cityId,
         avatarUrl: data.avatarUrl,
         bio: data.bio?.trim() ? data.bio.trim() : null,
+        introVideoMediaId,
       },
       select: MODERATION_PROFILE_SELECT,
     });
@@ -367,6 +384,7 @@ export async function publishProfile(): Promise<PublishActionResult> {
         cityId: true,
         avatarUrl: true,
         bio: true,
+        introVideoMediaId: true,
         moderationStatus: true,
         moderationNotes: true,
         moderatedBy: true,
@@ -394,6 +412,7 @@ export async function publishProfile(): Promise<PublishActionResult> {
       cityId: profile.cityId ?? "",
       avatarUrl: profile.avatarUrl ?? "",
       bio: profile.bio ?? "",
+      introVideoMediaId: profile.introVideoMediaId ?? "",
     };
 
     const parsed = personalInfoSchema.safeParse(validationPayload);

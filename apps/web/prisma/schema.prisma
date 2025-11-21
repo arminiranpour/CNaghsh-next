@@ -8,30 +8,31 @@ datasource db {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  createdAt           DateTime             @default(now())
-  name                String?
-  passwordHash        String?
-  role                Role                 @default(USER)
-  timezone            String?              @db.VarChar(64)
-  checkoutSessions    CheckoutSession[]
-  emailLogs           EmailLog[]
-  invoices            Invoice[]
-  Job                 Job[]
-  jobModerationEvents JobModerationEvent[] @relation("JobModerationAdmin")
-  moderationEvents    ModerationEvent[]    @relation("ModerationActor")
-  notifications       Notification[]
-  payments            Payment[]
-  jobCreditGrants     JobCreditGrant[]
-  subscriptions       Subscription[]
-  moderatedProfiles   Profile[]            @relation("ProfileModerators")
-  profile             Profile?
-  entitlements        UserEntitlement[]
-  auditLogs           AuditLog[]
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  createdAt               DateTime                 @default(now())
+  name                    String?
+  passwordHash            String?
+  role                    Role                     @default(USER)
+  timezone                String?                  @db.VarChar(64)
+  checkoutSessions        CheckoutSession[]
+  emailLogs               EmailLog[]
+  invoices                Invoice[]
+  Job                     Job[]
+  jobModerationEvents     JobModerationEvent[]     @relation("JobModerationAdmin")
+  moderationEvents        ModerationEvent[]        @relation("ModerationActor")
+  notifications           Notification[]
+  payments                Payment[]
+  jobCreditGrants         JobCreditGrant[]
+  subscriptions           Subscription[]
+  moderatedProfiles       Profile[]                @relation("ProfileModerators")
+  profile                 Profile?
+  entitlements            UserEntitlement[]
+  auditLogs               AuditLog[]
   notificationPreferences NotificationPreference[]
   notificationMessageLogs NotificationMessageLog[]
-
+  mediaAssets             MediaAsset[]
+  mediaModerationReviews  MediaAsset[]            @relation("MediaModerationReviewer")
 }
 
 model Profile {
@@ -46,6 +47,7 @@ model Profile {
   cityId           String?
   avatarUrl        String?
   bio              String?
+  introVideoMediaId String?
   gallery          Json?
   skills           Json?
   socialLinks      Json?
@@ -58,12 +60,14 @@ model Profile {
   moderatedBy      String?
   moderatedAt      DateTime?
   moderationEvents ModerationEvent[]
+  introVideoMedia  MediaAsset?       @relation("ProfileIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
   moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
   user             User              @relation(fields: [userId], references: [id])
 
   @@index([visibility])
   @@index([moderationStatus])
   @@index([updatedAt])
+  @@index([introVideoMediaId])
 }
 
 model ModerationEvent {
@@ -286,20 +290,20 @@ model JobCreditGrant {
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  actorId       String
-  actorEmail    String?
-  resourceType  String
-  resourceId    String
-  action        String
-  reason        String
-  before        Json?
-  after         Json?
-  metadata      Json?
-  ipAddress     String?
-  userAgent     String?
-  idempotencyKey String? @unique
-  createdAt     DateTime @default(now())
+  id             String   @id @default(cuid())
+  actorId        String
+  actorEmail     String?
+  resourceType   String
+  resourceId     String
+  action         String
+  reason         String
+  before         Json?
+  after          Json?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
 
   actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
@@ -321,17 +325,20 @@ model Job {
   remote           Boolean              @default(false)
   status           JobStatus            @default(DRAFT)
   moderation       JobModeration        @default(PENDING)
+  introVideoMediaId String?
   featuredUntil    DateTime?
   views            Int                  @default(0)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   moderationEvents JobModerationEvent[]
+  introVideoMedia  MediaAsset?          @relation("JobIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
 
   @@index([status, moderation, featuredUntil])
   @@index([category])
   @@index([cityId])
   @@index([title])
+  @@index([introVideoMediaId])
 }
 
 model JobModerationEvent {
@@ -361,11 +368,11 @@ model Notification {
   dedupeKey String?             @db.VarChar(255)
   user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([dedupeKey])
   @@index([userId])
   @@index([userId, createdAt])
   @@index([userId, readAt])
   @@index([dedupeKey])
-  @@unique([dedupeKey])
 }
 
 model EmailLog {
@@ -382,7 +389,7 @@ model EmailLog {
 }
 
 model NotificationPreference {
-  id           String                @id @default(cuid())
+  id           String               @id @default(cuid())
   userId       String
   category     NotificationCategory
   emailEnabled Boolean              @default(true)
@@ -396,42 +403,90 @@ model NotificationPreference {
 }
 
 model NotificationMessageLog {
-  id                String                      @id @default(cuid())
+  id                String                     @id @default(cuid())
   userId            String?
   email             String?
   eventType         String
   channel           NotificationChannel
-  dedupeKey         String                      @db.VarChar(255)
+  dedupeKey         String                     @db.VarChar(255)
   status            NotificationDispatchStatus
-  attempts          Int                         @default(0)
+  attempts          Int                        @default(0)
   providerMessageId String?
   error             String?
   metadata          Json?
   lastAttemptAt     DateTime?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  user              User?                       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  user              User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
   jobs              NotificationJob[]
 
+  @@unique([dedupeKey, channel])
   @@index([userId])
   @@index([channel])
-  @@unique([dedupeKey, channel])
 }
 
 model NotificationJob {
-  id          String                @id @default(cuid())
+  id          String                 @id @default(cuid())
   logId       String
-  status      NotificationJobStatus @default(PENDING)
-  attempts    Int                   @default(0)
-  maxAttempts Int                   @default(3)
-  runAt       DateTime              @default(now())
+  status      NotificationJobStatus  @default(PENDING)
+  attempts    Int                    @default(0)
+  maxAttempts Int                    @default(3)
+  runAt       DateTime               @default(now())
   payload     Json
   error       String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
   messageLog  NotificationMessageLog @relation(fields: [logId], references: [id], onDelete: Cascade)
 
   @@index([status, runAt])
+}
+
+model MediaAsset {
+  id            String          @id @default(cuid())
+  type          MediaType
+  status        MediaStatus     @default(uploaded)
+  visibility    MediaVisibility @default(private)
+  ownerUserId   String
+  sourceKey     String
+  outputKey     String?         @unique
+  posterKey     String?
+  durationSec   Int?
+  width         Int?
+  height        Int?
+  codec         String?
+  bitrate       Int?
+  sizeBytes     BigInt?
+  errorMessage  String?
+  moderationStatus      MediaModerationStatus @default(pending)
+  moderationReason      String?
+  moderationReviewedAt  DateTime?
+  moderationReviewedById String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  owner         User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  moderationReviewedBy  User?            @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
+  transcodeJobs TranscodeJob[]
+  profileIntroVideoUsages Profile[] @relation("ProfileIntroVideo")
+  jobIntroVideoUsages     Job[]     @relation("JobIntroVideo")
+
+  @@index([ownerUserId, type, status])
+  @@index([createdAt])
+  @@index([moderationStatus])
+}
+
+model TranscodeJob {
+  id           String             @id @default(cuid())
+  mediaAssetId String
+  attempt      Int                @default(1)
+  status       TranscodeJobStatus @default(queued)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  logs         Json?
+  createdAt    DateTime           @default(now())
+  mediaAsset   MediaAsset         @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([mediaAssetId, createdAt])
+  @@index([status])
 }
 
 enum ProductType {
@@ -561,6 +616,36 @@ enum NotificationJobStatus {
   COMPLETED
   FAILED
   SKIPPED
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum MediaStatus {
+  uploaded
+  processing
+  ready
+  failed
+}
+
+enum MediaVisibility {
+  public
+  private
+}
+
+enum MediaModerationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum TranscodeJobStatus {
+  queued
+  processing
+  done
+  failed
 }
 
 enum JobStatus {

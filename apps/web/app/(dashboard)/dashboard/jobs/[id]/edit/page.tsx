@@ -32,6 +32,7 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
       payAmount: true,
       currency: true,
       remote: true,
+      introVideoMediaId: true,
     },
   });
 
@@ -69,6 +70,7 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
               payAmount: job.payAmount,
               currency: job.currency ?? "",
               remote: job.remote,
+              introVideoMediaId: job.introVideoMediaId ?? "",
             }}
           />
         </CardContent>
