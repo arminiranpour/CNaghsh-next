@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 import Card from "./Card";
 
 export default function FeaturedCard() {
@@ -60,26 +60,14 @@ export default function FeaturedCard() {
 
   return (
     <div
-      className="relative mt-[40px] h-[372px] w-full"
+      className="relative mt-[40px] min-h-[452px] w-full"
       dir="rtl"
     >
       {/* inner wrapper: centers the whole carousel and limits it to 4 cards width */}
       <div className="relative mx-auto h-full max-w-[1120px] flex items-center justify-center">
-        {/* Left arrow (visually “next” in RTL) */}
-        <button
-          type="button"
-          onClick={() => scroll("left")}
-          className="
-            absolute left-[-40px] top-1/2 z-10 -translate-y-1/2
-            flex h-10 w-10 items-center justify-center
-            rounded-full bg-white/90 text-black shadow
-            hover:bg-white
-          "
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
 
-        {/* Right arrow (visually “prev” in RTL) */}
+
+        {/* Right arrow (visually "prev" in RTL) */}
         <button
           type="button"
           onClick={() => scroll("right")}
@@ -90,7 +78,35 @@ export default function FeaturedCard() {
             hover:bg-white
           "
         >
-          <ChevronLeft className="h-5 w-5" />
+          <Image
+            src="/cineflash/home/Bazigaran/ArrowRight.png"
+            alt="فلش راست"
+            width={20}
+            height={20}
+            unoptimized
+            className="h-5 w-5"
+          />
+        </button>
+
+        {/* Left arrow (visually "next" in RTL) */}
+        <button
+          type="button"
+          onClick={() => scroll("left")}
+          className="
+            absolute left-[-40px] top-1/2 z-10 -translate-y-1/2
+            flex h-10 w-10 items-center justify-center
+            rounded-full bg-white/90 text-black shadow
+            hover:bg-white
+          "
+        >
+          <Image
+            src="/cineflash/home/Bazigaran/ArrowRight.png"
+            alt="فلش چپ"
+            width={20}
+            height={20}
+            unoptimized
+            className="h-5 w-5 scale-x-[-1]"
+          />
         </button>
 
         {/* Scrollable row */}
@@ -101,17 +117,20 @@ export default function FeaturedCard() {
       ref={scrollRef}
       className="
         flex
-        h-[372px]
+        min-h-[372px]
         w-full
         overflow-x-auto
         overflow-y-visible
         scroll-smooth
         justify-center
+        items-center
       "
       style={{ scrollbarWidth: "none" }}
     >
       {demoActors.map((actor, i) => (
-        <Card key={i} {...actor} />
+        <div key={i} className="px-2 py-[40px] flex items-center justify-center">
+          <Card {...actor} />
+        </div>
       ))}
     </div>
   </div>

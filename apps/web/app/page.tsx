@@ -9,14 +9,15 @@ import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
-    <main dir="rtl">
+    <main dir="rtl" className="w-full flex justify-center">
       <div
+        className="mx-auto"
         style={{
           backgroundImage: "url('/cineflash/home/background.jpg')",
           backgroundRepeat: "repeat-y",
           backgroundSize: "cover",
           backgroundPosition: "top center",
-          width: "100%",
+          width: "1526px",
           minHeight: "100vh",
           position: "relative", // خیلی مهم برای اینکه absolute هدر درست عمل کنه
         }}

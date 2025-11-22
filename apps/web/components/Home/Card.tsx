@@ -7,6 +7,7 @@ type FeaturedCardProps = {
   rating: number;
   avatarSrc: string;
   frameSrc?: string;
+  hoverFrameSrc?: string;
   starSrc?: string;
 };
 
@@ -17,6 +18,7 @@ export default function Card({
   rating,
   avatarSrc,
   frameSrc = "/cineflash/home/Bazigaran/CardFrame.png",
+  hoverFrameSrc = "/cineflash/home/Bazigaran/Actors frame 1.png",
   starSrc = "/cineflash/home/Bazigaran/Star.png",
 }: FeaturedCardProps) {
   const STAR_W = 12;
@@ -30,8 +32,10 @@ export default function Card({
         w-[280px] h-[312px]
         hover:scale-[1.25]
         flex items-center justify-center
+        origin-center
+        group
       "
-      style={{ direction: "rtl" }}
+      style={{ direction: "rtl", transformOrigin: "center center" }}
     >
       <div
         className="
@@ -39,10 +43,22 @@ export default function Card({
           w-[280px] h-[312px]
         "
       >
-        {/* Frame */}
-        <div className="absolute inset-0 pointer-events-none">
+        {/* Default Frame */}
+        <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 ease-out group-hover:opacity-0">
           <Image
             src={frameSrc}
+            alt="قاب کارت"
+            fill
+            unoptimized
+            sizes="280px"
+            style={{ objectFit: "contain" }}
+          />
+        </div>
+
+        {/* Hover Frame */}
+        <div className="absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100">
+          <Image
+            src={hoverFrameSrc}
             alt="قاب کارت"
             fill
             unoptimized
