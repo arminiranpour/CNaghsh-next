@@ -723,7 +723,6 @@ export default async function PricingPage({
               w-full h-full
               max-w-[1600px] max-h-[800px]
               border-[3px] border-white rounded-[34px]
-              pointer-events-none
             "
           >
             <div
