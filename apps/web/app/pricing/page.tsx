@@ -1,5 +1,6 @@
 import { PlanCycle, ProductType } from "@prisma/client";
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/auth/session";
@@ -7,6 +8,33 @@ import { getSubscription } from "@/lib/billing/subscriptionService";
 import { formatRials } from "@/lib/money";
 
 import { PricingContent } from "./pricing-content";
+
+const iranSans = localFont({
+  src: [
+    {
+      path: "../../public/fonts/IRANSansWeb.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/IRANSansWeb_Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/IRANSansWeb_Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/IRANSansWeb_Black.woff2",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  display: "swap",
+  variable: "--font-iransans",
+});
 
 export const metadata: Metadata = {
   title: "قیمت‌ها و پلن‌ها | سی‌نقش",
@@ -682,7 +710,7 @@ export default async function PricingPage({
 
   return (
     <main
-      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      className={`${iranSans.className} relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat`}
       style={{ backgroundImage: "url('/images/auth-bg.jpg')" }}
     >
       <div className="w-full h-full px-4 py-12">

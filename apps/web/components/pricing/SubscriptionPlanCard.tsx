@@ -49,7 +49,7 @@ export function SubscriptionPlanCard({
   return (
     <div className="flex flex-col rounded-2xl bg-white p-6 shadow-lg">
       {/* Title */}
-      <div className="mb-6">
+      <div className="mb-6 text-center">
         <h3 className="text-xl font-bold text-black">{title}</h3>
         {subtitle && (
           <p className="mt-1 text-sm text-gray-500">{subtitle}</p>

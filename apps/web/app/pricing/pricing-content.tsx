@@ -315,7 +315,11 @@ export function PricingContent({
               { label: "امکان برخورداری از مشاوره و آموزش‌ها", enabled: false },
             ]}
             buttonText="انتخاب"
-            buttonAction={canCheckout ? () => {} : SIGN_IN_URL}
+            buttonAction={
+              canCheckout
+                ? () => router.push("/dashboard/profile" as Route)
+                : SIGN_IN_URL
+            }
             isActive={false}
             isDisabled={isSubmitting}
           />
