@@ -8,13 +8,6 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,10 +18,10 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import type { ProviderName } from "@/lib/billing/provider.types";
+import { SubscriptionPlanCard } from "@/components/pricing/SubscriptionPlanCard";
 
 import type {
   CadenceKey,
-  OneTimePrice,
   PricingPlanCadence,
   PricingPlanGroupData,
   PricingViewer,
@@ -41,7 +34,6 @@ type PricingContentProps = {
   cadenceLabels: CadenceLabels;
   initialCadence: CadenceKey;
   viewer: PricingViewer;
-  jobOffers: OneTimePrice[];
 };
 
 type SelectedPrice = {
@@ -106,7 +98,6 @@ export function PricingContent({
   cadenceLabels,
   initialCadence,
   viewer,
-  jobOffers,
 }: PricingContentProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -306,141 +297,72 @@ export function PricingContent({
 
       <section className="space-y-6">
         <div className="space-y-2 text-center">
-          <h2 className="text-3xl font-semibold">پلن‌های اشتراک</h2>
-          <p className="text-sm text-muted-foreground">
-            با توجه به نیاز خود، دوره پرداخت مناسب را انتخاب کنید و دسترسی کامل دریافت کنید.
-          </p>
+          <h2 className="text-4xl font-bold text-black mb-4">خرید اشتراک</h2>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Free Plan */}
+          <SubscriptionPlanCard
+            title="رایگان"
+            features={[
+              { label: "امکان ساخت پروفایل و وارد کردن اطلاعات پایه", enabled: true },
+              { label: "نمایش در فهرست بازیگران و جستوجوی پیشرفته", enabled: true },
+              { label: "امکان دریافت پیام و گفتوگو با عوامل", enabled: true },
+              { label: "امکان بارگزاری عکس و ویدئو و فایل صوتی", enabled: false },
+              { label: "دسترسی به بخش‌های مختلف وب‌سایت", enabled: false },
+              { label: "دسترسی به فراخوان‌ها", enabled: false },
+              { label: "امکان شرکت در مسابقات و چالش و رویدادها", enabled: false },
+              { label: "امکان برخورداری از مشاوره و آموزش‌ها", enabled: false },
+            ]}
+            buttonText="انتخاب"
+            buttonAction={canCheckout ? () => {} : SIGN_IN_URL}
+            isActive={false}
+            isDisabled={isSubmitting}
+          />
+
+          {/* Paid Plans */}
           {displayPlans.map(({ group, cadenceKey, cadence }) => {
             const isActivePlan = subscriptionPlanId === cadence.planId;
+            const allFeaturesEnabled = [
+              { label: "امکان ساخت پروفایل و وارد کردن اطلاعات پایه", enabled: true },
+              { label: "نمایش در فهرست بازیگران و جستوجوی پیشرفته", enabled: true },
+              { label: "امکان دریافت پیام و گفتوگو با عوامل", enabled: true },
+              { label: "امکان بارگزاری عکس و ویدئو و فایل صوتی", enabled: true },
+              { label: "دسترسی به بخش‌های مختلف وب‌سایت", enabled: true },
+              { label: "دسترسی به فراخوان‌ها", enabled: true },
+              { label: "امکان شرکت در مسابقات و چالش و رویدادها", enabled: true },
+              { label: "امکان برخورداری از مشاوره و آموزش‌ها", enabled: true },
+            ];
+
             return (
-              <Card
+              <SubscriptionPlanCard
                 key={`${group.groupId}-${cadenceKey}`}
-                className={cn(
-                  "flex h-full flex-col justify-between border",
-                  group.highlight && "border-primary shadow-lg",
-                )}
-              >
-                <CardHeader className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-xl">{group.name}</CardTitle>
-                    {group.badgeLabel && (
-                      <Badge variant="secondary">{group.badgeLabel}</Badge>
-                    )}
-                  </div>
-                  {group.tagline && (
-                    <p className="text-sm text-muted-foreground">
-                      {group.tagline}
-                    </p>
-                  )}
-                  <div className="text-3xl font-bold text-primary">
-                    {cadence.formattedAmount}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    دوره {cadenceLabels[cadenceKey] ?? cadenceKey}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {group.features.length > 0 && (
-                    <ul className="space-y-3 text-sm">
-                      {group.features.map((feature) => (
-                        <li key={feature.key} className="space-y-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <span className="font-medium text-foreground">
-                              {feature.primary}
-                            </span>
-                            {feature.value && (
-                              <span className="text-xs text-muted-foreground">
-                                {feature.value.valueLabel}
-                              </span>
-                            )}
-                          </div>
-                          {feature.secondary && (
-                            <p className="text-xs text-muted-foreground">
-                              {feature.secondary}
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {group.note && (
-                    <p className="rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
-                      {group.note}
-                    </p>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  {canCheckout ? (
-                    <Button
-                      className="w-full"
-                      onClick={() =>
+                title={cadence.formattedAmount}
+                subtitle={
+                  cadenceKey === "monthly"
+                    ? "اشتراک شش ماهه"
+                    : cadenceKey === "annual"
+                      ? "اشتراک یک ساله"
+                      : undefined
+                }
+                features={allFeaturesEnabled}
+                buttonText="پرداخت"
+                buttonAction={
+                  canCheckout
+                    ? () =>
                         handleSelectPrice({
                           id: cadence.priceId,
                           name: group.name,
                           cadence: cadenceKey,
                           description: cadenceLabels[cadenceKey] ?? cadenceKey,
                         })
-                      }
-                      disabled={isActivePlan || isSubmitting}
-                    >
-                      {isActivePlan ? "پلن فعال شما" : "شروع اشتراک"}
-                    </Button>
-                  ) : (
-                    <Button asChild className="w-full">
-                      <Link href={SIGN_IN_URL}>ورود یا ثبت‌نام</Link>
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
+                    : SIGN_IN_URL
+                }
+                isActive={isActivePlan}
+                isDisabled={isSubmitting}
+              />
             );
           })}
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h2 className="text-3xl font-semibold">ثبت آگهی شغلی (تک‌خرید)</h2>
-          <p className="text-sm text-muted-foreground">
-            برای هر آگهی جدید می‌توانید از گزینه پرداخت یکباره استفاده کنید.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {jobOffers.map((price) => (
-            <Card key={price.id} className="flex h-full flex-col justify-between">
-              <CardHeader>
-                <CardTitle className="text-xl">{price.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-primary">
-                  {price.formatted}
-                </div>
-              </CardContent>
-              <CardFooter>
-                {canCheckout ? (
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      handleSelectPrice({
-                        id: price.id,
-                        name: price.name,
-                        description: "ثبت آگهی شغلی",
-                      })
-                    }
-                    disabled={isSubmitting}
-                  >
-                    پرداخت برای آگهی
-                  </Button>
-                ) : (
-                  <Button asChild className="w-full">
-                    <Link href={SIGN_IN_URL}>ورود یا ثبت‌نام</Link>
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          ))}
         </div>
       </section>
 

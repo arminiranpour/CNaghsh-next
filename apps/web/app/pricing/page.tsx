@@ -681,14 +681,39 @@ export default async function PricingPage({
   };
 
   return (
-    <div className="bg-background">
-      <PricingContent
-        plans={planGroups}
-        cadenceLabels={CADENCE_LABELS}
-        initialCadence={defaultCadence}
-        viewer={viewer}
-        jobOffers={oneTimePrices}
-      />
-    </div>
+    <main
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/images/auth-bg.jpg')" }}
+    >
+      <div className="w-full h-full px-4 py-12">
+        <div className="relative flex items-center justify-center min-h-screen">
+          <div
+            className="
+              absolute
+              top-1/2 left-1/2
+              -translate-x-1/2 -translate-y-1/2
+              w-full h-full
+              max-w-[1600px] max-h-[800px]
+              border-[3px] border-white rounded-[34px]
+              pointer-events-none
+            "
+          >
+            <div
+              className="flex items-center justify-center w-full h-full gap-12 md:flex-row"
+              dir="ltr"
+            >
+              <div className="w-full h-full p-12" dir="rtl">
+                <PricingContent
+                  plans={planGroups}
+                  cadenceLabels={CADENCE_LABELS}
+                  initialCadence={defaultCadence}
+                  viewer={viewer}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
