@@ -1,23 +1,44 @@
-import { unstable_cache } from "next/cache";
+// apps/web/lib/location/cities.ts
+import allLocations from "../../public/cities/all.json";
 
-import { CACHE_REVALIDATE, CACHE_TAGS } from "@/lib/cache/config";
+export type LocationType = "province" | "county" | "district" | "city" | "rural";
 
-export type City = { id: string; name: string };
+export type LocationItem = {
+  id: number;
+  name: string;
+  type: LocationType;
+  parent_id: number | null;
+  // add any extra fields you have (slug, code, etc.)
+};
 
-async function loadCities(): Promise<City[]> {
-  // TODO: replace with real list when provided
-  return [
-    { id: "tehran", name: "تهران" },
-    { id: "isfahan", name: "اصفهان" },
-    { id: "mashhad", name: "مشهد" },
-  ];
-}
+// Cast JSON to typed array
+const locations = allLocations as LocationItem[];
 
-const resolveCities = unstable_cache(loadCities, ["cities"], {
-  revalidate: CACHE_REVALIDATE.cities,
-  tags: [CACHE_TAGS.cities],
-});
+// Basic filters
+export const getProvinces = () =>
+  locations.filter((item) => item.type === "province");
 
-export async function getCities(): Promise<City[]> {
-  return resolveCities();
-}
+export const getCountiesByProvince = (provinceId: number) =>
+  locations.filter(
+    (item) => item.type === "county" && item.parent_id === provinceId,
+  );
+
+export const getDistrictsByCounty = (countyId: number) =>
+  locations.filter(
+    (item) => item.type === "district" && item.parent_id === countyId,
+  );
+
+export const getCitiesByDistrict = (districtId: number) =>
+  locations.filter(
+    (item) => item.type === "city" && item.parent_id === districtId,
+  );
+
+export const getRuralByDistrict = (districtId: number) =>
+  locations.filter(
+    (item) => item.type === "rural" && item.parent_id === districtId,
+  );
+
+// Optional: by id
+export const getLocationById = (id: number) =>
+  locations.find((item) => item.id === id) ?? null;
+

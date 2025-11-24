@@ -3,6 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "module": "ESNext",
+    "target": "ES2020",
     "types": ["node"],
     "incremental": false,
     "moduleResolution": "node",
