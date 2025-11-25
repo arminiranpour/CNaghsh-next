@@ -109,6 +109,8 @@ export default async function ModerationDetailPage({
   const cityMap = new Map(cities.map((city) => [city.id, city.name] as const));
   const displayName = getDisplayName(profile.stageName, profile.firstName, profile.lastName);
   const cityName = profile.cityId ? cityMap.get(profile.cityId) ?? profile.cityId : "نامشخص";
+  const moderationStatus = profile.moderationStatus as keyof typeof STATUS_VARIANTS;
+  const visibility = profile.visibility as keyof typeof VISIBILITY_LABELS;
   const skills = Array.isArray(profile.skills)
     ? (profile.skills as unknown[])
         .filter(isSkillKey)
@@ -120,7 +122,7 @@ export default async function ModerationDetailPage({
   return (
     <div className="space-y-6" dir="rtl">
       <header className="flex flex-col gap-4 rounded-lg border border-border bg-background p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
             <h1 className="text-2xl font-bold">پروفایل {displayName}</h1>
             <p className="text-sm text-muted-foreground">شناسه پروفایل: {profile.id}</p>
@@ -130,16 +132,16 @@ export default async function ModerationDetailPage({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={STATUS_VARIANTS[profile.moderationStatus]}>
-              {STATUS_LABELS[profile.moderationStatus]}
+            <Badge variant={STATUS_VARIANTS[moderationStatus]}>
+              {STATUS_LABELS[moderationStatus]}
             </Badge>
-            <Badge variant={profile.visibility === "PUBLIC" ? "secondary" : "outline"}>
-              {VISIBILITY_LABELS[profile.visibility]}
+            <Badge variant={visibility === "PUBLIC" ? "secondary" : "outline"}>
+              {VISIBILITY_LABELS[visibility]}
             </Badge>
           </div>
-        </div>
-        <ModerationActions
-          profileId={profile.id}
+          </div>
+          <ModerationActions
+            profileId={profile.id}
           status={profile.moderationStatus}
           visibility={profile.visibility}
         />
@@ -297,13 +299,15 @@ export default async function ModerationDetailPage({
         </CardHeader>
         <CardContent className="space-y-4">
           {events.length ? (
-            events.map((event) => (
+            events.map((event) => {
+              const action = event.action as keyof EventLabelMap;
+              return (
               <div
                 key={event.id}
                 className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="font-medium">{EVENT_LABELS[event.action]}</div>
+                  <div className="font-medium">{EVENT_LABELS[action]}</div>
                   <div className="text-xs text-muted-foreground">
                     {new Date(event.createdAt).toLocaleString("fa-IR", {
                       dateStyle: "short",
@@ -318,7 +322,8 @@ export default async function ModerationDetailPage({
                   <div className="mt-2 text-sm leading-6">{event.reason}</div>
                 ) : null}
               </div>
-            ))
+              );
+            })
           ) : (
             <p className="text-sm text-muted-foreground">رویدادی ثبت نشده است.</p>
           )}

@@ -268,11 +268,17 @@ export async function getPublicJobFilters() {
         }),
       ]);
 
+      const normalizedCategories = categories
+        .map((entry) => entry.category)
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+      const normalizedPayTypes = payTypes
+        .map((entry) => entry.payType)
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
       return {
-        categories: categories.map((entry) => entry.category).filter(Boolean),
-        payTypes: payTypes
-          .map((entry) => entry.payType)
-          .filter((value): value is string => Boolean(value && value.trim())),
+        categories: normalizedCategories,
+        payTypes: normalizedPayTypes,
       };
     },
     ["public-job-filters"],
