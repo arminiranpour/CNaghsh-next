@@ -1,33 +1,50 @@
 "use client";
 
 import Image from "next/image";
+import type { PublicProfileData } from "@/components/profile/ProfilePageClient";
 
 const GREEN = "#3BBF35";
 const GRAY_BORDER = "#DDDDDD";
 
-type Skill = { label: string };
 type Language = { label: string; level: number; total: number };
 type Accent = { label: string };
 
-const SKILLS: Skill[] = [
-  { label: "کمدی" },
-  { label: "صداپیشگی" },
-  { label: "پانتومیم" },
-  { label: "خواندن دوبله" },
-];
+const DEFAULT_SKILLS = ["کمدی", "صداپیشگی", "پانتومیم", "خواندن دوبله"];
 
+// TODO: replace with profile language data when available in schema.
 const LANGUAGES: Language[] = [
   { label: "فارسی", level: 5, total: 5 },
   { label: "انگلیسی", level: 3, total: 5 },
   { label: "ترکی", level: 4, total: 5 },
 ];
 
+// TODO: replace with profile accent data when available in schema.
 const ACCENTS: Accent[] = [
   { label: "فارسی" },
   { label: "ترکی" },
 ];
 
-export function RightPane() {
+type RightPaneProps = {
+  profile: PublicProfileData;
+  isOwner: boolean;
+};
+
+function formatNumber(value: number | undefined | null): string {
+  if (typeof value !== "number") {
+    return "";
+  }
+  return value.toLocaleString("fa-IR");
+}
+
+export function RightPane({ profile }: RightPaneProps) {
+  const avatarSrc =
+    profile.avatarUrl && profile.avatarUrl.trim()
+      ? profile.avatarUrl
+      : "/cineflash/profile/example.jpg";
+  const skills = profile.skills.length ? profile.skills : DEFAULT_SKILLS;
+  const ageLabel = profile.age ? `سن ${formatNumber(profile.age)} سال` : "سن نامشخص";
+  const locationLabel = profile.cityName ?? "شهر نامشخص";
+
   return (
     <section
       aria-label="پنل کناری پروفایل"
@@ -60,8 +77,8 @@ export function RightPane() {
         }}
       >
         <Image
-          src="/cineflash/profile/example.jpg"
-          alt="Profile"
+          src={avatarSrc}
+          alt={profile.displayName}
           width={169}
           height={169}
           style={{
@@ -86,7 +103,7 @@ export function RightPane() {
           whiteSpace: "nowrap",
         }}
       >
-        فرید مقدم‌پور
+        {profile.displayName}
       </h2>
 
       {/* سن */}
@@ -102,7 +119,7 @@ export function RightPane() {
           whiteSpace: "nowrap",
         }}
       >
-        سن ۳۲ سال
+        {ageLabel}
       </div>
 
       {/* دکمه پیشرفته */}
@@ -141,6 +158,7 @@ export function RightPane() {
           gap: 6,
         }}
       >
+        {/* TODO: replace placeholder rating/count with real data from backend once available */}
         <span
           style={{
             fontSize: 18,
@@ -191,7 +209,7 @@ export function RightPane() {
             width={12}
             height={12}
           />
-          <span style={{ fontSize: 13, fontWeight: 500 }}>تهران، تهران</span>
+          <span style={{ fontSize: 13, fontWeight: 500 }}>{locationLabel}</span>
         </div>
 
         <div
@@ -227,6 +245,7 @@ export function RightPane() {
               whiteSpace: "nowrap",
             }}
           >
+            {/* TODO: replace with real education data once stored on profile */}
             کارشناسی ارشد ادبیات نمایشی
           </span>
         </div>
@@ -275,9 +294,9 @@ export function RightPane() {
             marginBottom: 12,
           }}
         >
-          {SKILLS.map((skill) => (
+          {skills.map((skill) => (
             <div
-              key={skill.label}
+              key={skill}
               style={{
                 display: "flex",
                 flexDirection: "row",
@@ -297,7 +316,7 @@ export function RightPane() {
                   backgroundColor: "#000000",
                 }}
               />
-              <span>{skill.label}</span>
+              <span>{skill}</span>
             </div>
           ))}
         </div>

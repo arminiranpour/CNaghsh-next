@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProfileTabId } from "@/components/profile/ProfilePageClient";
+import type { ProfileTabId, PublicProfileData } from "@/components/profile/ProfilePageClient";
 import { PersonalInfoSlide } from "@/components/profile/CenterPane/PersonalInfoSlide";
 import { GallerySlide } from "@/components/profile/CenterPane/GallerySlide";
 import { VideosSlide } from "@/components/profile/CenterPane/VideoSlide";
@@ -11,9 +11,10 @@ import { TopActions } from "./TopActions";
 
 type CenterPaneProps = {
   activeTab: ProfileTabId;
+  profile: PublicProfileData;
 };
 
-export function CenterPane({ activeTab }: CenterPaneProps) {
+export function CenterPane({ activeTab, profile }: CenterPaneProps) {
   return (
     <section
       aria-label="محتوای اصلی پروفایل"
@@ -32,8 +33,8 @@ export function CenterPane({ activeTab }: CenterPaneProps) {
       }}
     >
         <TopActions />
-      {activeTab === "personal" ? <PersonalInfoSlide /> : null}
-      {activeTab === "gallery" ? <GallerySlide /> : null}
+      {activeTab === "personal" ? <PersonalInfoSlide bio={profile.bio} /> : null}
+      {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
       {activeTab === "videos" ? <VideosSlide /> : null}
       {activeTab === "awards" && <AwardsSlide />}
       {activeTab === "audio" ? <AudioFilesSlide  /> : null}

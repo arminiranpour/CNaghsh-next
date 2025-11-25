@@ -1,58 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 
-type ActionId = "bookmark" | "share" | "favorite";
-
 const ORANGE = "#F58A1F";
-const GRAY = "#7C7C7C";
-
-const ICONS: Record<ActionId, JSX.Element> = {
-  favorite: (
-    <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 21s-6.7-4.35-9.33-8.7C.33 9.36 2.08 5 6 5c2.2 0 3.67 1.33 4.5 2.67C11.33 6.33 12.8 5 15 5c3.92 0 5.67 4.36 3.33 7.3C18.7 16.65 12 21 12 21z"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
-    </svg>
-  ),
-  share: (
-    <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <polyline
-        points="16 6 12 2 8 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
-      <line
-        x1="12"
-        y1="2"
-        x2="12"
-        y2="15"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-    </svg>
-  ),
-  bookmark: (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1z"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
-    </svg>
-  ),
-};
 
 const CARD_WIDTH = 320;
 const CARD_HEIGHT = 176;
@@ -72,8 +22,15 @@ const bulletTextStyle: React.CSSProperties = {
   lineHeight: 1.9,
 };
 
-export function PersonalInfoSlide() {
-  const [activeAction, setActiveAction] = useState<ActionId | null>(null);
+type PersonalInfoSlideProps = {
+  bio?: string | null;
+};
+
+const DEFAULT_BIO =
+  "من عاشق لحظه‌هایی‌ام که می‌توانم از خودم بیرون بیایم و توی پوست یه آدم دیگه زندگی کنم. بازیگری برام راهیه برای شناخت احساسات آدم‌ها و دنیاهای تازه.\nفارغ‌التحصیل ادبیات نمایشی‌ام و تا حالا تو چند نمایش و فیلم بازی کردم. از کار گروهی، صحنه و سکوت پشت دوربین لذت می‌برم. ویولن می‌زنم، صداپیشگی می‌کنم و با زبان ترکی و انگلیسی آشنا‌م. همیشه دنبال تجربه‌هایی‌ام که بتونن منو به یه نسخه عمیق‌تر از خودم نزدیک‌تر کنن.";
+
+export function PersonalInfoSlide({ bio }: PersonalInfoSlideProps) {
+  const bioToRender = bio && bio.trim() ? bio : DEFAULT_BIO;
 
   return (
     <div
@@ -119,18 +76,10 @@ export function PersonalInfoSlide() {
           lineHeight: 1.9,
           textAlign: "justify",
           overflow: "hidden",
+          whiteSpace: "pre-line",
         }}
       >
-        <p style={{ margin: 0 }}>
-          من عاشق لحظه‌هایی‌ام که می‌توانم از خودم بیرون بیایم و توی پوست یه آدم
-          دیگه زندگی کنم. بازیگری برام راهیه برای شناخت احساسات آدم‌ها و دنیاهای
-          تازه.
-          <br />
-          فارغ‌التحصیل ادبیات نمایشی‌ام و تا حالا تو چند نمایش و فیلم بازی کردم.
-          از کار گروهی، صحنه و سکوت پشت دوربین لذت می‌برم. ویولن می‌زنم،
-          صداپیشگی می‌کنم و با زبان ترکی و انگلیسی آشنا‌م. همیشه دنبال
-          تجربه‌هایی‌ام که بتونن منو به یه نسخه عمیق‌تر از خودم نزدیک‌تر کنن.
-        </p>
+        <p style={{ margin: 0 }}>{bioToRender}</p>
       </div>
 
       {/* تیتر کارهایی که انجام دادم */}

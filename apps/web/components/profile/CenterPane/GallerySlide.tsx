@@ -1,6 +1,48 @@
 "use client";
 
-export function GallerySlide() {
+import type { CSSProperties } from "react";
+
+type GallerySlideProps = {
+  images?: { url: string }[];
+};
+
+const SLOTS = [
+  { left: 2, top: 0, width: 213, height: 216, color: "#FFCB1F" },
+  { left: 226, top: 0, width: 270, height: 216, color: "#D79333" },
+  { left: 509, top: 0, width: 173, height: 314, color: "#D8A35A" },
+  { left: 0, top: 225, width: 173, height: 185, color: "#F36B08" },
+  { left: 186, top: 225, width: 310, height: 141, color: "#FF9A22" },
+  { left: 0, top: 419, width: 173, height: 165, color: "#D9AA63" },
+  { left: 186, top: 381, width: 310, height: 202, color: "#CF8F30" },
+  { left: 509, top: 337, width: 173, height: 250, color: "#FFC51D" },
+] as const;
+
+function slotStyle(
+  slot: (typeof SLOTS)[number],
+  image?: { url: string },
+): CSSProperties {
+  return {
+    position: "absolute",
+    left: slot.left,
+    top: slot.top,
+    width: slot.width,
+    height: slot.height,
+    borderRadius: 12,
+    backgroundColor: slot.color,
+    overflow: "hidden",
+    ...(image
+      ? {
+          backgroundImage: `url(${image.url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : {}),
+  };
+}
+
+export function GallerySlide({ images }: GallerySlideProps) {
+  const normalizedImages = images ?? [];
+
   return (
     <div
       style={{
@@ -38,113 +80,15 @@ export function GallerySlide() {
           width: 682,
           height: 587,
           borderRadius: 24,
-          // فقط برای تست، بک‌گراند خنثی. اگر دوست نداشتی می‌تونی برداری.
           backgroundColor: "#FFFFFF",
         }}
       >
-        {/* مستطیل ۱ – بالا چپ  (W=213 H=216  X=305 Y=425) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 2, // 305 - 303
-            top: 0,  // 425 - 425
-            width: 213,
-            height: 216,
-            borderRadius: 12,
-            backgroundColor: "#FFCB1F", // زرد
-          }}
-        />
-
-        {/* مستطیل ۲ – بالا وسط (W=270 H=216 X=529 Y=425) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 226, // 529 - 303
-            top: 0,
-            width: 270,
-            height: 216,
-            borderRadius: 12,
-            backgroundColor: "#D79333", // قهوه‌ای طلایی
-          }}
-        />
-
-        {/* مستطیل ۳ – بالا راست (W=173 H=314 X=812 Y=425) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 509, // 812 - 303
-            top: 0,
-            width: 173,
-            height: 314,
-            borderRadius: 12,
-            backgroundColor: "#D8A35A", // بژ
-          }}
-        />
-
-        {/* مستطیل ۴ – وسط چپ (W=173 H=185 X=303 Y=650) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0, // 303 - 303
-            top: 225, // 650 - 425
-            width: 173,
-            height: 185,
-            borderRadius: 12,
-            backgroundColor: "#F36B08", // نارنجی تیره
-          }}
-        />
-
-        {/* مستطیل ۵ – وسط وسط (W=310 H=141 X=489 Y=650) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 186, // 489 - 303
-            top: 225,
-            width: 310,
-            height: 141,
-            borderRadius: 12,
-            backgroundColor: "#FF9A22", // نارنجی
-          }}
-        />
-
-        {/* مستطیل ۶ – پایین چپ (W=173 H=165 X=303 Y=844) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 419, // 844 - 425
-            width: 173,
-            height: 165,
-            borderRadius: 12,
-            backgroundColor: "#D9AA63", // بژ روشن
-          }}
-        />
-
-        {/* مستطیل ۷ – پایین وسط (W=310 H=202 X=489 Y=806) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 186,
-            top: 381, // 806 - 425
-            width: 310,
-            height: 202,
-            borderRadius: 12,
-            backgroundColor: "#CF8F30", // قهوه‌ای
-          }}
-        />
-
-        {/* مستطیل ۸ – پایین راست (W=173 H=250 X=812 Y=762) */}
-        <div
-          style={{
-            position: "absolute",
-            left: 509,
-            top: 337, // 762 - 425
-            width: 173,
-            height: 250,
-            borderRadius: 12,
-            backgroundColor: "#FFC51D", // زرد
-          }}
-        />
+        {SLOTS.map((slot, index) => (
+          <div
+            key={`${slot.left}-${slot.top}-${slot.width}-${slot.height}`}
+            style={slotStyle(slot, normalizedImages[index])}
+          />
+        ))}
       </div>
       <div
   style={{
