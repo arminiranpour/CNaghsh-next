@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import type { Prisma } from "@prisma/client";
 import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
 import { CenterPane } from "@/components/profile/CenterPane/CenterPane";
 import { RightPane } from "@/components/profile/RightPane/RightPane";
+import type { LanguageSkill } from "@/lib/profile/languages";
+import type { MediaPlaybackKind } from "@/lib/media/urls";
 
 export type ProfileTabId = "personal" | "gallery" | "videos" | "audio" | "awards";
+
+export type ProfileVideoData = {
+  mediaId: string;
+  url: string;
+  posterUrl?: string | null;
+  title?: string;
+  playbackKind?: MediaPlaybackKind;
+};
 
 export type PublicProfileData = {
   id: string;
@@ -16,8 +27,15 @@ export type PublicProfileData = {
   bio?: string | null;
   cityName?: string | null;
   skills: string[];
+  languages: LanguageSkill[];
+  accents?: string[];
   gallery: { url: string }[];
+  degrees?: { degreeLevel: string; major: string }[];
+  experience?: Prisma.JsonValue | null;
+  voices?: { mediaId: string; url: string; title?: string | null; duration?: number | null }[];
+  videos?: ProfileVideoData[];
 };
+
 
 type ProfilePageClientProps = {
   profile: PublicProfileData;

@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -13,7 +14,16 @@ import {
   MODERATION_PROFILE_SELECT,
   maybeMarkPendingOnCriticalEdit,
 } from "@/lib/profile/moderation";
-import { personalInfoSchema, skillsSchema } from "@/lib/profile/validation";
+import {
+  accentsSchema,
+  experienceSchema,
+  degreesSchema,
+  languagesSchema,
+  personalInfoSchema,
+  profileVideosSchema,
+  voicesSchema,
+  skillsSchema,
+} from "@/lib/profile/validation";
 import { deleteByUrl, saveImageFromFormData } from "@/lib/media/storage";
 import {
   emitUserPublishSubmitted,
@@ -66,6 +76,36 @@ type PersonalInfoActionResult = {
 };
 
 type SkillsActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type LanguagesActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type AccentsActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type DegreesActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type ExperienceActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type VideosActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type VoicesActionResult = {
   ok: boolean;
   error?: string;
 };
@@ -268,6 +308,389 @@ export async function updateSkills(formData: FormData): Promise<SkillsActionResu
     }
 
     console.error("updateSkills", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateLanguages(formData: FormData): Promise<LanguagesActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const rawLanguages = formData.get("languages");
+
+    if (typeof rawLanguages !== "string") {
+      return { ok: false, error: "لطفاً زبان‌ها را بررسی کنید." };
+    }
+
+    let parsedLanguages: unknown;
+
+    try {
+      parsedLanguages = JSON.parse(rawLanguages);
+    } catch {
+      return { ok: false, error: "ساختار زبان‌ها معتبر نیست." };
+    }
+
+    const parsed = languagesSchema.safeParse(parsedLanguages);
+
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "سطح زبان‌ها باید بین ۱ تا ۵ باشد.",
+      };
+    }
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        languages: parsed.data,
+      },
+      update: {
+        languages: parsed.data,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateLanguages", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateAccents(formData: FormData): Promise<AccentsActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const rawAccents = formData.get("accents");
+
+    if (typeof rawAccents !== "string") {
+      return { ok: false, error: "لطفاً لهجه‌ها را بررسی کنید." };
+    }
+
+    let parsedAccents: unknown;
+
+    try {
+      parsedAccents = JSON.parse(rawAccents);
+    } catch {
+      return { ok: false, error: "ساختار لهجه‌ها معتبر نیست." };
+    }
+
+    const parsed = accentsSchema.safeParse(parsedAccents);
+
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "لطفاً لهجه‌ها را بررسی کنید.",
+      };
+    }
+
+    const cleanedAccents =
+      parsed.data?.map((item) => item.trim()).filter((value) => value.length > 0) ?? [];
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        accents: cleanedAccents.length > 0 ? cleanedAccents : Prisma.DbNull,
+      },
+      update: {
+        accents: cleanedAccents.length > 0 ? cleanedAccents : Prisma.DbNull,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateAccents", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateDegrees(formData: FormData): Promise<DegreesActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const raw = formData.get("degrees");
+
+    if (typeof raw !== "string") {
+      return { ok: false, error: "لطفاً مقاطع تحصیلی را بررسی کنید." };
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, error: "ساختار مقاطع تحصیلی معتبر نیست." };
+    }
+
+    const validated = degreesSchema.safeParse(parsed);
+    if (!validated.success) {
+      return { ok: false, error: "لطفاً مقاطع تحصیلی را بررسی کنید." };
+    }
+
+    const cleaned =
+      validated.data?.map((d) => ({
+        degreeLevel: d.degreeLevel.trim(),
+        major: d.major.trim(),
+      })) ?? [];
+
+    const previous = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: { userId, degrees: cleaned.length ? cleaned : Prisma.DbNull },
+      update: { degrees: cleaned.length ? cleaned : Prisma.DbNull },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previous, next: result });
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateExperience(formData: FormData): Promise<ExperienceActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const rawExperience = formData.get("experience");
+
+    if (typeof rawExperience !== "string") {
+      return { ok: false, error: "لطفاً اطلاعات تجربه را بررسی کنید." };
+    }
+
+    let parsedExperience: unknown;
+
+    try {
+      parsedExperience = JSON.parse(rawExperience);
+    } catch {
+      return { ok: false, error: "ساختار تجربه‌ها معتبر نیست." };
+    }
+
+    const parsed = experienceSchema.safeParse(parsedExperience);
+
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: "لطفاً نقش و نام اثر را برای همه موارد وارد کنید.",
+      };
+    }
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        experience: parsed.data,
+      },
+      update: {
+        experience: parsed.data,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateExperience", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateVideos(formData: FormData): Promise<VideosActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const raw = formData.get("videos");
+
+    if (typeof raw !== "string") {
+      return { ok: false, error: "لطفاً ویدئوها را بررسی کنید." };
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, error: "ساختار ویدئوها معتبر نیست." };
+    }
+
+    const validated = profileVideosSchema.safeParse(parsed);
+
+    if (!validated.success) {
+      return { ok: false, error: "لطفاً ویدئوها را بررسی کنید." };
+    }
+
+    const entries = Array.isArray(validated.data) ? validated.data : [];
+    const cleaned: { mediaId: string; title?: string; order?: number }[] = [];
+    const seen = new Set<string>();
+
+    for (const [index, entry] of entries.entries()) {
+      if (!entry || typeof entry.mediaId !== "string") {
+        continue;
+      }
+
+      const mediaId = entry.mediaId.trim();
+
+      if (!mediaId || seen.has(mediaId)) {
+        continue;
+      }
+
+      const validation = await validateOwnedReadyVideo(userId, mediaId);
+
+      if (!validation.ok) {
+        return { ok: false, error: validation.error };
+      }
+
+      const title = entry.title?.trim();
+      const order =
+        typeof entry.order === "number" && Number.isInteger(entry.order)
+          ? entry.order
+          : undefined;
+
+      cleaned.push({
+        mediaId: validation.mediaId,
+        title: title ? title : undefined,
+        order: order ?? index,
+      });
+      seen.add(validation.mediaId);
+    }
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        videos: cleaned.length > 0 ? cleaned : Prisma.DbNull,
+      },
+      update: {
+        videos: cleaned.length > 0 ? cleaned : Prisma.DbNull,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateVideos", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateVoices(formData: FormData): Promise<VoicesActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const raw = formData.get("voices");
+
+    if (typeof raw !== "string") {
+      return { ok: false, error: "لطفاً فایل‌های صوتی را بررسی کنید." };
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, error: "ساختار فایل‌های صوتی معتبر نیست." };
+    }
+
+    const validated = voicesSchema.safeParse(parsed);
+
+    if (!validated.success) {
+      return { ok: false, error: "لطفاً فایل‌های صوتی را بررسی کنید." };
+    }
+
+    const cleaned =
+      validated.data?.map((entry) => ({
+        mediaId: entry.mediaId.trim(),
+        url: entry.url.trim(),
+        title: entry.title?.trim() || null,
+        duration: typeof entry.duration === "number" ? entry.duration : null,
+      })) ?? [];
+
+    const previous = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        voices: cleaned.length ? cleaned : Prisma.DbNull,
+      },
+      update: {
+        voices: cleaned.length ? cleaned : Prisma.DbNull,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previous, next: result });
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateVoices", error);
     return { ok: false, error: GENERIC_ERROR };
   }
 }

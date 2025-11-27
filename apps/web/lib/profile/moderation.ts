@@ -29,6 +29,12 @@ export const MODERATION_PROFILE_SELECT = {
   address: true,
   gallery: true,
   skills: true,
+  languages: true,
+  accents: true,
+  experience: true,
+  degrees: true,
+  voices: true,
+  videos: true,
   introVideoMediaId: true,
   visibility: true,
   moderationStatus: true,
@@ -45,6 +51,12 @@ export type ModerationProfileSnapshot = Prisma.ProfileGetPayload<{
 const CRITICAL_JSON_KEYS = new Set<keyof ModerationProfileSnapshot>([
   "gallery",
   "skills",
+  "languages",
+  "accents",
+  "experience",
+  "degrees",
+  "voices",
+  "videos",
 ]);
 
 const CRITICAL_FIELD_KEYS: Array<keyof ModerationProfileSnapshot> = [
@@ -58,6 +70,12 @@ const CRITICAL_FIELD_KEYS: Array<keyof ModerationProfileSnapshot> = [
   "address",
   "gallery",
   "skills",
+  "languages",
+  "accents",
+  "experience",
+  "degrees",
+  "voices",
+  "videos",
   "introVideoMediaId",
 ];
 
@@ -460,6 +478,7 @@ export async function listProfilesForModeration(
         cityId: true,
         age: true,
         skills: true,
+        experience: true,
         avatarUrl: true,
         visibility: true,
         moderationStatus: true,

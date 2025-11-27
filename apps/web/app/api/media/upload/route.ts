@@ -51,6 +51,14 @@ const MIME_EXTENSIONS: Record<string, string> = {
   "video/mp4": "mp4",
   "video/quicktime": "mov",
   "video/webm": "webm",
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
 };
 
 const normalizeMime = (value: string) => value.split(";")[0]?.trim().toLowerCase() ?? "";
@@ -113,13 +121,18 @@ const ensureDailyQuota = async (userId: string, sizeBytes: number) => {
   return null;
 };
 
-const createMediaAssetRecord = async (ownerUserId: string, extension: string, sizeBytes: number) => {
+const createMediaAssetRecord = async (
+  ownerUserId: string,
+  extension: string,
+  sizeBytes: number,
+  type: MediaType,
+) => {
   const mediaId = randomUUID();
   const sourceKey = getOriginalKey(ownerUserId, mediaId, extension);
   const media = await prisma.mediaAsset.create({
     data: {
       id: mediaId,
-      type: MediaType.video,
+      type,
       status: MediaStatus.uploaded,
       visibility: MediaVisibility.private,
       ownerUserId,
@@ -205,6 +218,24 @@ const prepareUpload = async (
   fileBuffer?: Buffer,
 ) => {
   const normalizedMime = normalizeMime(metadata.contentType);
+  const isAudio = normalizedMime.startsWith("audio/");
+
+  const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+  if (isAudio && metadata.sizeBytes > MAX_AUDIO_BYTES) {
+    return respondWithError(
+      {
+        status: 400,
+        code: "TOO_LARGE",
+        message: "حجم فایل صوتی نباید بیشتر از ۱۰ مگابایت باشد.",
+      },
+      {
+        userId,
+        reason: "audio_too_large",
+        sizeBytes: metadata.sizeBytes,
+        limit: MAX_AUDIO_BYTES,
+      },
+    );
+  }
   if (!normalizedMime || !isAllowedMime(normalizedMime)) {
     return respondWithError(
       {
@@ -261,11 +292,26 @@ const prepareUpload = async (
     );
   }
 
-  const media = await createMediaAssetRecord(userId, extension, metadata.sizeBytes);
+  const mediaType = isAudio ? MediaType.audio : MediaType.video;
+  const media = await createMediaAssetRecord(userId, extension, metadata.sizeBytes, mediaType);
 
   if (mode === "multipart" && fileBuffer) {
     await putBuffer(privateBucket, media.sourceKey, fileBuffer, normalizedMime, cacheOriginal());
-    await queueMediaTranscode(media.id);
+    if (mediaType === MediaType.audio) {
+      await prisma.mediaAsset.update({
+        where: { id: media.id },
+        data: {
+          status: MediaStatus.ready,
+        },
+      });
+      logInfo("upload.init.audio_ready_multipart", {
+        userId,
+        mediaId: media.id,
+        contentType: normalizedMime,
+      });
+    } else {
+      await queueMediaTranscode(media.id);
+    }
   }
 
   const signedUrl =

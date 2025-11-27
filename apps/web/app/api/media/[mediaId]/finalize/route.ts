@@ -40,7 +40,9 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { status: 401, headers: NO_STORE_HEADERS },
       );
     }
+
     userId = session.user.id;
+
     const media = await prisma.mediaAsset.findUnique({
       where: { id: mediaId },
       select: {
@@ -51,18 +53,15 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         sourceKey: true,
       },
     });
+
     if (!media || media.ownerUserId !== userId) {
       return NextResponse.json(
         { ok: false, errorCode: "NOT_FOUND" },
         { status: 404, headers: NO_STORE_HEADERS },
       );
     }
-    if (media.type !== MediaType.video) {
-      return NextResponse.json(
-        { ok: false, errorCode: "INVALID_MEDIA_TYPE" },
-        { status: 400, headers: NO_STORE_HEADERS },
-      );
-    }
+
+    // اگر قبلاً آماده یا در حال پردازش است، چیزی برای انجام‌دادن نیست
     if (media.status === MediaStatus.ready || media.status === MediaStatus.processing) {
       logInfo("media.upload.finalize.skip", {
         mediaId,
@@ -74,6 +73,8 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { headers: NO_STORE_HEADERS },
       );
     }
+
+    // اگر fail شده، نذار دوباره finalize بشه
     if (media.status === MediaStatus.failed) {
       logInfo("media.upload.finalize.invalid_state", {
         mediaId,
@@ -85,6 +86,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { status: 409, headers: NO_STORE_HEADERS },
       );
     }
+
     sourceKey = media.sourceKey;
 
     logInfo("media.upload.finalize.start", {
@@ -93,6 +95,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       bucket: privateBucket,
       key: media.sourceKey,
       status: media.status,
+      type: media.type,
     });
 
     const objectExists = await exists(privateBucket, media.sourceKey);
@@ -109,6 +112,37 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       );
     }
 
+    // ✅ مسیر ویژه برای فایل‌های صوتی (voice)
+    if (media.type === MediaType.audio) {
+      await prisma.mediaAsset.update({
+        where: { id: media.id },
+        data: {
+          status: MediaStatus.ready,
+        },
+      });
+
+      logInfo("media.upload.finalize.audio_ready", {
+        mediaId,
+        userId,
+        bucket: privateBucket,
+        sourceKey,
+      });
+
+      return NextResponse.json(
+        { ok: true, status: MediaStatus.ready },
+        { headers: NO_STORE_HEADERS },
+      );
+    }
+
+    // برای هر چیزی غیر از ویدیو (مثلاً image)، فعلاً این route پشتیبانی نمی‌کند
+    if (media.type !== MediaType.video) {
+      return NextResponse.json(
+        { ok: false, errorCode: "INVALID_MEDIA_TYPE" },
+        { status: 400, headers: NO_STORE_HEADERS },
+      );
+    }
+
+    // ✅ مسیر قبلی برای ویدیوها
     await queueMediaTranscode(media.id);
 
     logInfo("media.upload.finalize.success", {
@@ -117,6 +151,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       bucket: privateBucket,
       sourceKey,
     });
+
     return NextResponse.json(
       { ok: true, status: MediaStatus.processing },
       { headers: NO_STORE_HEADERS },

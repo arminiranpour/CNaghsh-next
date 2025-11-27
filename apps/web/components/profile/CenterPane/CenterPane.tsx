@@ -5,7 +5,7 @@ import { PersonalInfoSlide } from "@/components/profile/CenterPane/PersonalInfoS
 import { GallerySlide } from "@/components/profile/CenterPane/GallerySlide";
 import { VideosSlide } from "@/components/profile/CenterPane/VideoSlide";
 import { AwardsSlide } from "@/components/profile/CenterPane/AwardsSlide";
-import { AudioFilesSlide  } from "@/components/profile/CenterPane/AudioSlide";
+import { AudioSlide } from "@/components/profile/CenterPane/AudioSlide";
 import { TopActions } from "./TopActions";
 
 
@@ -32,12 +32,14 @@ export function CenterPane({ activeTab, profile }: CenterPaneProps) {
         fontFamily: "IRANSans, sans-serif",
       }}
     >
-        <TopActions />
-      {activeTab === "personal" ? <PersonalInfoSlide bio={profile.bio} /> : null}
+      <TopActions />
+      {activeTab === "personal" ? (
+        <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />
+      ) : null}
       {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
-      {activeTab === "videos" ? <VideosSlide /> : null}
+      {activeTab === "videos" ? <VideosSlide videos={profile.videos} /> : null}
       {activeTab === "awards" && <AwardsSlide />}
-      {activeTab === "audio" ? <AudioFilesSlide  /> : null}
+      {activeTab === "audio" ? <AudioSlide voices={profile.voices ?? []} /> : null}
 
     </section>
   );

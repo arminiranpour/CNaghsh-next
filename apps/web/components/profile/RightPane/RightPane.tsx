@@ -2,27 +2,12 @@
 
 import Image from "next/image";
 import type { PublicProfileData } from "@/components/profile/ProfilePageClient";
+import { LANGUAGE_LEVEL_MAX } from "@/lib/profile/languages";
 
 const GREEN = "#3BBF35";
 const GRAY_BORDER = "#DDDDDD";
 
-type Language = { label: string; level: number; total: number };
-type Accent = { label: string };
-
 const DEFAULT_SKILLS = ["کمدی", "صداپیشگی", "پانتومیم", "خواندن دوبله"];
-
-// TODO: replace with profile language data when available in schema.
-const LANGUAGES: Language[] = [
-  { label: "فارسی", level: 5, total: 5 },
-  { label: "انگلیسی", level: 3, total: 5 },
-  { label: "ترکی", level: 4, total: 5 },
-];
-
-// TODO: replace with profile accent data when available in schema.
-const ACCENTS: Accent[] = [
-  { label: "فارسی" },
-  { label: "ترکی" },
-];
 
 type RightPaneProps = {
   profile: PublicProfileData;
@@ -42,6 +27,19 @@ export function RightPane({ profile }: RightPaneProps) {
       ? profile.avatarUrl
       : "/cineflash/profile/example.jpg";
   const skills = profile.skills.length ? profile.skills : DEFAULT_SKILLS;
+  const languages = profile.languages
+    .map((lang) => ({
+      label: lang.label,
+      level: Math.min(Math.max(lang.level, 0), LANGUAGE_LEVEL_MAX),
+    }))
+    .filter((lang) => lang.label && lang.level > 0);
+  const accents = (profile.accents ?? []).map((accent) => accent.trim()).filter(Boolean);
+  const degrees = (profile.degrees ?? [])
+    .map((degree) => ({
+      degreeLevel: (degree?.degreeLevel ?? "").trim(),
+      major: (degree?.major ?? "").trim(),
+    }))
+    .filter((degree) => degree.degreeLevel || degree.major);
   const ageLabel = profile.age ? `سن ${formatNumber(profile.age)} سال` : "سن نامشخص";
   const locationLabel = profile.cityName ?? "شهر نامشخص";
 
@@ -219,45 +217,88 @@ export function RightPane({ profile }: RightPaneProps) {
             marginBottom: 12,
           }}
         />
+        {degrees.length > 0 ? (
+          <>
 
-        {/* تحصیلات */}
-        <div
-          style={{
-            display: "flex",          
-            color: "#000000",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            gap: 6,
-            marginBottom: 8,
-          }}
-        >
-          <Image
-            src="/cineflash/profile/education.png"
-            alt="education"
-            width={22}
-            height={22}
-          />
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {/* TODO: replace with real education data once stored on profile */}
-            کارشناسی ارشد ادبیات نمایشی
-          </span>
-        </div>
+            {/* تحصیلات */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                color: "#000000",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              <Image
+                src="/cineflash/profile/education.png"
+                alt="education"
+                width={22}
+                height={22}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                تحصیلات
+              </span>
+            </div>
 
-        <div
-          style={{
-            height: 1,
-            backgroundColor: GRAY_BORDER,
-            margin: "12px 0",
-          }}
-        />
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                marginBottom: 18,
+              }}
+            >
+              {degrees.map((degree, index) => {
+                const details = [
+                  degree.degreeLevel ? ` ${degree.degreeLevel}` : null,
+                  degree.major ? ` ${degree.major}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ");
 
+                return (
+                  <div
+                    key={`${degree.degreeLevel}-${degree.major}-${index}`}
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      color: "#000000",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      gap: 6,
+                      fontSize: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: 1,
+                        backgroundColor: "#000000",
+                      }}
+                    />
+                    <span>{details}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+            <div
+              style={{
+                height: 1,
+                backgroundColor: GRAY_BORDER,
+                margin: "10px 0 12px",
+              }}
+            />
         {/* مهارت‌ها */}
         <div
           style={{
@@ -365,7 +406,7 @@ export function RightPane({ profile }: RightPaneProps) {
             marginBottom: 14,
           }}
         >
-          {LANGUAGES.map((lang) => (
+          {languages.map((lang) => (
             <div
               key={lang.label}
               style={{
@@ -393,7 +434,7 @@ export function RightPane({ profile }: RightPaneProps) {
                   gap: 4,
                 }}
               >
-                {Array.from({ length: lang.total }).map((_, idx) => (
+                {Array.from({ length: LANGUAGE_LEVEL_MAX }).map((_, idx) => (
                   <span
                     key={idx}
                     style={{
@@ -410,75 +451,80 @@ export function RightPane({ profile }: RightPaneProps) {
           ))}
         </div>
 
-        <div
-          style={{
-            height: 1,
-            backgroundColor: GRAY_BORDER,
-            margin: "10px 0 12px",
-          }}
-        />
-
-        {/* لهجه */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-              color: "#000000",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            gap: 6,
-            marginBottom: 8,
-          }}
-        >
-          <Image
-            src="/cineflash/profile/accent.png"
-            alt="accent"
-            width={13}
-            height={13}
-          />
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            لهجه
-          </span>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
-            marginBottom: 18,
-          }}
-        >
-          {ACCENTS.map((accent) => (
+        {accents.length > 0 ? (
+          <>
             <div
-              key={accent.label}
+              style={{
+                height: 1,
+                backgroundColor: GRAY_BORDER,
+                margin: "10px 0 12px",
+              }}
+            />
+
+            {/* لهجه */}
+            <div
               style={{
                 display: "flex",
                 flexDirection: "row",
-                color: "#000000",
+                  color: "#000000",
                 alignItems: "center",
                 justifyContent: "flex-start",
                 gap: 6,
-                fontSize: 12,
+                marginBottom: 8,
               }}
             >
-              <div
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: 1,
-                  backgroundColor: "#000000",
-                }}
+              <Image
+                src="/cineflash/profile/accent.png"
+                alt="accent"
+                width={13}
+                height={13}
               />
-              <span>{accent.label}</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              >
+                لهجه
+              </span>
             </div>
-          ))}
-        </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                marginBottom: 18,
+              }}
+            >
+              {accents.map((accent, index) => (
+                <div
+                  key={`${accent}-${index}`}
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    color: "#000000",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    gap: 6,
+                    fontSize: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 4,
+                      height: 4,
+                      borderRadius: 1,
+                      backgroundColor: "#000000",
+                    }}
+                  />
+                  <span>{accent}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : null}
+
 
         {/* دکمه انتخاب این بازیگر */}
         <button

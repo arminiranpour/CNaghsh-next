@@ -49,7 +49,13 @@ model Profile {
   bio              String?
   introVideoMediaId String?
   gallery          Json?
+  videos           Json?
   skills           Json?
+  languages        Json?
+  accents          Json?
+  experience       Json?
+  degrees          Json?
+  voices           Json?
   socialLinks      Json?
   visibility       ProfileVisibility @default(PRIVATE)
   publishedAt      DateTime?
@@ -69,6 +75,10 @@ model Profile {
   @@index([updatedAt])
   @@index([introVideoMediaId])
 }
+
+// After updating the schema, run:
+// pnpm prisma migrate dev --name add-profile-videos
+// pnpm prisma generate
 
 model ModerationEvent {
   id        String           @id @default(cuid())
@@ -621,6 +631,7 @@ enum NotificationJobStatus {
 enum MediaType {
   image
   video
+  audio
 }
 
 enum MediaStatus {
