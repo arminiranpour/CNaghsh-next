@@ -1,193 +1,156 @@
 "use client";
 
 import Image from "next/image";
+import { useMemo } from "react";
 
-const ORANGE = "#F58A1F";
+const ORANGE = "#FF7F19";
 const GRAY = "#7C7C7C";
 
-type AwardItem = {
-  id: number;
+type AwardEntry = {
   title: string;
-  subtitle: string;
+  place?: string | null;
+  awardDate?: string | null;
 };
 
-const AWARDS: AwardItem[] = [
-  {
-    id: 1,
-    title: "نقش مکمل مرد",
-    subtitle: "جشنواره تئاتر دانشگاهی نهال / مهر ۱۳۹۹",
-  },
-  {
-    id: 2,
-    title: "نقش مکمل مرد",
-    subtitle: "جشنواره تئاتر دانشگاهی نهال / مهر ۱۳۹۹",
-  },
-  {
-    id: 3,
-    title: "نقش مکمل مرد",
-    subtitle: "جشنواره تئاتر دانشگاهی نهال / مهر ۱۳۹۹",
-  },
-];
+type AwardsSlideProps = {
+  awards?: AwardEntry[];
+};
 
-export function AwardsSlide() {
+function formatAwardDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if (!match) return trimmed;
+
+  const [, year, month] = match;
+  return `${year}/${month}`;
+}
+
+function buildSubtitle(award: AwardEntry) {
+  const parts = [];
+  if (award.place?.trim()) parts.push(award.place.trim());
+  const formatted = formatAwardDate(award.awardDate);
+  if (formatted) parts.push(formatted);
+  return parts.join(" / ");
+}
+
+export function AwardsSlide({ awards }: AwardsSlideProps) {
+  const normalized = useMemo(
+    () =>
+      (awards ?? [])
+        .map((a) => ({
+          title: a.title.trim(),
+          place: a.place?.trim() || "",
+          awardDate: a.awardDate?.trim() || "",
+        }))
+        .filter((x) => x.title),
+    [awards],
+  );
+
   return (
     <div
       style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
+        direction: "rtl",
+        position: "relative",
+        padding: "0 55px",
       }}
     >
-      {/* تیتر اصلی */}
+      {/* Title */}
       <h1
         style={{
-          position: "absolute",
-          left: 528,
-          top: 35,
-          height: 47,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           margin: 0,
+          marginTop: 35,
           fontSize: 32,
           fontWeight: 900,
-          color: "#000000",
-          whiteSpace: "nowrap",
+          textAlign: "center",
+          color: "#000",
         }}
       >
         جوایز و افتخارات
       </h1>
 
-      {/* لیست جوایز */}
-      <div
-        style={{
-          position: "absolute",
-          top: 160,
-          right: 80,
-          width: 680,
-        }}
-      >
-        {AWARDS.map((item, index) => (
-          <div
-            key={item.id}
-            style={{
-              padding: "20px 0",
-              paddingRight: 0, 
-            }}
-          >
-            {/* ردیف عنوان + جام */}
-<div
-  style={{
-    display: "flex",
-    flexDirection: "row",
-    direction: "rtl",           // مهم: چیدمان راست به چپ
-    alignItems: "center",
-    justifyContent: "flex-start", // از سمت راست شروع کن
-    gap: 14,
-    marginBottom: 15,
-  }}
->
-  {/* جام (سمت راست) */}
-  <Image
-    src="/cineflash/profile/trophy.png"
-    alt="آیکن جایزه"
-    width={24}
-    height={24}
-  />
+      {/* No awards */}
+      {normalized.length === 0 ? (
+        <p
+          style={{
+            marginTop: 120,
+            fontSize: 14,
+            color: GRAY,
+            textAlign: "center",
+          }}
+        >
+          جایزه‌ای ثبت نشده است.
+        </p>
+      ) : (
+        <div
+          style={{
+            marginTop: 140,
+            display: "flex",
+            flexDirection: "column",
+            gap: 40,
+            width: 680,
+          }}
+        >
+          {normalized.map((award, index) => {
+            const subtitle = buildSubtitle(award);
 
-  {/* عنوان (سمت چپ جام) */}
-  <span
-    style={{
-      fontSize: 18,
-      fontWeight: 700,
-      color: ORANGE,
-      whiteSpace: "nowrap",
-    }}
-  >
-    {item.title}
-  </span>
-</div>
+            return (
+              <div key={index} style={{ width: "100%" }}>
+                {/* Title Row */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <Image
+                    src="/cineflash/profile/trophy.png"
+                    width={26}
+                    height={26}
+                    alt="award icon"
+                  />
 
+                  <span
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 800,
+                      color: ORANGE,
+                    }}
+                  >
+                    {award.title}
+                  </span>
+                </div>
 
-            {/* زیرعنوان خاکستری – راست‌چین زیر عنوان */}
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 400,
-                color: GRAY,
-                textAlign: "right",
-                paddingRight: 40,
-              }}
-            >
-              {item.subtitle}
-            </div>
+                {/* Subtitle */}
+                <div
+                  style={{
+                    fontSize: 16,
+                    color: GRAY,
+                    marginTop: 10,
+                  }}
+                >
+                  {subtitle}
+                </div>
 
-            {/* خط نازک زیر هر آیتم به جز آخری */}
-            {index < AWARDS.length  && (
-              <div
-                style={{
-                  marginTop: 30,
-                  height: 1.5,
-                  backgroundColor: "rgba(0, 0, 0, 0.2)",
-                  width: 550,
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-     {/* دکمه «جست و جوی دیگر بازیگران» – پایین چپ */}
-<button
-  type="button"
-  style={{
-    position: "absolute",
-    bottom: 40,
-    left: 60,
-    height: 33,
-    width:189,
-    padding: "0 40px",
-    borderRadius: 38,
-    border: "1px solid #F77F19",
-    backgroundColor: "#FFFFFF",
-    color: "#F77F19",
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    whiteSpace: "nowrap",
-  }}
->
-  جست و جوی دیگر بازیگران
-</button>
-
-      {/* متن «صفحه قبل →» – پایین راست */}
-<div
-  style={{
-    position: "absolute",
-    bottom: 48,
-    right: 80,
-    display: "flex",
-    flexDirection: "row",
-    direction: "rtl",        // راست به چپ
-    alignItems: "center",
-    gap: 8,
-    color: ORANGE,
-    fontSize: 15,
-    fontWeight: 700,
-    cursor: "pointer",
-  }}
->
-  {/* فلش سمت راست */}
-  <span style={{ fontSize: 20, marginTop: 1 }}>→</span>
-  {/* متن سمت چپ فلش */}
-  <span>صفحه قبل</span>
-</div>
-
+                {/* Divider – except after the last item */}
+                {index < normalized.length - 1 && (
+                  <div
+                    style={{
+                      width: 544,
+                      height: 0,
+                      border: "1px solid #000",
+                      opacity: 0.3,
+                      marginTop: 25,
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

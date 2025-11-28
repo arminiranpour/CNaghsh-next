@@ -38,7 +38,7 @@ export function CenterPane({ activeTab, profile }: CenterPaneProps) {
       ) : null}
       {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
       {activeTab === "videos" ? <VideosSlide videos={profile.videos} /> : null}
-      {activeTab === "awards" && <AwardsSlide />}
+      {activeTab === "awards" ? <AwardsSlide awards={profile.awards ?? []} /> : null}
       {activeTab === "audio" ? <AudioSlide voices={profile.voices ?? []} /> : null}
 
     </section>

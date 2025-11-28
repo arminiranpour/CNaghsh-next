@@ -14,7 +14,7 @@ type CursorValue = {
 
 type AdminMediaListItem = {
   id: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   status: string;
   visibility: "public" | "private";
   moderationStatus: "pending" | "approved" | "rejected";
@@ -40,7 +40,7 @@ const STATUS_VALUES = new Set<MediaStatus>([
   MediaStatus.failed,
 ]);
 
-const TYPE_VALUES = new Set<MediaType>([MediaType.image, MediaType.video]);
+const TYPE_VALUES = new Set<MediaType>([MediaType.image, MediaType.video, MediaType.audio]);
 
 const MODERATION_OPTIONS = [
   MediaModerationStatus.pending,

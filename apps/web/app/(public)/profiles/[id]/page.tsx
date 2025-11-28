@@ -17,6 +17,9 @@ import { normalizeLanguageSkills } from "@/lib/profile/languages";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 type PageProps = { params: { id: string } };
+type ProfileWithRelations = Prisma.ProfileGetPayload<{
+  include: { awards: true };
+}>;
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
 
@@ -241,6 +244,23 @@ function normalizeVoices(
     .filter((entry) => entry.mediaId && entry.url);
 }
 
+function normalizeAwards(
+  raw: ProfileWithRelations["awards"] | null | undefined,
+): PublicProfileData["awards"] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((award) => ({
+      id: award.id,
+      title: (award.title ?? "").trim(),
+      place: award.place?.trim() || null,
+      awardDate: award.awardDate?.trim() || null,
+    }))
+    .filter((award) => award.title);
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const profile = await prisma.profile.findUnique({
     where: { id: params.id },
@@ -270,6 +290,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const [profile, session, cities] = await Promise.all([
     prisma.profile.findUnique({
       where: { id: params.id },
+      include: {
+        awards: {
+          orderBy: [
+            { awardDate: "desc" },
+            { createdAt: "desc" },
+          ],
+        },
+      },
     }),
     getServerAuthSession(),
     getCities(),
@@ -304,6 +332,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const videos = normalizeVideos(profile.videos, mediaById);
   const voices = normalizeVoices(profile.voices);
+  const awards = normalizeAwards(profile.awards);
 
   const profileData: PublicProfileData = {
     id: profile.id,
@@ -321,6 +350,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
     experience: profile.experience ?? null,
     voices,
     videos,
+    awards,
   };
 
   const isOwner = session?.user?.id === profile.userId;

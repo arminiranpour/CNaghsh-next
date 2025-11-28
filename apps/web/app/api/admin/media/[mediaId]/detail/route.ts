@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 type AdminMediaDetailResponse = {
   id: string;
-  type: "image" | "video";
+  type: "image" | "video" | "audio";
   status: string;
   visibility: "public" | "private";
   moderationStatus: string;

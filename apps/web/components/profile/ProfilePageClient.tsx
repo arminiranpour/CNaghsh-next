@@ -34,6 +34,7 @@ export type PublicProfileData = {
   experience?: Prisma.JsonValue | null;
   voices?: { mediaId: string; url: string; title?: string | null; duration?: number | null }[];
   videos?: ProfileVideoData[];
+  awards?: { id?: string; title: string; place?: string | null; awardDate?: string | null }[];
 };
 
 

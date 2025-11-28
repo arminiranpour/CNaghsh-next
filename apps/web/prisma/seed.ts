@@ -1,12 +1,22 @@
 import {
+  ApplicationEventType,
+  ApplicationStatus,
+  JobModeration,
+  JobStatus,
   MediaStatus,
   MediaType,
   MediaVisibility,
+  ModerationStatus,
   PlanCycle,
   Prisma,
   PrismaClient,
   ProductType,
+  ProfileVisibility,
   TranscodeJobStatus,
+  type Job,
+  type MediaAsset,
+  type Profile,
+  type User,
 } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -284,8 +294,328 @@ async function ensureProductPrice(productId: string, amount: number) {
   return price;
 }
 
+const APPLICATION_ATTACHMENT_LIMIT = 5;
+
+async function ensureUserAccount(email: string, name: string): Promise<User> {
+  const existing = await prisma.user.findUnique({ where: { email } });
+
+  if (existing) {
+    if (name && existing.name !== name) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: { name },
+      });
+    }
+
+    return existing;
+  }
+
+  return prisma.user.create({
+    data: {
+      email,
+      name,
+    },
+  });
+}
+
+async function ensurePublishedProfile(
+  user: User,
+  profileData: Partial<Profile> & { bio?: string } = {},
+): Promise<Profile> {
+  const existing = await prisma.profile.findUnique({
+    where: { userId: user.id },
+  });
+
+  const baseBio =
+    profileData.bio ??
+    'Published profile ready for job applications and employer review.';
+
+  const payload = {
+    userId: user.id,
+    firstName: profileData.firstName ?? user.name ?? 'Talent',
+    lastName: profileData.lastName ?? 'Applicant',
+    bio: baseBio,
+    cityId: profileData.cityId ?? 'tehran',
+    visibility: ProfileVisibility.PUBLIC,
+    publishedAt: profileData.publishedAt ?? new Date(),
+    moderationStatus: ModerationStatus.APPROVED,
+  };
+
+  if (existing) {
+    return prisma.profile.update({
+      where: { id: existing.id },
+      data: {
+        ...payload,
+        publishedAt: existing.publishedAt ?? payload.publishedAt,
+      },
+    });
+  }
+
+  return prisma.profile.create({
+    data: payload,
+  });
+}
+
+async function ensureApplicantMediaAsset(
+  ownerId: string,
+  label: string,
+  type: MediaType,
+): Promise<MediaAsset> {
+  const sourceKey = `uploads/applications/${ownerId}/${label}`;
+
+  const existing = await prisma.mediaAsset.findFirst({
+    where: {
+      ownerUserId: ownerId,
+      sourceKey,
+    },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.mediaAsset.create({
+    data: {
+      ownerUserId: ownerId,
+      type,
+      status: MediaStatus.ready,
+      visibility: MediaVisibility.private,
+      sourceKey,
+    },
+  });
+}
+
+async function ensurePublishedJob(
+  owner: User,
+  jobSeed: {
+    title: string;
+    description: string;
+    category: string;
+    cityId?: string | null;
+    payType?: string | null;
+    payAmount?: number | null;
+    currency?: string | null;
+    remote?: boolean;
+  },
+): Promise<Job> {
+  const existing = await prisma.job.findFirst({
+    where: {
+      userId: owner.id,
+      title: jobSeed.title,
+    },
+  });
+
+  const payload = {
+    userId: owner.id,
+    title: jobSeed.title,
+    description: jobSeed.description,
+    category: jobSeed.category,
+    cityId: jobSeed.cityId ?? 'tehran',
+    payType: jobSeed.payType ?? 'fixed',
+    payAmount: jobSeed.payAmount ?? 50000000,
+    currency: jobSeed.currency ?? 'IRR',
+    remote: jobSeed.remote ?? false,
+    status: JobStatus.PUBLISHED,
+    moderation: JobModeration.APPROVED,
+  };
+
+  if (existing) {
+    return prisma.job.update({
+      where: { id: existing.id },
+      data: payload,
+    });
+  }
+
+  return prisma.job.create({
+    data: payload,
+  });
+}
+
+type ApplicantContext = {
+  user: User;
+  profile: Profile;
+  assets: MediaAsset[];
+};
+
+function buildAttachmentPayload(assets: MediaAsset[], take: number): Prisma.InputJsonValue {
+  return assets.slice(0, take).map((asset, index) => ({
+    mediaAssetId: asset.id,
+    mediaType: asset.type,
+    label: index === 0 ? 'portfolio' : 'reference',
+  }));
+}
+
+function makeStatusChangePayload(
+  from: ApplicationStatus | null,
+  to: ApplicationStatus,
+  reason?: string,
+): Prisma.InputJsonValue {
+  return {
+    from,
+    to,
+    ...(reason ? { reason } : {}),
+  };
+}
+
+async function seedApplicationWithTimeline(params: {
+  job: Job;
+  applicant: ApplicantContext;
+  owner: User;
+  finalStatus: ApplicationStatus;
+  coverNote: string;
+  attachments: Prisma.InputJsonValue;
+  consents: Prisma.InputJsonValue;
+  transitions: Array<{ from: ApplicationStatus | null; to: ApplicationStatus; actorUserId?: string; reason?: string }>;
+  notes?: Array<{ text: string; actorUserId?: string }>;
+  systemEvents?: Array<{ payload: Prisma.InputJsonValue; actorUserId?: string | null }>;
+  attachmentEvents?: Array<{ asset: MediaAsset; actorUserId?: string; kind?: string }>;
+  views?: Array<{ viewerUserId?: string | null; offsetMinutes: number; ipHash: string; userAgentHash: string }>;
+  createdAt: Date;
+}) {
+  const existing = await prisma.application.findUnique({
+    where: {
+      jobId_applicantUserId: {
+        jobId: params.job.id,
+        applicantUserId: params.applicant.user.id,
+      },
+    },
+  });
+
+  const application = existing
+    ? await prisma.application.update({
+        where: { id: existing.id },
+        data: {
+          status: params.finalStatus,
+          coverNote: params.coverNote,
+          attachments: params.attachments,
+          consents: params.consents,
+        },
+      })
+    : await prisma.application.create({
+        data: {
+          jobId: params.job.id,
+          applicantUserId: params.applicant.user.id,
+          status: params.finalStatus,
+          coverNote: params.coverNote,
+          attachments: params.attachments,
+          consents: params.consents,
+          createdAt: params.createdAt,
+        },
+      });
+
+  await prisma.applicationEvent.deleteMany({
+    where: { applicationId: application.id },
+  });
+
+  let eventsCreated = 0;
+  const baseTime = params.createdAt;
+
+  const timelineInputs: Prisma.ApplicationEventCreateManyInput[] = [];
+
+  params.transitions.forEach((transition, index) => {
+    timelineInputs.push({
+      applicationId: application.id,
+      actorUserId: transition.actorUserId ?? null,
+      type: ApplicationEventType.status_change,
+      payload: makeStatusChangePayload(transition.from, transition.to, transition.reason),
+      createdAt: new Date(baseTime.getTime() + index * 10 * 60 * 1000),
+    });
+  });
+
+  const noteStartOffset = params.transitions.length;
+  params.notes?.forEach((note, noteIndex) => {
+    timelineInputs.push({
+      applicationId: application.id,
+      actorUserId: note.actorUserId ?? null,
+      type: ApplicationEventType.note,
+      payload: { text: note.text },
+      createdAt: new Date(baseTime.getTime() + (noteStartOffset + noteIndex) * 10 * 60 * 1000),
+    });
+  });
+
+  const systemStartOffset = timelineInputs.length;
+  params.systemEvents?.forEach((event, eventIndex) => {
+    timelineInputs.push({
+      applicationId: application.id,
+      actorUserId: event.actorUserId ?? null,
+      type: ApplicationEventType.system,
+      payload: event.payload,
+      createdAt: new Date(baseTime.getTime() + (systemStartOffset + eventIndex) * 10 * 60 * 1000),
+    });
+  });
+
+  const attachmentStartOffset = timelineInputs.length;
+  params.attachmentEvents?.forEach((item, attachmentIndex) => {
+    timelineInputs.push({
+      applicationId: application.id,
+      actorUserId: item.actorUserId ?? null,
+      type: ApplicationEventType.attachment_add,
+      payload: {
+        mediaAssetId: item.asset.id,
+        mediaType: item.asset.type,
+        kind: item.kind ?? 'attachment',
+      },
+      createdAt: new Date(
+        baseTime.getTime() + (attachmentStartOffset + attachmentIndex) * 10 * 60 * 1000,
+      ),
+    });
+  });
+
+  if (timelineInputs.length > 0) {
+    await prisma.applicationEvent.createMany({
+      data: timelineInputs,
+    });
+    eventsCreated = timelineInputs.length;
+  }
+
+  let viewsCreated = 0;
+
+  if (params.views && params.views.length > 0) {
+    const viewInputs = params.views.map((view) => ({
+      applicationId: application.id,
+      viewerUserId: view.viewerUserId ?? null,
+      ipHash: view.ipHash,
+      userAgentHash: view.userAgentHash,
+      createdAt: new Date(baseTime.getTime() + view.offsetMinutes * 60 * 1000),
+    }));
+
+    await prisma.applicationView.createMany({
+      data: viewInputs,
+      skipDuplicates: true,
+    });
+    viewsCreated = viewInputs.length;
+  }
+
+  return { application, eventsCreated, viewsCreated };
+}
+
+async function verifyDuplicatePrevention(example: { jobId: string; applicantUserId: string }) {
+  try {
+    await prisma.application.create({
+      data: {
+        jobId: example.jobId,
+        applicantUserId: example.applicantUserId,
+        status: ApplicationStatus.new,
+      },
+    });
+
+    console.warn(
+      'Duplicate application creation unexpectedly succeeded; uniqueness constraint needs review.',
+    );
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      console.log(
+        `Duplicate application prevented for job ${example.jobId} and applicant ${example.applicantUserId}.`,
+      );
+      return;
+    }
+
+    throw error;
+  }
+}
+
 async function main() {
-    await waitForDatabase();
+  await waitForDatabase();
 
   const seedUser = await ensureSeedUser();
 
@@ -305,14 +635,282 @@ async function main() {
     SUBSCRIPTION_PRICE_AMOUNT,
   );
 
-  const jobProduct = await ensureProduct(
-    ProductType.JOB_POST,
-    JOB_PRODUCT_NAME,
-  );
-
+  const jobProduct = await ensureProduct(ProductType.JOB_POST, JOB_PRODUCT_NAME);
   const jobPrice = await ensureProductPrice(jobProduct.id, JOB_PRICE_AMOUNT);
 
   const { mediaAsset, transcodeJob } = await ensureSeedMediaAsset(seedUser.id);
+
+  const jobOwnerA = await ensureUserAccount('owner-a@example.com', 'Job Owner A');
+  const jobOwnerB = await ensureUserAccount('owner-b@example.com', 'Job Owner B');
+
+  const applicantSeeds = [
+    {
+      email: 'applicant-one@example.com',
+      name: 'Ava Applicant',
+      cityId: 'tehran',
+      bio: 'Stage actor with musical experience and a published portfolio.',
+    },
+    {
+      email: 'applicant-two@example.com',
+      name: 'Ben Candidate',
+      cityId: 'isfahan',
+      bio: 'Voice talent with commercial and documentary work.',
+    },
+    {
+      email: 'applicant-three@example.com',
+      name: 'Cora Performer',
+      cityId: 'mashhad',
+      bio: 'Performer focused on live events and hosting.',
+    },
+    {
+      email: 'applicant-four@example.com',
+      name: 'Dara Storyteller',
+      cityId: 'shiraz',
+      bio: 'Narrator and presenter comfortable with remote productions.',
+    },
+  ];
+
+  const applicants: ApplicantContext[] = [];
+
+  for (const seed of applicantSeeds) {
+    const user = await ensureUserAccount(seed.email, seed.name);
+    const profile = await ensurePublishedProfile(user, {
+      bio: seed.bio,
+      cityId: seed.cityId,
+    });
+
+    const assets = await Promise.all([
+      ensureApplicantMediaAsset(user.id, 'portfolio-video.mp4', MediaType.video),
+      ensureApplicantMediaAsset(user.id, 'headshot.jpg', MediaType.image),
+    ]);
+
+    applicants.push({ user, profile, assets });
+  }
+
+  const jobs = await Promise.all([
+    ensurePublishedJob(jobOwnerA, {
+      title: 'Lead Stage Performer',
+      description:
+        'Casting for a lead performer comfortable with live audiences and musical numbers.',
+      category: 'stage',
+      cityId: 'tehran',
+      payType: 'fixed',
+      payAmount: 90000000,
+    }),
+    ensurePublishedJob(jobOwnerA, {
+      title: 'Voice Actor for Trailer',
+      description: 'Short-form trailer voiceover with energetic delivery.',
+      category: 'voiceover',
+      cityId: 'remote',
+      payType: 'per_project',
+      payAmount: 35000000,
+      remote: true,
+    }),
+    ensurePublishedJob(jobOwnerB, {
+      title: 'Documentary Narrator',
+      description: 'Looking for a calm, trustworthy narrator for a three-part series.',
+      category: 'narration',
+      cityId: 'isfahan',
+      payType: 'per_episode',
+      payAmount: 40000000,
+    }),
+  ]);
+
+  const applicationPlans = [
+    {
+      job: jobs[0],
+      applicant: applicants[0],
+      owner: jobOwnerA,
+      finalStatus: ApplicationStatus.new,
+      coverNote: 'Excited to bring musical theatre training to this production.',
+      attachments: buildAttachmentPayload(applicants[0].assets, 1),
+      consents: { shareContact: true },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[0].user.id },
+      ],
+      notes: [
+        { text: 'Applicant completed a full profile with links.', actorUserId: applicants[0].user.id },
+      ],
+      attachmentEvents: [
+        { asset: applicants[0].assets[0], actorUserId: applicants[0].user.id, kind: 'portfolio' },
+      ],
+    },
+    {
+      job: jobs[0],
+      applicant: applicants[1],
+      owner: jobOwnerA,
+      finalStatus: ApplicationStatus.shortlist,
+      coverNote: 'Experience leading ensemble casts; available evenings.',
+      attachments: buildAttachmentPayload(applicants[1].assets, 2),
+      consents: { shareContact: true },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[1].user.id },
+        {
+          from: ApplicationStatus.new,
+          to: ApplicationStatus.shortlist,
+          actorUserId: jobOwnerA.id,
+          reason: 'Strong stage presence and availability.',
+        },
+      ],
+      attachmentEvents: [
+        { asset: applicants[1].assets[0], actorUserId: applicants[1].user.id, kind: 'audition-reel' },
+      ],
+      views: [
+        {
+          viewerUserId: jobOwnerA.id,
+          offsetMinutes: 20,
+          ipHash: 'ownerA-iphash',
+          userAgentHash: 'ownerA-ua',
+        },
+      ],
+    },
+    {
+      job: jobs[0],
+      applicant: applicants[2],
+      owner: jobOwnerA,
+      finalStatus: ApplicationStatus.reject,
+      coverNote: 'Available for touring dates; prior improv experience.',
+      attachments: buildAttachmentPayload(applicants[2].assets, 1),
+      consents: { shareContact: false },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[2].user.id },
+        {
+          from: ApplicationStatus.new,
+          to: ApplicationStatus.reject,
+          actorUserId: jobOwnerA.id,
+          reason: 'Schedule conflicts with rehearsal calendar.',
+        },
+      ],
+      systemEvents: [
+        {
+          payload: { detail: 'Auto-notified applicant about rejection and feedback window.' },
+          actorUserId: null,
+        },
+      ],
+    },
+    {
+      job: jobs[1],
+      applicant: applicants[3],
+      owner: jobOwnerA,
+      finalStatus: ApplicationStatus.select,
+      coverNote: 'I can deliver upbeat and warm reads; home studio ready.',
+      attachments: buildAttachmentPayload(applicants[3].assets, 2),
+      consents: { shareContact: true },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[3].user.id },
+        {
+          from: ApplicationStatus.new,
+          to: ApplicationStatus.shortlist,
+          actorUserId: jobOwnerA.id,
+          reason: 'Matches vocal tone for trailer.',
+        },
+        {
+          from: ApplicationStatus.shortlist,
+          to: ApplicationStatus.select,
+          actorUserId: jobOwnerA.id,
+          reason: 'Accepted offer after callback.',
+        },
+      ],
+      views: [
+        {
+          viewerUserId: jobOwnerA.id,
+          offsetMinutes: 30,
+          ipHash: 'ownerA-voip',
+          userAgentHash: 'ownerA-ua-trailer',
+        },
+        {
+          viewerUserId: null,
+          offsetMinutes: 45,
+          ipHash: 'system-reviewer',
+          userAgentHash: 'pipeline-check',
+        },
+      ],
+    },
+    {
+      job: jobs[1],
+      applicant: applicants[0],
+      owner: jobOwnerA,
+      finalStatus: ApplicationStatus.withdrawn,
+      coverNote: 'Applied before but accepted another role; withdrawing politely.',
+      attachments: buildAttachmentPayload(applicants[0].assets, 1),
+      consents: { shareContact: true },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[0].user.id },
+        {
+          from: ApplicationStatus.new,
+          to: ApplicationStatus.withdrawn,
+          actorUserId: applicants[0].user.id,
+          reason: 'Accepted another booking.',
+        },
+      ],
+      notes: [{ text: 'Withdrawn by applicant via dashboard.', actorUserId: applicants[0].user.id }],
+    },
+    {
+      job: jobs[2],
+      applicant: applicants[2],
+      owner: jobOwnerB,
+      finalStatus: ApplicationStatus.shortlist,
+      coverNote: 'Narration samples attached; comfortable with long-form reads.',
+      attachments: buildAttachmentPayload(applicants[2].assets, 2),
+      consents: { shareContact: true },
+      transitions: [
+        { from: null, to: ApplicationStatus.new, actorUserId: applicants[2].user.id },
+        {
+          from: ApplicationStatus.new,
+          to: ApplicationStatus.shortlist,
+          actorUserId: jobOwnerB.id,
+          reason: 'Good pacing and tone.',
+        },
+      ],
+      systemEvents: [
+        {
+          payload: { detail: 'Applicant marked as viewed by employer dashboard.' },
+          actorUserId: jobOwnerB.id,
+        },
+      ],
+      views: [
+        {
+          viewerUserId: jobOwnerB.id,
+          offsetMinutes: 15,
+          ipHash: 'ownerB-iphash',
+          userAgentHash: 'ownerB-ua',
+        },
+      ],
+    },
+  ];
+
+  let applicationCount = 0;
+  let eventCount = 0;
+  let viewCount = 0;
+
+  applicationPlans.forEach((plan) => {
+    if (
+      Array.isArray(plan.attachments) &&
+      plan.attachments.length > APPLICATION_ATTACHMENT_LIMIT
+    ) {
+      throw new Error('Attachment count exceeds allowed limit for seeding plan.');
+    }
+  });
+
+  for (let index = 0; index < applicationPlans.length; index += 1) {
+    const plan = applicationPlans[index];
+    const createdAt = new Date(Date.now() - (applicationPlans.length - index) * 60 * 60 * 1000);
+    const { application, eventsCreated, viewsCreated } = await seedApplicationWithTimeline({
+      ...plan,
+      createdAt,
+    });
+
+    applicationCount += 1;
+    eventCount += eventsCreated;
+    viewCount += viewsCreated;
+
+    if (index === 0) {
+      await verifyDuplicatePrevention({
+        jobId: application.jobId,
+        applicantUserId: application.applicantUserId,
+      });
+    }
+  }
 
   console.log('Seed ensured records:');
   console.log('Subscription product:', subscriptionProduct.id);
@@ -323,6 +921,18 @@ async function main() {
   console.log('Media seed user:', seedUser.id);
   console.log('Media asset:', mediaAsset.id);
   console.log('Transcode job:', transcodeJob.id);
+  console.log('Job owners:', [jobOwnerA.id, jobOwnerB.id]);
+  console.log(
+    'Applicants:',
+    applicants.map((a) => a.user.id),
+  );
+  console.log(
+    'Jobs created:',
+    jobs.map((job) => job.id),
+  );
+  console.log('Applications created:', applicationCount);
+  console.log('Application events created:', eventCount);
+  console.log('Application views created:', viewCount);
 }
 
 main()

@@ -34,6 +34,14 @@ export const MODERATION_PROFILE_SELECT = {
   experience: true,
   degrees: true,
   voices: true,
+  awards: {
+    select: {
+      id: true,
+      title: true,
+      place: true,
+      awardDate: true,
+    },
+  },
   videos: true,
   introVideoMediaId: true,
   visibility: true,
@@ -56,6 +64,7 @@ const CRITICAL_JSON_KEYS = new Set<keyof ModerationProfileSnapshot>([
   "experience",
   "degrees",
   "voices",
+  "awards",
   "videos",
 ]);
 
@@ -75,6 +84,7 @@ const CRITICAL_FIELD_KEYS: Array<keyof ModerationProfileSnapshot> = [
   "experience",
   "degrees",
   "voices",
+  "awards",
   "videos",
   "introVideoMediaId",
 ];

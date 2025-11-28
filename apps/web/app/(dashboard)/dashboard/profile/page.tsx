@@ -22,6 +22,7 @@ import { PersonalInfoForm } from "./_components/personal-info-form";
 import { PublishPanel } from "./_components/publish-panel";
 import { PublishStatusBanner } from "./_components/publish-status-banner";
 import { SkillsForm } from "./_components/skills-form";
+import { AwardsForm, type AwardEntry } from "./_components/awards-form";
 
 type GalleryEntry = {
   url?: unknown;
@@ -29,7 +30,9 @@ type GalleryEntry = {
   height?: unknown;
 };
 
-type PrismaProfile = NonNullable<Awaited<ReturnType<typeof prisma.profile.findUnique>>>;
+type PrismaProfile = Prisma.ProfileGetPayload<{
+  include: { awards: true };
+}>;
 
 function normalizeGallery(
   gallery: PrismaProfile["gallery"] | null | undefined,
@@ -155,6 +158,21 @@ function normalizeVoices(
     .filter((entry) => entry.mediaId && entry.url);
 }
 
+function normalizeAwards(
+  raw: PrismaProfile["awards"] | null | undefined,
+): AwardEntry[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((award) => ({
+      id: award.id,
+      title: (award.title ?? "").trim(),
+      place: award.place?.trim() || "",
+      date: award.awardDate?.trim() || "",
+    }))
+    .filter((award) => award.title);
+}
+
 function normalizeAccents(
   accents: PrismaProfile["accents"] | null | undefined,
 ): string[] {
@@ -251,12 +269,20 @@ export default async function DashboardProfilePage() {
   const [initialProfile, cities, entitlementActive] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
+      include: {
+        awards: {
+          orderBy: [
+            { awardDate: "desc" },
+            { createdAt: "desc" },
+          ],
+        },
+      },
     }),
     getCities(),
     canPublishProfile(userId),
   ]);
 
-    let profile = initialProfile;
+  let profile = initialProfile;
 
   if (profile?.visibility === "PUBLIC" && !entitlementActive) {
     const enforcementResult = await enforceUserProfileVisibility(userId);
@@ -264,6 +290,14 @@ export default async function DashboardProfilePage() {
     if (enforcementResult === "auto_unpublished") {
       profile = await prisma.profile.findUnique({
         where: { userId },
+        include: {
+          awards: {
+            orderBy: [
+              { awardDate: "desc" },
+              { createdAt: "desc" },
+            ],
+          },
+        },
       });
     }
   }
@@ -277,6 +311,7 @@ export default async function DashboardProfilePage() {
   const degrees = normalizeDegrees(profile?.degrees ?? null);
   const videos = normalizeVideos(profile?.videos ?? null);
   const voices = normalizeVoices(profile?.voices ?? null);
+  const awards = normalizeAwards(profile?.awards ?? null);
   const experience = normalizeExperience(profile?.experience ?? null);
   const cityName = profile?.cityId ? cityMap.get(profile.cityId) ?? undefined : undefined;
 
@@ -390,6 +425,18 @@ export default async function DashboardProfilePage() {
         </CardHeader>
         <CardContent>
           <VoicesForm initialVoices={voices} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>جوایز و افتخارات</CardTitle>
+          <CardDescription>
+            عنوان جایزه، محل دریافت و تاریخ آن را ثبت یا ویرایش کنید.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AwardsForm initialAwards={awards} />
         </CardContent>
       </Card>
 

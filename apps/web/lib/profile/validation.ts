@@ -94,6 +94,23 @@ export const degreeEntrySchema = z.object({
 
 export const degreesSchema = z.array(degreeEntrySchema).optional().nullable();
 
+const awardDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "تاریخ باید به صورت YYYY-MM باشد.")
+  .optional()
+  .nullable()
+  .or(z.literal(""));
+
+export const awardEntrySchema = z.object({
+  id: z.string().trim().cuid().optional().nullable(),
+  title: z.string().trim().min(1, "لطفاً عنوان جایزه را وارد کنید.").max(200),
+  place: z.string().trim().max(200).optional().nullable().or(z.literal("")),
+  date: awardDateSchema,
+});
+
+export const awardsSchema = z.array(awardEntrySchema).optional().nullable();
+
 export const voiceEntrySchema = z.object({
   mediaId: z.string().trim().min(1),
   url: z.string().url(),

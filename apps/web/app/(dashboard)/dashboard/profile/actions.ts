@@ -21,6 +21,7 @@ import {
   languagesSchema,
   personalInfoSchema,
   profileVideosSchema,
+  awardsSchema,
   voicesSchema,
   skillsSchema,
 } from "@/lib/profile/validation";
@@ -106,6 +107,11 @@ type VideosActionResult = {
 };
 
 type VoicesActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+type AwardsActionResult = {
   ok: boolean;
   error?: string;
 };
@@ -629,6 +635,85 @@ export async function updateVideos(formData: FormData): Promise<VideosActionResu
     }
 
     console.error("updateVideos", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateAwards(formData: FormData): Promise<AwardsActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const raw = formData.get("awards");
+
+    if (typeof raw !== "string") {
+      return { ok: false, error: "لطفاً جوایز را بررسی کنید." };
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { ok: false, error: "ساختار جوایز معتبر نیست." };
+    }
+
+    const validated = awardsSchema.safeParse(parsed);
+
+    if (!validated.success) {
+      return { ok: false, error: "لطفاً جوایز را بررسی کنید." };
+    }
+
+    const cleaned =
+      validated.data?.map((entry) => ({
+        id: entry.id?.trim() || undefined,
+        title: entry.title.trim(),
+        place: entry.place?.trim() || null,
+        awardDate: entry.date?.trim() || null,
+      })) ?? [];
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const profile = await prisma.profile.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+      select: { id: true },
+    });
+
+    await prisma.$transaction([
+      prisma.profileAward.deleteMany({ where: { profileId: profile.id } }),
+      ...(cleaned.length
+        ? [
+            prisma.profileAward.createMany({
+              data: cleaned.map((award) => ({
+                profileId: profile.id,
+                ...(award.id ? { id: award.id } : {}),
+                title: award.title,
+                place: award.place,
+                awardDate: award.awardDate,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+
+    const result = await prisma.profile.findUnique({
+      where: { id: profile.id },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+    await revalidateProfilePaths(profile.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateAwards", error);
     return { ok: false, error: GENERIC_ERROR };
   }
 }

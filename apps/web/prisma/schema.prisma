@@ -32,48 +32,65 @@ model User {
   notificationPreferences NotificationPreference[]
   notificationMessageLogs NotificationMessageLog[]
   mediaAssets             MediaAsset[]
-  mediaModerationReviews  MediaAsset[]            @relation("MediaModerationReviewer")
+  mediaModerationReviews  MediaAsset[]             @relation("MediaModerationReviewer")
+  applications            Application[]            @relation("ApplicantApplications")
+  applicationEvents       ApplicationEvent[]       @relation("ApplicationEventActor")
+  applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
 }
 
 model Profile {
-  id               String            @id @default(cuid())
-  userId           String            @unique
-  firstName        String?
-  lastName         String?
-  stageName        String?
-  age              Int?
-  phone            String?
-  address          String?
-  cityId           String?
-  avatarUrl        String?
-  bio              String?
+  id                String            @id @default(cuid())
+  userId            String            @unique
+  firstName         String?
+  lastName          String?
+  stageName         String?
+  age               Int?
+  phone             String?
+  address           String?
+  cityId            String?
+  avatarUrl         String?
+  bio               String?
   introVideoMediaId String?
-  gallery          Json?
-  videos           Json?
-  skills           Json?
-  languages        Json?
-  accents          Json?
-  experience       Json?
-  degrees          Json?
-  voices           Json?
-  socialLinks      Json?
-  visibility       ProfileVisibility @default(PRIVATE)
-  publishedAt      DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  moderationStatus ModerationStatus  @default(PENDING)
-  moderationNotes  String?
-  moderatedBy      String?
-  moderatedAt      DateTime?
-  moderationEvents ModerationEvent[]
-  introVideoMedia  MediaAsset?       @relation("ProfileIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
-  moderator        User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
-  user             User              @relation(fields: [userId], references: [id])
+  gallery           Json?
+  videos            Json?
+  skills            Json?
+  languages         Json?
+  accents           Json?
+  experience        Json?
+  degrees           Json?
+  voices            Json?
+  awards            ProfileAward[]
+  socialLinks       Json?
+  visibility        ProfileVisibility @default(PRIVATE)
+  publishedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  moderationStatus  ModerationStatus  @default(PENDING)
+  moderationNotes   String?
+  moderatedBy       String?
+  moderatedAt       DateTime?
+  moderationEvents  ModerationEvent[]
+  introVideoMedia   MediaAsset?       @relation("ProfileIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
+  moderator         User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
+  user              User              @relation(fields: [userId], references: [id])
 
   @@index([visibility])
   @@index([moderationStatus])
   @@index([updatedAt])
   @@index([introVideoMediaId])
+}
+
+model ProfileAward {
+  id        String   @id @default(cuid())
+  profileId String
+  title     String
+  place     String?
+  awardDate String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, awardDate])
 }
 
 // After updating the schema, run:
@@ -323,26 +340,27 @@ model AuditLog {
 }
 
 model Job {
-  id               String               @id @default(cuid())
-  userId           String
-  title            String               @db.VarChar(140)
-  description      String
-  category         String               @db.VarChar(64)
-  cityId           String?              @db.VarChar(64)
-  payType          String?              @db.VarChar(32)
-  payAmount        Int?
-  currency         String?              @db.VarChar(3)
-  remote           Boolean              @default(false)
-  status           JobStatus            @default(DRAFT)
-  moderation       JobModeration        @default(PENDING)
+  id                String               @id @default(cuid())
+  userId            String
+  title             String               @db.VarChar(140)
+  description       String
+  category          String               @db.VarChar(64)
+  cityId            String?              @db.VarChar(64)
+  payType           String?              @db.VarChar(32)
+  payAmount         Int?
+  currency          String?              @db.VarChar(3)
+  remote            Boolean              @default(false)
+  status            JobStatus            @default(DRAFT)
+  moderation        JobModeration        @default(PENDING)
   introVideoMediaId String?
-  featuredUntil    DateTime?
-  views            Int                  @default(0)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  moderationEvents JobModerationEvent[]
-  introVideoMedia  MediaAsset?          @relation("JobIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
+  featuredUntil     DateTime?
+  views             Int                  @default(0)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moderationEvents  JobModerationEvent[]
+  introVideoMedia   MediaAsset?          @relation("JobIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
+  applications      Application[]
 
   @@index([status, moderation, featuredUntil])
   @@index([category])
@@ -452,32 +470,32 @@ model NotificationJob {
 }
 
 model MediaAsset {
-  id            String          @id @default(cuid())
-  type          MediaType
-  status        MediaStatus     @default(uploaded)
-  visibility    MediaVisibility @default(private)
-  ownerUserId   String
-  sourceKey     String
-  outputKey     String?         @unique
-  posterKey     String?
-  durationSec   Int?
-  width         Int?
-  height        Int?
-  codec         String?
-  bitrate       Int?
-  sizeBytes     BigInt?
-  errorMessage  String?
-  moderationStatus      MediaModerationStatus @default(pending)
-  moderationReason      String?
-  moderationReviewedAt  DateTime?
-  moderationReviewedById String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  owner         User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  moderationReviewedBy  User?            @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
-  transcodeJobs TranscodeJob[]
-  profileIntroVideoUsages Profile[] @relation("ProfileIntroVideo")
-  jobIntroVideoUsages     Job[]     @relation("JobIntroVideo")
+  id                      String                @id @default(cuid())
+  type                    MediaType
+  status                  MediaStatus           @default(uploaded)
+  visibility              MediaVisibility       @default(private)
+  ownerUserId             String
+  sourceKey               String
+  outputKey               String?               @unique
+  posterKey               String?
+  durationSec             Int?
+  width                   Int?
+  height                  Int?
+  codec                   String?
+  bitrate                 Int?
+  sizeBytes               BigInt?
+  errorMessage            String?
+  moderationStatus        MediaModerationStatus @default(pending)
+  moderationReason        String?
+  moderationReviewedAt    DateTime?
+  moderationReviewedById  String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  owner                   User                  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  moderationReviewedBy    User?                 @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
+  transcodeJobs           TranscodeJob[]
+  profileIntroVideoUsages Profile[]             @relation("ProfileIntroVideo")
+  jobIntroVideoUsages     Job[]                 @relation("JobIntroVideo")
 
   @@index([ownerUserId, type, status])
   @@index([createdAt])
@@ -497,6 +515,54 @@ model TranscodeJob {
 
   @@index([mediaAssetId, createdAt])
   @@index([status])
+}
+
+model Application {
+  id              String             @id @default(cuid())
+  jobId           String
+  applicantUserId String
+  coverNote       String?            @db.Text
+  status          ApplicationStatus  @default(new)
+  attachments     Json?
+  consents        Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+  job             Job                @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  applicant       User               @relation("ApplicantApplications", fields: [applicantUserId], references: [id], onDelete: Restrict)
+  events          ApplicationEvent[]
+  views           ApplicationView[]
+
+  @@unique([jobId, applicantUserId])
+  @@index([jobId, status], name: "idx_app_job_status")
+  @@index([applicantUserId, createdAt(sort: Desc)], name: "idx_app_applicant")
+  @@index([createdAt(sort: Desc)], name: "idx_app_created")
+}
+
+model ApplicationEvent {
+  id            String               @id @default(cuid())
+  applicationId String
+  actorUserId   String?
+  type          ApplicationEventType
+  payload       Json
+  createdAt     DateTime             @default(now())
+  application   Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor         User?                @relation("ApplicationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt], name: "idx_appevt_app_created")
+}
+
+model ApplicationView {
+  id            String      @id @default(cuid())
+  applicationId String
+  viewerUserId  String?
+  ipHash        String?
+  userAgentHash String?
+  createdAt     DateTime    @default(now())
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  viewer        User?       @relation("ApplicationViewViewer", fields: [viewerUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId, createdAt])
 }
 
 enum ProductType {
@@ -657,6 +723,22 @@ enum TranscodeJobStatus {
   processing
   done
   failed
+}
+
+enum ApplicationStatus {
+  new
+  shortlist
+  reject
+  select
+  withdrawn
+}
+
+enum ApplicationEventType {
+  status_change
+  note
+  system
+  attachment_add
+  attachment_remove
 }
 
 enum JobStatus {
