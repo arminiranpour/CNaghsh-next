@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { User, Mail, Phone, Lock } from "lucide-react";
@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import type { AuthTab } from "@/lib/url/auth-tabs";
 
 
 type LoginFormProps = {
+  initialTab?: AuthTab;
   callbackUrl?: string;
   onPasswordPhaseChange?: (isActive: boolean) => void;
 };
@@ -19,12 +21,15 @@ type LoginFormProps = {
 type AuthMode = "register" | "login";
 
 export function LoginForm({
+  initialTab,
   callbackUrl,
   onPasswordPhaseChange,
 }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [mode, setMode] = useState<AuthMode>("register");
+  const [mode, setMode] = useState<AuthMode>(() =>
+    initialTab === "signin" ? "login" : "register",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPasswordStep, setShowPasswordStep] = useState(false);
@@ -35,6 +40,18 @@ export function LoginForm({
     password: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    if (initialTab === "signin") {
+      setMode("login");
+      setShowPasswordStep(false);
+      return;
+    }
+    if (initialTab === "signup") {
+      setMode("register");
+      setShowPasswordStep(false);
+    }
+  }, [initialTab]);
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -422,4 +439,3 @@ export function LoginForm({
     </div>
   );
 }
-

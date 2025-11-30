@@ -1,8 +1,7 @@
 // components/CustomAudioPlayer.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { WaveformAudioPlayer } from "@/components/ui/WaveformAudioPlayer";
+import { useRef, useState } from "react";
 
 type CustomAudioPlayerProps = {
   src: string;

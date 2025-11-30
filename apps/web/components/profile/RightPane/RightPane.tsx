@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import type { PublicProfileData } from "@/components/profile/ProfilePageClient";
+import { useRouter } from "next/navigation";
+
+import type { InviteJobOption, PublicProfileData } from "@/components/profile/ProfilePageClient";
 import { LANGUAGE_LEVEL_MAX } from "@/lib/profile/languages";
 
 const GREEN = "#3BBF35";
@@ -12,6 +15,9 @@ const DEFAULT_SKILLS = ["کمدی", "صداپیشگی", "پانتومیم", "خ�
 type RightPaneProps = {
   profile: PublicProfileData;
   isOwner: boolean;
+  canInvite: boolean;
+  inviteJobs: InviteJobOption[];
+  inviteNotice?: string | null;
 };
 
 function formatNumber(value: number | undefined | null): string {
@@ -21,7 +27,39 @@ function formatNumber(value: number | undefined | null): string {
   return value.toLocaleString("fa-IR");
 }
 
-export function RightPane({ profile }: RightPaneProps) {
+function jobStatusLabel(status: InviteJobOption["status"]): string {
+  if (status === "PUBLISHED") return "منتشر شده";
+  if (status === "DRAFT") return "پیش‌نویس";
+  return "بسته‌شده";
+}
+
+export function RightPane({ profile, canInvite, inviteJobs, inviteNotice }: RightPaneProps) {
+  const router = useRouter();
+  const [selectedJobId, setSelectedJobId] = useState(inviteJobs[0]?.id ?? "");
+  const [selectedRoleId, setSelectedRoleId] = useState("");
+
+  useEffect(() => {
+    setSelectedJobId(inviteJobs[0]?.id ?? "");
+    setSelectedRoleId("");
+  }, [inviteJobs]);
+
+  const handleInviteClick = () => {
+    if (!selectedJobId) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      jobId: selectedJobId,
+      receiverId: profile.userId,
+    });
+
+    if (selectedRoleId.trim()) {
+      params.set("roleId", selectedRoleId.trim());
+    }
+
+    router.push(`/dashboard/cooperation/new?${params.toString()}`);
+  };
+
   const avatarSrc =
     profile.avatarUrl && profile.avatarUrl.trim()
       ? profile.avatarUrl
@@ -51,7 +89,7 @@ export function RightPane({ profile }: RightPaneProps) {
         left: 1095,
         top: 315,
         width: 265,
-        height: 804,
+        height: 980,
         borderRadius: 20,
         backgroundColor: "#FFFFFF",
         boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
@@ -525,29 +563,146 @@ export function RightPane({ profile }: RightPaneProps) {
           </>
         ) : null}
 
-
-        {/* دکمه انتخاب این بازیگر */}
-        <button
-          type="button"
-          style={{
-            width: 144,
-            height: 29,
-            borderRadius: 19,
-            border: "none",
-            backgroundColor: GREEN,
-            color: "#FFFFFF",
-            fontSize: 14,
-            fontWeight: 400,
-            cursor: "pointer",
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            whiteSpace: "nowrap",
-          }}
-        >
-          انتخاب این بازیگر
-        </button>
+        {canInvite ? (
+          <div
+            style={{
+              marginTop: 14,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: "#FFF6EF",
+              border: "1px solid #FFD8B6",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#D65A00",
+                }}
+              >
+                دعوت به پروژه
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#D65A00",
+                }}
+              >
+                شروع پیشنهاد همکاری
+              </span>
+            </div>
+            <label
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#4A2C18",
+              }}
+            >
+              انتخاب آگهی
+            </label>
+            <select
+              value={selectedJobId}
+              onChange={(event) => setSelectedJobId(event.target.value)}
+              style={{
+                width: "100%",
+                borderRadius: 10,
+                border: "1px solid #E5E5E5",
+                padding: "8px 10px",
+                fontSize: 12,
+                outline: "none",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              {inviteJobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title} ({jobStatusLabel(job.status)})
+                </option>
+              ))}
+            </select>
+            <label
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "#4A2C18",
+              }}
+            >
+              نقش مدنظر (اختیاری)
+            </label>
+            <input
+              value={selectedRoleId}
+              onChange={(event) => setSelectedRoleId(event.target.value)}
+              placeholder="مثلاً نقش دستیار کارگردان"
+              style={{
+                width: "100%",
+                borderRadius: 10,
+                border: "1px solid #E5E5E5",
+                padding: "8px 10px",
+                fontSize: 12,
+                outline: "none",
+                backgroundColor: "#FFFFFF",
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleInviteClick}
+              disabled={!selectedJobId}
+              style={{
+                width: "100%",
+                height: 32,
+                borderRadius: 19,
+                border: "none",
+                backgroundColor: !selectedJobId ? "#A8A8A8" : GREEN,
+                color: "#FFFFFF",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: selectedJobId ? "pointer" : "not-allowed",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                whiteSpace: "nowrap",
+                transition: "background-color 0.15s ease",
+              }}
+            >
+              دعوت به پروژه
+            </button>
+            <p
+              style={{
+                fontSize: 11,
+                color: "#6B4B34",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >
+              با این دکمه به صفحه «ارسال پیشنهاد همکاری» منتقل می‌شوید و شناسه آگهی و بازیگر به صورت
+              خودکار همراه می‌شود.
+            </p>
+          </div>
+        ) : inviteNotice ? (
+          <div
+            style={{
+              marginTop: 14,
+              padding: 10,
+              borderRadius: 10,
+              backgroundColor: "#F6F6F6",
+              border: "1px dashed #D0D0D0",
+              color: "#444444",
+              fontSize: 12,
+              lineHeight: 1.6,
+            }}
+          >
+            {inviteNotice}
+          </div>
+        ) : null}
       </div>
    
       {/* ــــــــــــــــــــــــــــــــــــــــــــــــ
@@ -557,7 +712,7 @@ export function RightPane({ profile }: RightPaneProps) {
         aria-hidden="true"
         style={{
           position: "absolute",
-          top: 880,        // کمی پایین‌تر از انتهای کارت
+          top: 1020,        // کمی پایین‌تر از انتهای کارت
           left: 0,
           right: 0,
           height: 220,     // هرچقدر فضای اضافه می‌خوای اینو کم/زیاد کن

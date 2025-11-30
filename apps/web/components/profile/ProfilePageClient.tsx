@@ -37,20 +37,40 @@ export type PublicProfileData = {
   awards?: { id?: string; title: string; place?: string | null; awardDate?: string | null }[];
 };
 
+export type InviteJobOption = {
+  id: string;
+  title: string;
+  status: "DRAFT" | "PUBLISHED" | "CLOSED";
+};
 
 type ProfilePageClientProps = {
   profile: PublicProfileData;
   isOwner: boolean;
+  canInvite: boolean;
+  inviteJobs: InviteJobOption[];
+  inviteNotice?: string | null;
 };
 
-export function ProfilePageClient({ profile, isOwner }: ProfilePageClientProps) {
+export function ProfilePageClient({
+  profile,
+  isOwner,
+  canInvite,
+  inviteJobs,
+  inviteNotice,
+}: ProfilePageClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
 
   return (
     <>
       <LeftRail activeTab={activeTab} onTabChange={setActiveTab} />
       <CenterPane activeTab={activeTab} profile={profile} />
-      <RightPane profile={profile} isOwner={isOwner} />
+      <RightPane
+        profile={profile}
+        isOwner={isOwner}
+        canInvite={canInvite}
+        inviteJobs={inviteJobs}
+        inviteNotice={inviteNotice}
+      />
     </>
   );
 }

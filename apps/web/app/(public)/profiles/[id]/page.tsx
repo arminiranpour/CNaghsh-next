@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import type { MediaAsset, Prisma } from "@prisma/client";
+import { JobStatus } from "@prisma/client";
 
 import { iransans } from "@/app/fonts";
 import {
   ProfilePageClient,
+  type InviteJobOption,
   type ProfileVideoData,
   type PublicProfileData,
 } from "@/components/profile/ProfilePageClient";
@@ -22,6 +24,9 @@ type ProfileWithRelations = Prisma.ProfileGetPayload<{
 }>;
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
+const isJsonRecord = (value: unknown): value is Record<string, unknown> => {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+};
 
 function getDisplayName(
   stageName?: string | null,
@@ -106,11 +111,14 @@ function normalizeDegrees(
 ): { degreeLevel: string; major: string }[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      degreeLevel: String(item.degreeLevel ?? "").trim(),
-      major: String(item.major ?? "").trim(),
-    }))
+    .filter(isJsonRecord)
+    .map((item) => {
+      const entry = item as { degreeLevel?: unknown; major?: unknown };
+      return {
+        degreeLevel: String(entry.degreeLevel ?? "").trim(),
+        major: String(entry.major ?? "").trim(),
+      };
+    })
     .filter((entry) => entry.degreeLevel || entry.major);
 }
 
@@ -231,16 +239,24 @@ function normalizeVoices(
   if (!Array.isArray(raw)) return [];
 
   return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      mediaId: String(item.mediaId ?? "").trim(),
-      url: String(item.url ?? "").trim(),
-      title: item.title ? String(item.title).trim() : null,
-      duration:
-        typeof item.duration === "number" && Number.isFinite(item.duration)
-          ? item.duration
-          : null,
-    }))
+    .filter(isJsonRecord)
+    .map((item) => {
+      const voice = item as {
+        mediaId?: unknown;
+        url?: unknown;
+        title?: unknown;
+        duration?: unknown;
+      };
+      return {
+        mediaId: String(voice.mediaId ?? "").trim(),
+        url: String(voice.url ?? "").trim(),
+        title: voice.title ? String(voice.title).trim() : null,
+        duration:
+          typeof voice.duration === "number" && Number.isFinite(voice.duration)
+            ? voice.duration
+            : null,
+      };
+    })
     .filter((entry) => entry.mediaId && entry.url);
 }
 
@@ -312,6 +328,25 @@ export default async function PublicProfilePage({ params }: PageProps) {
     notFound();
   }
 
+  const viewerId = session?.user?.id ?? null;
+  const isOwner = viewerId === profile.userId;
+
+  const viewerJobs: InviteJobOption[] =
+    viewerId && !isOwner
+      ? await prisma.job.findMany({
+          where: {
+            userId: viewerId,
+            status: { in: [JobStatus.DRAFT, JobStatus.PUBLISHED] },
+          },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
+
   const videoMediaIds = collectVideoMediaIds(profile.videos);
 
   const videoMedia = videoMediaIds.length
@@ -353,12 +388,24 @@ export default async function PublicProfilePage({ params }: PageProps) {
     awards,
   };
 
-  const isOwner = session?.user?.id === profile.userId;
+  const canInvite = Boolean(viewerId && !isOwner && viewerJobs.length > 0);
+  const inviteNotice =
+    canInvite || isOwner
+      ? null
+      : viewerId
+        ? "برای دعوت این بازیگر، ابتدا یک آگهی فعال (پیش‌نویس یا منتشر شده) انتخاب یا ایجاد کنید."
+        : "برای دعوت به پروژه، ابتدا وارد حساب کاربری شوید.";
 
   return (
     <div className={iransans.className}>
       <ProfilePageLayout>
-        <ProfilePageClient profile={profileData} isOwner={isOwner} />
+        <ProfilePageClient
+          profile={profileData}
+          isOwner={isOwner}
+          canInvite={canInvite}
+          inviteJobs={viewerJobs}
+          inviteNotice={inviteNotice}
+        />
       </ProfilePageLayout>
     </div>
   );

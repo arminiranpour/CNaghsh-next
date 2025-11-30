@@ -107,6 +107,12 @@ export function JobRow({ job }: JobRowProps) {
           <Button asChild size="sm" variant="link" className="px-0">
             <Link href={`/dashboard/jobs/${job.id}/edit`}>ویرایش</Link>
           </Button>
+          <Button asChild size="sm" variant="link" className="px-0">
+            <Link href={`/dashboard/jobs/${job.id}/applicants`}>متقاضیان</Link>
+          </Button>
+          <Button asChild size="sm" variant="link" className="px-0">
+            <Link href={`/dashboard/jobs/${job.id}/cooperation`}>همکاری‌ها</Link>
+          </Button>
           {job.status === "DRAFT" ? (
             <Button
               size="sm"

@@ -34,6 +34,10 @@ type PrismaProfile = Prisma.ProfileGetPayload<{
   include: { awards: true };
 }>;
 
+const isJsonRecord = (value: unknown): value is Record<string, unknown> => {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+};
+
 function normalizeGallery(
   gallery: PrismaProfile["gallery"] | null | undefined,
 ): { url: string }[] {
@@ -82,11 +86,14 @@ function normalizeDegrees(
 ): { degreeLevel: string; major: string }[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      degreeLevel: String(item.degreeLevel ?? "").trim(),
-      major: String(item.major ?? "").trim(),
-    }))
+    .filter(isJsonRecord)
+    .map((item) => {
+      const entry = item as { degreeLevel?: unknown; major?: unknown };
+      return {
+        degreeLevel: String(entry.degreeLevel ?? "").trim(),
+        major: String(entry.major ?? "").trim(),
+      };
+    })
     .filter((entry) => entry.degreeLevel || entry.major);
 }
 
@@ -136,7 +143,11 @@ function normalizeVideos(
       }
       return a.index - b.index;
     })
-    .map(({ index, ...rest }) => rest);
+    .map(({ mediaId, title, order }) => ({
+      mediaId,
+      title,
+      order,
+    }));
 }
 
 function normalizeVoices(
@@ -145,16 +156,24 @@ function normalizeVoices(
   if (!Array.isArray(raw)) return [];
 
   return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      mediaId: String(item.mediaId ?? "").trim(),
-      url: String(item.url ?? "").trim(),
-      title: item.title ? String(item.title).trim() : null,
-      duration:
-        typeof item.duration === "number" && Number.isFinite(item.duration)
-          ? item.duration
-          : null,
-    }))
+    .filter(isJsonRecord)
+    .map((item) => {
+      const voice = item as {
+        mediaId?: unknown;
+        url?: unknown;
+        title?: unknown;
+        duration?: unknown;
+      };
+      return {
+        mediaId: String(voice.mediaId ?? "").trim(),
+        url: String(voice.url ?? "").trim(),
+        title: voice.title ? String(voice.title).trim() : null,
+        duration:
+          typeof voice.duration === "number" && Number.isFinite(voice.duration)
+            ? voice.duration
+            : null,
+      };
+    })
     .filter((entry) => entry.mediaId && entry.url);
 }
 

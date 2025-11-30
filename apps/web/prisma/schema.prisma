@@ -8,34 +8,37 @@ datasource db {
 }
 
 model User {
-  id                      String                   @id @default(cuid())
-  email                   String                   @unique
-  createdAt               DateTime                 @default(now())
-  name                    String?
-  passwordHash            String?
-  role                    Role                     @default(USER)
-  timezone                String?                  @db.VarChar(64)
-  checkoutSessions        CheckoutSession[]
-  emailLogs               EmailLog[]
-  invoices                Invoice[]
-  Job                     Job[]
-  jobModerationEvents     JobModerationEvent[]     @relation("JobModerationAdmin")
-  moderationEvents        ModerationEvent[]        @relation("ModerationActor")
-  notifications           Notification[]
-  payments                Payment[]
-  jobCreditGrants         JobCreditGrant[]
-  subscriptions           Subscription[]
-  moderatedProfiles       Profile[]                @relation("ProfileModerators")
-  profile                 Profile?
-  entitlements            UserEntitlement[]
-  auditLogs               AuditLog[]
-  notificationPreferences NotificationPreference[]
-  notificationMessageLogs NotificationMessageLog[]
-  mediaAssets             MediaAsset[]
-  mediaModerationReviews  MediaAsset[]             @relation("MediaModerationReviewer")
-  applications            Application[]            @relation("ApplicantApplications")
-  applicationEvents       ApplicationEvent[]       @relation("ApplicationEventActor")
-  applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
+  id                        String                   @id @default(cuid())
+  email                     String                   @unique
+  createdAt                 DateTime                 @default(now())
+  name                      String?
+  passwordHash              String?
+  role                      Role                     @default(USER)
+  timezone                  String?                  @db.VarChar(64)
+  checkoutSessions          CheckoutSession[]
+  emailLogs                 EmailLog[]
+  invoices                  Invoice[]
+  Job                       Job[]
+  jobModerationEvents       JobModerationEvent[]     @relation("JobModerationAdmin")
+  moderationEvents          ModerationEvent[]        @relation("ModerationActor")
+  notifications             Notification[]
+  payments                  Payment[]
+  jobCreditGrants           JobCreditGrant[]
+  subscriptions             Subscription[]
+  moderatedProfiles         Profile[]                @relation("ProfileModerators")
+  profile                   Profile?
+  entitlements              UserEntitlement[]
+  auditLogs                 AuditLog[]
+  notificationPreferences   NotificationPreference[]
+  notificationMessageLogs   NotificationMessageLog[]
+  mediaAssets               MediaAsset[]
+  mediaModerationReviews    MediaAsset[]             @relation("MediaModerationReviewer")
+  applications              Application[]            @relation("ApplicantApplications")
+  applicationEvents         ApplicationEvent[]       @relation("ApplicationEventActor")
+  applicationViews          ApplicationView[]        @relation("ApplicationViewViewer")
+  cooperationOffersSent     CooperationOffer[]       @relation("CooperationOfferSender")
+  cooperationOffersReceived CooperationOffer[]       @relation("CooperationOfferReceiver")
+  cooperationEvents         CooperationEvent[]       @relation("CooperationEventActor")
 }
 
 model Profile {
@@ -361,6 +364,7 @@ model Job {
   moderationEvents  JobModerationEvent[]
   introVideoMedia   MediaAsset?          @relation("JobIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
   applications      Application[]
+  cooperationOffers CooperationOffer[]
 
   @@index([status, moderation, featuredUntil])
   @@index([category])
@@ -518,20 +522,21 @@ model TranscodeJob {
 }
 
 model Application {
-  id              String             @id @default(cuid())
-  jobId           String
-  applicantUserId String
-  coverNote       String?            @db.Text
-  status          ApplicationStatus  @default(new)
-  attachments     Json?
-  consents        Json?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  deletedAt       DateTime?
-  job             Job                @relation(fields: [jobId], references: [id], onDelete: Restrict)
-  applicant       User               @relation("ApplicantApplications", fields: [applicantUserId], references: [id], onDelete: Restrict)
-  events          ApplicationEvent[]
-  views           ApplicationView[]
+  id                String             @id @default(cuid())
+  jobId             String
+  applicantUserId   String
+  coverNote         String?            @db.Text
+  status            ApplicationStatus  @default(new)
+  attachments       Json?
+  consents          Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  job               Job                @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  applicant         User               @relation("ApplicantApplications", fields: [applicantUserId], references: [id], onDelete: Restrict)
+  events            ApplicationEvent[]
+  views             ApplicationView[]
+  cooperationOffers CooperationOffer[] @relation("ApplicationCooperationOffers")
 
   @@unique([jobId, applicantUserId])
   @@index([jobId, status], name: "idx_app_job_status")
@@ -563,6 +568,45 @@ model ApplicationView {
   viewer        User?       @relation("ApplicationViewViewer", fields: [viewerUserId], references: [id], onDelete: SetNull)
 
   @@index([applicationId, createdAt])
+}
+
+/// Application-level rule: avoid multiple pending offers per (jobId, roleId, receiverUserId); enforce in service layer until partial indexes are available.
+model CooperationOffer {
+  id             String                 @id @default(cuid())
+  jobId          String
+  roleId         String?
+  senderUserId   String
+  receiverUserId String
+  applicationId  String?
+  status         CooperationOfferStatus @default(pending)
+  initialMessage String                 @db.Text
+  internalNote   String?                @db.Text
+  validUntil     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  job            Job                    @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  sender         User                   @relation("CooperationOfferSender", fields: [senderUserId], references: [id], onDelete: Restrict)
+  receiver       User                   @relation("CooperationOfferReceiver", fields: [receiverUserId], references: [id], onDelete: Restrict)
+  application    Application?           @relation("ApplicationCooperationOffers", fields: [applicationId], references: [id], onDelete: SetNull)
+  events         CooperationEvent[]
+
+  @@index([receiverUserId, status, createdAt(sort: Desc)], name: "idx_coop_offer_receiver_status_created")
+  @@index([jobId, status, createdAt(sort: Desc)], name: "idx_coop_offer_job_status_created")
+  @@index([createdAt(sort: Desc)], name: "idx_coop_offer_created")
+}
+
+model CooperationEvent {
+  id                 String               @id @default(cuid())
+  cooperationOfferId String
+  actorUserId        String?
+  type               CooperationEventType
+  payload            Json
+  createdAt          DateTime             @default(now())
+  offer              CooperationOffer     @relation(fields: [cooperationOfferId], references: [id], onDelete: Cascade)
+  actor              User?                @relation("CooperationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([cooperationOfferId, createdAt], name: "idx_coop_evt_offer_created")
+  @@index([actorUserId], name: "idx_coop_evt_actor")
 }
 
 enum ProductType {
@@ -731,6 +775,20 @@ enum ApplicationStatus {
   reject
   select
   withdrawn
+}
+
+enum CooperationOfferStatus {
+  pending
+  accepted
+  declined
+  canceled
+  expired
+}
+
+enum CooperationEventType {
+  status_change
+  note
+  system
 }
 
 enum ApplicationEventType {

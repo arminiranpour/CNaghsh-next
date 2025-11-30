@@ -671,25 +671,6 @@ export default async function PricingPage({
       }
     : null;
 
-  const oneTimePricesRaw = await prisma.price.findMany({
-    where: {
-      active: true,
-      product: {
-        active: true,
-        type: ProductType.JOB_POST,
-      },
-    },
-    include: { product: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const oneTimePrices: OneTimePrice[] = oneTimePricesRaw.map((price) => ({
-    id: price.id,
-    name: price.product?.name ?? "ثبت آگهی شغلی",
-    amount: price.amount,
-    formatted: formatRials(price.amount),
-  }));
-
   const urlCadence = mapSearchCadence(searchParams);
   const requestedCadence =
     urlCadence ??
