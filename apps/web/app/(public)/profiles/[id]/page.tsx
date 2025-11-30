@@ -358,7 +358,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
   return (
     <div className={iransans.className}>
       <ProfilePageLayout>
-        <ProfilePageClient profile={profileData} isOwner={isOwner} />
+        <ProfilePageClient
+          profile={profileData}
+          isOwner={isOwner}
+          sessionUserId={session?.user?.id}
+        />
       </ProfilePageLayout>
     </div>
   );

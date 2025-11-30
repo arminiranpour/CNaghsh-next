@@ -41,16 +41,21 @@ export type PublicProfileData = {
 type ProfilePageClientProps = {
   profile: PublicProfileData;
   isOwner: boolean;
+  sessionUserId?: string | null;
 };
 
-export function ProfilePageClient({ profile, isOwner }: ProfilePageClientProps) {
+export function ProfilePageClient({
+  profile,
+  isOwner,
+  sessionUserId,
+}: ProfilePageClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
 
   return (
     <>
       <LeftRail activeTab={activeTab} onTabChange={setActiveTab} />
       <CenterPane activeTab={activeTab} profile={profile} />
-      <RightPane profile={profile} isOwner={isOwner} />
+      <RightPane profile={profile} isOwner={isOwner} sessionUserId={sessionUserId} />
     </>
   );
 }
