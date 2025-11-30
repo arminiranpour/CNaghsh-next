@@ -45,6 +45,9 @@ model Profile {
   lastName          String?
   stageName         String?
   age               Int?
+  birthDate         DateTime?
+  gender            Gender?
+  educationLevel    EducationLevel?
   phone             String?
   address           String?
   cityId            String?
@@ -78,6 +81,24 @@ model Profile {
   @@index([moderationStatus])
   @@index([updatedAt])
   @@index([introVideoMediaId])
+  @@index([birthDate])
+  @@index([gender])
+  @@index([educationLevel])
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EducationLevel {
+  DIPLOMA
+  ASSOCIATE
+  BACHELOR
+  MASTER
+  PHD
+  OTHER
 }
 
 model ProfileAward {

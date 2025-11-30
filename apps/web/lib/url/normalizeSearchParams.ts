@@ -2,25 +2,31 @@ export type NormalizedSearchParams = {
   query?: string;
   city?: string;
   skills?: string[];
-  gender?: "male" | "female" | "other";
+  gender?: GenderKey[];
+  ageMin?: number;
+  ageMax?: number;
+  edu?: string[];
+  lang?: string[];
+  accent?: string[];
   sort?: string;
   page?: number;
   remote?: "true" | "false";
   category?: string;
-  payType?: "paid" | "unpaid" | "negotiable";
+  payType?: PayType;
   featured?: "true" | "false";
 };
 
+type GenderKey = "male" | "female" | "other";
 type InputRecord = Record<string, string | string[] | undefined>;
 
 type Input = URLSearchParams | InputRecord;
 
-const ALLOWED_GENDERS = new Set<NormalizedSearchParams["gender"]>(["male", "female", "other"]);
+const ALLOWED_GENDERS = new Set<GenderKey>(["male", "female", "other"]);
 const PAY_TYPES = ["paid", "unpaid", "negotiable"] as const;
 type PayType = (typeof PAY_TYPES)[number];
 const ALLOWED_PAY_TYPES = new Set<string>(PAY_TYPES);
-
 const BOOLEAN_TRUE_FALSE = new Set(["true", "false"]);
+const AGE_MAX = 120;
 
 export function normalizeSearchParams(input: Input): NormalizedSearchParams {
   const normalized: NormalizedSearchParams = {};
@@ -28,18 +34,43 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
 
   assignString(normalized, "query", values.get("query"));
   assignString(normalized, "city", values.get("city"));
+  assignString(normalized, "sort", values.get("sort"));
+  assignString(normalized, "category", values.get("category"));
 
   const skills = buildStringArray(values.get("skills"));
   if (skills.length > 0) {
     normalized.skills = skills;
   }
 
-  const gender = getFirst(values.get("gender"));
-  if (gender && ALLOWED_GENDERS.has(gender as NormalizedSearchParams["gender"])) {
-    normalized.gender = gender as NormalizedSearchParams["gender"];
+  const genders = parseGenders(values.get("gender"));
+  if (genders.length > 0) {
+    normalized.gender = genders;
   }
 
-  assignString(normalized, "sort", values.get("sort"));
+  const edu = buildStringArray(values.get("edu"));
+  if (edu.length > 0) {
+    normalized.edu = edu;
+  }
+
+  const lang = buildStringArray(values.get("lang"));
+  if (lang.length > 0) {
+    normalized.lang = lang;
+  }
+
+  const accent = buildStringArray(values.get("accent"));
+  if (accent.length > 0) {
+    normalized.accent = accent;
+  }
+
+  const ageMin = toAge(values.get("ageMin"));
+  if (ageMin !== undefined) {
+    normalized.ageMin = ageMin;
+  }
+
+  const ageMax = toAge(values.get("ageMax"));
+  if (ageMax !== undefined) {
+    normalized.ageMax = ageMax;
+  }
 
   const page = toPageNumber(values.get("page"));
   if (page !== undefined) {
@@ -47,7 +78,6 @@ export function normalizeSearchParams(input: Input): NormalizedSearchParams {
   }
 
   assignBooleanString(normalized, "remote", values.get("remote"));
-  assignString(normalized, "category", values.get("category"));
 
   const payType = getFirst(values.get("payType"));
   if (isAllowedPayType(payType)) {
@@ -144,6 +174,12 @@ function buildStringArray(values: string[] | undefined): string[] {
   return parts;
 }
 
+function parseGenders(rawValues: string[] | undefined): GenderKey[] {
+  return buildStringArray(rawValues).filter((value): value is GenderKey =>
+    ALLOWED_GENDERS.has(value as GenderKey),
+  );
+}
+
 function isAllowedPayType(value: string | undefined): value is PayType {
   return value !== undefined && ALLOWED_PAY_TYPES.has(value);
 }
@@ -156,6 +192,20 @@ function toPageNumber(values: string[] | undefined): number | undefined {
 
   const parsed = Number.parseInt(first, 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function toAge(values: string[] | undefined): number | undefined {
+  const first = getFirst(values);
+  if (!first) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(first, 10);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > AGE_MAX) {
     return undefined;
   }
 

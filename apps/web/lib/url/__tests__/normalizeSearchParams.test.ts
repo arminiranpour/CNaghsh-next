@@ -12,12 +12,16 @@ describe("normalizeSearchParams", () => {
       skills: [" lighting , camera ", "editing"],
       city: " tehran ",
       query: "  stage hand  ",
+      lang: " fa , en ",
+      accent: "Tehran , tehran ",
     });
 
     expect(result).toEqual({
       query: "stage hand",
       city: "tehran",
       skills: ["lighting", "camera", "editing"],
+      lang: ["fa", "en"],
+      accent: ["Tehran", "tehran"],
     });
   });
 
@@ -43,8 +47,25 @@ describe("normalizeSearchParams", () => {
       payType: "invalid",
       skills: ",,",
       sort: "  ",
+      ageMin: "200",
     });
 
     expect(result).toEqual({});
+  });
+
+  it("parses typed filters", () => {
+    const result = normalizeSearchParams({
+      gender: "male,female,male",
+      edu: "bachelor , master ",
+      ageMin: " 18 ",
+      ageMax: "30",
+    });
+
+    expect(result).toEqual({
+      gender: ["male", "female"],
+      edu: ["bachelor", "master"],
+      ageMin: 18,
+      ageMax: 30,
+    });
   });
 });

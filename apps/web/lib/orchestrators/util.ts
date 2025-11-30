@@ -48,8 +48,26 @@ export function buildAppliedFilters(p: Record<string, unknown>) {
   if (p.city) {
     chips.push({ key: "city", value: String(p.city) });
   }
+  if (Array.isArray(p.gender) && p.gender.length) {
+    chips.push({ key: "gender", value: p.gender.join(",") });
+  }
+  const ageMin = typeof p.ageMin === "number" ? p.ageMin : undefined;
+  const ageMax = typeof p.ageMax === "number" ? p.ageMax : undefined;
+  if (ageMin !== undefined || ageMax !== undefined) {
+    const label = [ageMin ?? "?", ageMax ?? "?"].join("-");
+    chips.push({ key: "age", value: label });
+  }
+  if (Array.isArray(p.edu) && p.edu.length) {
+    chips.push({ key: "edu", value: p.edu.join(",") });
+  }
   if (Array.isArray(p.skills) && p.skills.length) {
     chips.push({ key: "skills", value: p.skills.join(", ") });
+  }
+  if (Array.isArray(p.lang) && p.lang.length) {
+    chips.push({ key: "lang", value: p.lang.join(",") });
+  }
+  if (Array.isArray(p.accent) && p.accent.length) {
+    chips.push({ key: "accent", value: p.accent.join(",") });
   }
   if (p.category) {
     chips.push({ key: "category", value: String(p.category) });

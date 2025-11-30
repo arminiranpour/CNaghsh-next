@@ -141,13 +141,15 @@ describe("search orchestrators", () => {
 
     const result = await fetchProfilesOrchestrated({ page: "-5", sort: 123 } as unknown as URLSearchParams);
 
-    expect(runProfileSearchMock).toHaveBeenCalledWith({
-      query: undefined,
-      city: undefined,
-      skills: undefined,
-      sort: undefined,
-      page: 1,
-    });
+    expect(runProfileSearchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: undefined,
+        city: undefined,
+        skills: undefined,
+        sort: undefined,
+        page: 1,
+      }),
+    );
     expect(result.page).toBe(1);
     expect(result.appliedFilters).toEqual([]);
     expect(buildCanonicalMock).toHaveBeenLastCalledWith("/profiles", expect.objectContaining({ page: 1 }));

@@ -16,11 +16,26 @@ export function buildCanonical(pathname: string, params: CanonicalParams): strin
   if (normalized.city) {
     searchParams.set("city", normalized.city);
   }
+  if (normalized.ageMin !== undefined) {
+    searchParams.set("ageMin", normalized.ageMin.toString(10));
+  }
+  if (normalized.ageMax !== undefined) {
+    searchParams.set("ageMax", normalized.ageMax.toString(10));
+  }
+  if (normalized.edu?.length) {
+    searchParams.set("edu", normalized.edu.join(","));
+  }
+  if (normalized.lang?.length) {
+    searchParams.set("lang", normalized.lang.join(","));
+  }
+  if (normalized.accent?.length) {
+    searchParams.set("accent", normalized.accent.join(","));
+  }
   if (normalized.skills?.length) {
     searchParams.set("skills", normalized.skills.join(","));
   }
-  if (normalized.gender) {
-    searchParams.set("gender", normalized.gender);
+  if (normalized.gender?.length) {
+    searchParams.set("gender", normalized.gender.join(","));
   }
   if (normalized.sort) {
     searchParams.set("sort", normalized.sort);

@@ -15,14 +15,15 @@ This document defines the canonical query parameter schema for the listings page
 | --- | --- | --- | --- |
 | `query` | string | free text | `?query=lighting` |
 | `city` | string | City identifier | `?city=tehran` |
+| `ageMin` | number | `1..120` | `?ageMin=18` |
+| `ageMax` | number | `1..120` | `?ageMax=35` |
+| `gender` | enum[] | `male`, `female`, `other` | `?gender=other` |
+| `edu` | enum[] | `diploma`, `associate`, `bachelor`, `master`, `phd`, `other` | `?edu=bachelor` |
 | `skills` | string[] | Skill keys from taxonomy | `?skills=lighting,directing` |
-| `gender` | enum | `male`, `female`, `other` | `?gender=other` |
-| `sort` | enum | `relevance`, `newest`, `complete`, `alpha` | `?sort=newest` |
+| `lang` | string[] | Language keys or labels | `?lang=fa,en` |
+| `accent` | string[] | Accent labels | `?accent=تهرانی` |
+| `sort` | enum | `relevance`, `newest`, `alpha` | `?sort=newest` |
 | `page` | number | `1..n` | `?page=2` |
-| `remote` | boolean | `true`, `false` | `?remote=true` |
-| `category` | string | Directory category key | `?category=crew` |
-| `payType` | enum | `paid`, `unpaid`, `negotiable` | `?payType=paid` |
-| `featured` | boolean | `true`, `false` | `?featured=true` |
 
 ## `/jobs`
 
@@ -31,7 +32,6 @@ This document defines the canonical query parameter schema for the listings page
 | `query` | string | free text | `?query=producer` |
 | `city` | string | City identifier | `?city=tehran` |
 | `skills` | string[] | Skill keys from taxonomy | `?skills=editing,color-grading` |
-| `gender` | enum | `male`, `female`, `other` | `?gender=female` |
 | `sort` | enum | `relevance`, `newest`, `featured`, `expiry` | `?sort=featured` |
 | `page` | number | `1..n` | `?page=3` |
 | `remote` | boolean | `true`, `false` | `?remote=false` |

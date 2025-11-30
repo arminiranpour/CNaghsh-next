@@ -33,11 +33,39 @@ export async function fetchProfilesOrchestrated(
 
   const filterParams = parsed.empty ? ({} as ProfilesQueryInput) : parsed.params;
   const page = filterParams.page ?? 1;
+  const normalizedAge = normalizeAgeRange(filterParams.ageMin, filterParams.ageMax);
+  const genderFilters = mapToEnum(filterParams.gender, {
+    male: "MALE",
+    female: "FEMALE",
+    other: "OTHER",
+  });
+  const educationFilters = mapToEnum(filterParams.edu, {
+    diploma: "DIPLOMA",
+    associate: "ASSOCIATE",
+    bachelor: "BACHELOR",
+    master: "MASTER",
+    phd: "PHD",
+    other: "OTHER",
+  });
+
+  const filtersForCanonical: ProfilesQueryInput = {
+    ...filterParams,
+    ageMin: normalizedAge?.min,
+    ageMax: normalizedAge?.max,
+    gender: filterParams.gender,
+  };
 
   const searchParams: ProfileSearchParams = {
     query: filterParams.query,
     city: filterParams.city,
     skills: filterParams.skills,
+    gender: genderFilters,
+    educationLevels: educationFilters,
+    languages: filterParams.lang,
+    accents: filterParams.accent,
+    birthDateFrom: normalizedAge?.max ? yearsAgo(normalizedAge.max) : undefined,
+    birthDateTo: normalizedAge?.min ? yearsAgo(normalizedAge.min) : undefined,
+    ageRange: normalizedAge,
     sort: filterParams.sort,
     page,
   };
@@ -91,7 +119,52 @@ export async function fetchProfilesOrchestrated(
     items: data.items,
     page: data.page,
     pageSize: data.pageSize ?? DEFAULT_PAGE_SIZE,
-    canonical: buildCanonical("/profiles", { ...filterParams, page: data.page }),
-    appliedFilters: buildAppliedFilters(filterParams),
+    canonical: buildCanonical("/profiles", { ...filtersForCanonical, page: data.page }),
+    appliedFilters: buildAppliedFilters(filtersForCanonical),
   };
+}
+
+function mapToEnum<T extends string, TEnum extends string>(
+  values: T[] | undefined,
+  mapping: Record<T, TEnum>,
+): TEnum[] | undefined {
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+
+  const mapped: TEnum[] = [];
+  const seen = new Set<TEnum>();
+
+  for (const value of values) {
+    const mappedValue = mapping[value];
+    if (!mappedValue || seen.has(mappedValue)) {
+      continue;
+    }
+    seen.add(mappedValue);
+    mapped.push(mappedValue);
+  }
+
+  return mapped.length ? mapped : undefined;
+}
+
+function normalizeAgeRange(min?: number, max?: number) {
+  const safeMin = typeof min === "number" && Number.isFinite(min) && min > 0 ? min : undefined;
+  const safeMax = typeof max === "number" && Number.isFinite(max) && max > 0 ? max : undefined;
+
+  if (!safeMin && !safeMax) {
+    return undefined;
+  }
+
+  if (safeMin && safeMax && safeMin > safeMax) {
+    return { min: safeMax, max: safeMin };
+  }
+
+  return { min: safeMin, max: safeMax };
+}
+
+function yearsAgo(years: number) {
+  const now = new Date();
+  const result = new Date(now);
+  result.setFullYear(now.getFullYear() - years);
+  return result;
 }
