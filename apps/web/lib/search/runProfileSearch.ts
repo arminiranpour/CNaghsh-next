@@ -37,6 +37,8 @@ type ProfileRow = {
   lastName: string | null;
   cityId: string | null;
   skills: Prisma.JsonValue | null;
+  age: number | null;
+  avatarUrl: string | null;
   updatedAt: Date;
   rank?: number | null;
   sim?: number | null;
@@ -99,6 +101,8 @@ export async function runProfileSearch(
         p."lastName",
         p."cityId",
         p."skills",
+        p."age",
+        p."avatarUrl",
         p."updatedAt",
         ts_rank_cd(p.search_vector, ${createTsQuery()}) AS rank
       FROM "Profile" p
@@ -121,6 +125,8 @@ export async function runProfileSearch(
         p."lastName",
         p."cityId",
         p."skills",
+        p."age",
+        p."avatarUrl",
         p."updatedAt",
         similarity(${PROFILE_NAME_EXPRESSION}, fa_unaccent(${normalizedQuery})) AS sim
       FROM "Profile" p
@@ -143,6 +149,8 @@ export async function runProfileSearch(
       p."lastName",
       p."cityId",
       p."skills",
+      p."age",
+      p."avatarUrl",
       p."updatedAt"
     FROM "Profile" p
     WHERE ${PROFILE_BASE_WHERE}
