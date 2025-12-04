@@ -34,6 +34,7 @@ export function AuthPageClient({ initialTab, callbackUrl }: AuthPageClientProps)
       {/* RIGHT SIDE: Auth Panel (back to RTL) */}
      <div className="w-full h-full max-h-[647px] max-w-[564px]">
         <LoginForm
+          initialTab={initialTab}
           callbackUrl={callbackUrl}
           onPasswordPhaseChange={setIsPasswordPhase}
         />

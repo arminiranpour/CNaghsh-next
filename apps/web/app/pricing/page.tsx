@@ -101,13 +101,6 @@ type PricingSubscriptionInfo = {
   cancelAtPeriodEnd: boolean;
 };
 
-type OneTimePrice = {
-  id: string;
-  name: string;
-  amount: number;
-  formatted: string;
-};
-
 type PlanMetadata = {
   groupKey: string;
   displayName?: string;
@@ -579,7 +572,7 @@ const isCadenceKey = (value: string | undefined | null): value is CadenceKey => 
   return value === "monthly" || value === "annual";
 };
 
-export type { CadenceKey, NormalizedComparison, NormalizedFeature, NormalizedValue, OneTimePrice, PricingPlanCadence, PricingPlanGroupData, PricingSubscriptionInfo };
+export type { CadenceKey, NormalizedComparison, NormalizedFeature, NormalizedValue, PricingPlanCadence, PricingPlanGroupData, PricingSubscriptionInfo };
 
 export type PricingViewer = {
   state: "guest" | "signed-in";
@@ -670,25 +663,6 @@ export default async function PricingPage({
         cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
       }
     : null;
-
-  const oneTimePricesRaw = await prisma.price.findMany({
-    where: {
-      active: true,
-      product: {
-        active: true,
-        type: ProductType.JOB_POST,
-      },
-    },
-    include: { product: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const oneTimePrices: OneTimePrice[] = oneTimePricesRaw.map((price) => ({
-    id: price.id,
-    name: price.product?.name ?? "ثبت آگهی شغلی",
-    amount: price.amount,
-    formatted: formatRials(price.amount),
-  }));
 
   const urlCadence = mapSearchCadence(searchParams);
   const requestedCadence =

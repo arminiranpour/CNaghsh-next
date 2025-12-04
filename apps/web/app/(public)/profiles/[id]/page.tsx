@@ -22,7 +22,6 @@ type ProfileWithRelations = Prisma.ProfileGetPayload<{
 }>;
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
-
 function getDisplayName(
   stageName?: string | null,
   firstName?: string | null,
@@ -105,13 +104,26 @@ function normalizeDegrees(
   raw: Prisma.JsonValue | null | undefined,
 ): { degreeLevel: string; major: string }[] {
   if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      degreeLevel: String(item.degreeLevel ?? "").trim(),
-      major: String(item.major ?? "").trim(),
-    }))
-    .filter((entry) => entry.degreeLevel || entry.major);
+  const result: { degreeLevel: string; major: string }[] = [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+
+    const degreeLevel =
+      typeof (item as { degreeLevel?: unknown }).degreeLevel === "string"
+        ? ((item as { degreeLevel?: string }).degreeLevel ?? "").trim()
+        : "";
+    const major =
+      typeof (item as { major?: unknown }).major === "string"
+        ? ((item as { major?: string }).major ?? "").trim()
+        : "";
+
+    if (degreeLevel || major) {
+      result.push({ degreeLevel, major });
+    }
+  }
+
+  return result;
 }
 
 function collectVideoMediaIds(raw: Prisma.JsonValue | null | undefined): string[] {
@@ -230,18 +242,35 @@ function normalizeVoices(
 ): { mediaId: string; url: string; title?: string | null; duration?: number | null }[] {
   if (!Array.isArray(raw)) return [];
 
-  return raw
-    .filter((item) => item && typeof item === "object")
-    .map((item: any) => ({
-      mediaId: String(item.mediaId ?? "").trim(),
-      url: String(item.url ?? "").trim(),
-      title: item.title ? String(item.title).trim() : null,
-      duration:
-        typeof item.duration === "number" && Number.isFinite(item.duration)
-          ? item.duration
-          : null,
-    }))
-    .filter((entry) => entry.mediaId && entry.url);
+  const result: { mediaId: string; url: string; title?: string | null; duration?: number | null }[] =
+    [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+
+    const mediaId =
+      typeof (item as { mediaId?: unknown }).mediaId === "string"
+        ? ((item as { mediaId?: string }).mediaId ?? "").trim()
+        : "";
+    const url =
+      typeof (item as { url?: unknown }).url === "string"
+        ? ((item as { url?: string }).url ?? "").trim()
+        : "";
+    const title = (item as { title?: unknown }).title
+      ? String((item as { title?: unknown }).title).trim()
+      : null;
+    const duration =
+      typeof (item as { duration?: unknown }).duration === "number" &&
+      Number.isFinite((item as { duration?: number }).duration)
+        ? (item as { duration?: number }).duration
+        : null;
+
+    if (mediaId && url) {
+      result.push({ mediaId, url, title, duration });
+    }
+  }
+
+  return result;
 }
 
 function normalizeAwards(

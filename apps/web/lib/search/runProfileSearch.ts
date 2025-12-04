@@ -237,7 +237,7 @@ function buildFilterClauses(
     return Prisma.sql``;
   }
 
-  return Prisma.sql`${Prisma.join(clauses, Prisma.sql`\n`)}`;
+  return Prisma.sql`${Prisma.join(clauses, "\n")}`;
 }
 
 function buildAgeClause(
@@ -261,7 +261,7 @@ function buildAgeClause(
     birthConditions.push(Prisma.sql`p."birthDate" <= ${params.birthDateTo}`);
   }
   const birthClause = birthConditions.length
-    ? Prisma.sql` AND ${Prisma.join(birthConditions, Prisma.sql` AND `)}`
+    ? Prisma.sql` AND ${Prisma.join(birthConditions, " AND ")}`
     : Prisma.sql``;
 
   const ageConditions: Prisma.Sql[] = [];
@@ -272,7 +272,7 @@ function buildAgeClause(
     ageConditions.push(Prisma.sql`p."age" <= ${params.ageRange.max}`);
   }
   const ageFallback = ageConditions.length
-    ? Prisma.sql` AND ${Prisma.join(ageConditions, Prisma.sql` AND `)}`
+    ? Prisma.sql` AND ${Prisma.join(ageConditions, " AND ")}`
     : null;
 
   if (ageFallback) {

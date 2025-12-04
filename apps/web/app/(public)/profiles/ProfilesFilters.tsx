@@ -21,7 +21,6 @@ import {
   LANGUAGE_FILTERS,
   type EducationFilterValue,
   type GenderFilterValue,
-  type LanguageFilterValue,
 } from "@/lib/profile/filter-options";
 import { SKILLS } from "@/lib/profile/skills";
 import type { NormalizedSearchParams } from "@/lib/url/normalizeSearchParams";
@@ -86,6 +85,12 @@ function setCsvParam(params: URLSearchParams, key: string, values: string[] | un
 }
 
 const NONE_VALUE = "__none__";
+const EDUCATION_VALUES = new Set<EducationFilterValue>(EDUCATION_FILTERS.map((item) => item.value));
+
+function normalizeEducationValue(value?: string): EducationFilterValue | typeof NONE_VALUE {
+  if (!value) return NONE_VALUE;
+  return EDUCATION_VALUES.has(value as EducationFilterValue) ? (value as EducationFilterValue) : NONE_VALUE;
+}
 
 export function ProfilesFilters({ cities, initialFilters, sortOptions }: ProfilesFiltersProps) {
   const router = useRouter();
@@ -97,7 +102,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
     initialFilters.gender?.[0] ?? NONE_VALUE,
   );
   const [selectedEducation, setSelectedEducation] = useState<EducationFilterValue | typeof NONE_VALUE>(
-    initialFilters.edu?.[0] ?? NONE_VALUE,
+    normalizeEducationValue(initialFilters.edu?.[0]),
   );
   const [selectedAccent, setSelectedAccent] = useState(initialFilters.accent?.[0] ?? NONE_VALUE);
   const [selectedSkills, setSelectedSkills] = useState<string[]>(initialFilters.skills ?? []);
@@ -110,7 +115,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
     setSearchValue(initialFilters.query ?? "");
     setSelectedCity(initialFilters.city ?? NONE_VALUE);
     setSelectedGender(initialFilters.gender?.[0] ?? NONE_VALUE);
-    setSelectedEducation(initialFilters.edu?.[0] ?? NONE_VALUE);
+    setSelectedEducation(normalizeEducationValue(initialFilters.edu?.[0]));
     setSelectedAccent(initialFilters.accent?.[0] ?? NONE_VALUE);
     setSelectedSkills(initialFilters.skills ?? []);
     setSelectedLanguages(initialFilters.lang ?? []);
@@ -159,7 +164,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
   );
 
   const languageOptions = useMemo(() => {
-    const base = [...LANGUAGE_FILTERS];
+    const base: { value: string; label: string }[] = [...LANGUAGE_FILTERS];
     for (const value of selectedLanguages) {
       if (!base.some((item) => item.value === value)) {
         base.push({ value, label: value });
@@ -383,7 +388,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
               >
                 <Checkbox
                   checked={checked}
-                  onCheckedChange={() => {
+                  onChange={() => {
                     const nextSkills = toggleValue(selectedSkills, skill.key);
                     setSelectedSkills(nextSkills);
                     applyFilters({ skills: nextSkills });
@@ -411,7 +416,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
               >
                 <Checkbox
                   checked={checked}
-                  onCheckedChange={() => {
+                  onChange={() => {
                     const nextLanguages = toggleValue(selectedLanguages, option.value);
                     setSelectedLanguages(nextLanguages);
                     applyFilters({ languages: nextLanguages });

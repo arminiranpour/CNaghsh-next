@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import type { AuthTab } from "@/lib/url/auth-tabs";
 
 
 type LoginFormProps = {
   callbackUrl?: string;
   onPasswordPhaseChange?: (isActive: boolean) => void;
+  initialTab?: AuthTab;
 };
 
 type AuthMode = "register" | "login";
@@ -21,10 +23,13 @@ type AuthMode = "register" | "login";
 export function LoginForm({
   callbackUrl,
   onPasswordPhaseChange,
+  initialTab,
 }: LoginFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [mode, setMode] = useState<AuthMode>("register");
+  const [mode, setMode] = useState<AuthMode>(() =>
+    initialTab === "signin" ? "login" : "register",
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPasswordStep, setShowPasswordStep] = useState(false);
@@ -422,4 +427,3 @@ export function LoginForm({
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 type LoginCharacterProps = {
   isPasswordPhase: boolean;
@@ -27,7 +28,7 @@ export function LoginCharacter({ isPasswordPhase }: LoginCharacterProps) {
       const dx = e.clientX - centerX;
       const dy = e.clientY - centerY;
 
-      let angleRad = Math.atan2(dy, dx);
+      const angleRad = Math.atan2(dy, dx);
       let angleDeg = 90 + (angleRad * 180) / Math.PI;
       if (angleDeg < 0) angleDeg += 360;
 
@@ -64,11 +65,14 @@ export function LoginCharacter({ isPasswordPhase }: LoginCharacterProps) {
     <div
       ref={containerRef}
       className="relative w-[500px] h-full md:w-[500px] md:h-full"    >
-      <img
+      <Image
         src={src}
         alt="login character"
-        className="w-full h-full object-contain select-none pointer-events-none"
+        fill
+        className="select-none pointer-events-none object-contain"
         draggable={false}
+        sizes="(max-width: 768px) 100vw, 500px"
+        priority
       />
     </div>
   );

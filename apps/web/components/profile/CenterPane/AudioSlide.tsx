@@ -15,12 +15,11 @@ type AudioSlideProps = {
   voices?: AudioEntry[];
 };
 
-function AudioRow({ voice, index }: { voice: AudioEntry; index: number }) {
+function AudioRow({ voice }: { voice: AudioEntry }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const waveformRef = useRef<WaveformAudioPlayerHandle | null>(null);
 
   const title = voice.title?.trim() || "فایل صوتی بدون عنوان";
-  const badge = `#${index + 1}`;
   const durationLabel =
     typeof voice.duration === "number" && Number.isFinite(voice.duration)
       ? `${Math.round(voice.duration)} ثانیه`
@@ -170,7 +169,7 @@ export function AudioSlide({ voices }: AudioSlideProps) {
           }}
         >
           {normalized.map((voice, index) => (
-            <AudioRow key={`${voice.mediaId}-${index}`} voice={voice} index={index} />
+            <AudioRow key={`${voice.mediaId}-${index}`} voice={voice} />
           ))}
         </div>
       )}

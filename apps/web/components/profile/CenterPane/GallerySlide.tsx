@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import type { CSSProperties } from "react";
 
 type GallerySlideProps = {
   images?: { url: string }[];

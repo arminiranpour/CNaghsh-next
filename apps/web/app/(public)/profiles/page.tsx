@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
 import { ListAnalyticsTracker } from "@/components/analytics/ListAnalyticsTracker";
@@ -26,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { ProfilesFilterSidebar } from "@/components/profiles/ProfilesFilterSidebar";
 import { ProfilesGrid } from "@/components/profiles/ProfilesGrid";
 import { ProfilesSearchBar } from "@/components/profiles/ProfilesSearchBar";
+import Header from "@/components/Header";
 import { buildProfilesHref } from "@/lib/url/buildProfilesHref";
 
 export const revalidate = 60;
@@ -146,68 +146,77 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
   });
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10" dir="rtl">
-      <ListAnalyticsTracker
-        scope="profiles"
-        query={normalized.query ?? undefined}
-        city={normalized.city ?? undefined}
-        sort={normalized.sort ?? undefined}
-        page={currentPage}
+    <div className="relative w-full" dir="rtl">
+      {/* 🔥 Full-width background */}
+      <div
+        className="
+          absolute inset-0
+          bg-[url('/profiles/concretewall-bg.png')]
+          bg-cover bg-center bg-no-repeat
+        "
       />
-      <JsonLd data={jsonLd} />
 
-      {/* Header + title like the design */}
-      <header className="flex flex-col gap-1 mb-6">
-        <span className="text-sm text-muted-foreground">جست و جوی هنرمندان</span>
-        <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
-      </header>
-
-      {/* Top search bar */}
-      <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="mb-6" />
-
-      {/* Applied filter chips (optional row below search) */}
-      {appliedFilters.length ? (
-        <section
-          aria-label="فیلترهای اعمال شده"
-          className="mb-6 flex flex-wrap gap-2"
-        >
-          {appliedFilters.map((chip) => (
-            <a
-              key={chip.key}
-              href={chip.href}
-              className={cn(
-                badgeVariants({ variant: "outline" }),
-                "group inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              )}
-              aria-label={`حذف فیلتر ${chip.label}`}
-            >
-              <span>{chip.label}</span>
-              <span aria-hidden className="text-muted-foreground">×</span>
-            </a>
-          ))}
-        </section>
-      ) : null}
-
-      {/* Main layout: grid center + filter sidebar right */}
-      <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
-        <ProfilesGrid
-          profiles={data.items}
-          cityMap={cityMap}
-          normalized={normalizedForLinks}
-          currentPage={currentPage}
-          hasNextPage={hasNextPage}
-          hasPrevPage={hasPrevPage}
-          clearHref={clearFiltersHref}
-          className="flex-1"
+      {/* Centered content container – unchanged */}
+      <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
+        <ListAnalyticsTracker
+          scope="profiles"
+          query={normalized.query ?? undefined}
+          city={normalized.city ?? undefined}
+          sort={normalized.sort ?? undefined}
+          page={currentPage}
         />
 
-        <ProfilesFilterSidebar
-          cities={cities}
-          initialFilters={normalizedForLinks}
-          clearHref={clearFiltersHref}
-          className="w-full xl:w-[371px] shrink-0"
-        />
-      </main>
+        <JsonLd data={jsonLd} />
+      
+        <header className="flex flex-col gap-1 mb-6">
+          <span className="text-sm text-muted-foreground">جست و جوی هنرمندان</span>
+          <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
+        </header>
+
+        <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="mb-6" />
+
+        {appliedFilters.length ? (
+          <section
+            aria-label="فیلترهای اعمال شده"
+            className="mb-6 flex flex-wrap gap-2"
+          >
+            {appliedFilters.map((chip) => (
+              <a
+                key={chip.key}
+                href={chip.href}
+                className={cn(
+                  badgeVariants({ variant: "outline" }),
+                  "group inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs hover:bg-muted"
+                )}
+                aria-label={`حذف فیلتر ${chip.label}`}
+              >
+                <span>{chip.label}</span>
+                <span aria-hidden className="text-muted-foreground">×</span>
+              </a>
+            ))}
+          </section>
+        ) : null}
+
+        <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
+          <ProfilesFilterSidebar
+            cities={cities}
+            initialFilters={normalizedForLinks}
+            clearHref={clearFiltersHref}
+            className="w-full xl:w-[371px] shrink-0"
+          />
+
+          <ProfilesGrid
+            profiles={data.items}
+            cityMap={cityMap}
+            normalized={normalizedForLinks}
+            currentPage={currentPage}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            clearHref={clearFiltersHref}
+            className="flex-1"
+          />
+        </main>
+      </div>
     </div>
   );
 }
