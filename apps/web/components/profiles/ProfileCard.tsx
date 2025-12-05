@@ -80,10 +80,10 @@ export default function Card({
         <div
           className="absolute overflow-hidden"
           style={{
-            top: 57,
-            left: 84,
-            width: 113,
-            height: 99,
+            top: 10,
+            left: 40,
+            width: 200,
+            height: 160,
             borderRadius: "15px",
           }}
         >
@@ -100,7 +100,7 @@ export default function Card({
         <div
           className="absolute"
           style={{
-            top: 177,
+            top: 190,
             left: 84,
             width: STAR_W,
             height: STAR_H,
@@ -120,7 +120,7 @@ export default function Card({
         <div
           className="absolute font-iransans"
           style={{
-            top: 176,
+            top: 190,
             left: 95,
             fontSize: 12,
             fontWeight: 600,
@@ -136,7 +136,7 @@ export default function Card({
           className="absolute flex items-center justify-center font-iransans"
           style={{
             left: 163,
-            top: 177,
+            top: 190,
             width: 47,
             height: 14,
             backgroundColor: "#Ff7F19",
@@ -159,7 +159,7 @@ export default function Card({
         {/* Name + Age */}
         <div
           className="absolute w-full text-center"
-          style={{ bottom: 68, left: 0 }}
+          style={{ bottom: 50, left: 0 }}
         >
           <div
             style={{

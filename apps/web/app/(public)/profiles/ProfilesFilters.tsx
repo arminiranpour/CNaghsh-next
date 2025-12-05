@@ -238,6 +238,7 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
   };
 
   return (
+    <div className="text-[#7A7A7A]">
     <form className="grid grid-cols-1 gap-6 lg:grid-cols-2" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-2 lg:col-span-2">
         <Label htmlFor="profiles-query">جستجو</Label>
@@ -461,5 +462,6 @@ export function ProfilesFilters({ cities, initialFilters, sortOptions }: Profile
         </Button>
       </div>
     </form>
+    </div>
   );
 }

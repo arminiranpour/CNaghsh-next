@@ -18,12 +18,19 @@ const buttonVariants = cva(
         outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+
+        // ✅ New variant only for the profiles search button
+        profilesSearch:
+          "bg-[#808080] text-white hover:bg-[#707070]",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+
+        // ✅ New size to match your input height & rounded style
+        search: "h-12 px-8 rounded-full",
       },
     },
     defaultVariants: {
@@ -32,6 +39,8 @@ const buttonVariants = cva(
     },
   }
 );
+
+
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,

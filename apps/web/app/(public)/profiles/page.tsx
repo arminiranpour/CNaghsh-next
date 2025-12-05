@@ -168,12 +168,14 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
 
         <JsonLd data={jsonLd} />
       
-        <header className="flex flex-col gap-1 mb-6">
-          <span className="text-sm text-muted-foreground">جست و جوی هنرمندان</span>
-          <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
-        </header>
+<div className="flex items-center justify-between mb-6" dir="rtl">
+  <header className="flex flex-col">
+    <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
+  </header>
 
-        <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="mb-6" />
+  <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="w-[790px]" />
+</div>
+
 
         {appliedFilters.length ? (
           <section
