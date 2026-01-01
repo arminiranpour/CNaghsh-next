@@ -36,6 +36,7 @@ model User {
   applications            Application[]            @relation("ApplicantApplications")
   applicationEvents       ApplicationEvent[]       @relation("ApplicationEventActor")
   applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
+  enrollments             Enrollment[]
 }
 
 model Profile {
@@ -159,6 +160,13 @@ model CheckoutSession {
   userId                  String
   provider                Provider
   priceId                 String
+  purchaseType            PurchaseType?
+  courseId                String?
+  semesterId              String?
+  enrollmentId            String?
+  paymentMode             PaymentMode?
+  installmentIndex        Int?
+  idempotencyKey          String?        @unique
   status                  CheckoutStatus @default(STARTED)
   redirectUrl             String
   returnUrl               String
@@ -167,10 +175,17 @@ model CheckoutSession {
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
   price                   Price          @relation(fields: [priceId], references: [id])
+  course                  Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  semester                Semester?      @relation(fields: [semesterId], references: [id], onDelete: SetNull)
+  enrollment              Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
   user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments                Payment[]
 
   @@index([userId, status])
+  @@index([courseId])
+  @@index([semesterId])
+  @@index([enrollmentId])
+  @@index([purchaseType])
 }
 
 model Subscription {
@@ -213,6 +228,7 @@ model Payment {
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   webhookLogs       PaymentWebhookLog[]
   jobCreditGrants   JobCreditGrant[]
+  courseInstallments CoursePaymentInstallment[]
 
   @@unique([provider, providerRef])
   @@index([status])
@@ -494,6 +510,8 @@ model MediaAsset {
   owner                   User                  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   moderationReviewedBy    User?                 @relation("MediaModerationReviewer", fields: [moderationReviewedById], references: [id])
   transcodeJobs           TranscodeJob[]
+  courseBannerUsages      Course[]              @relation("CourseBannerMedia")
+  courseIntroVideoUsages  Course[]              @relation("CourseIntroVideo")
   profileIntroVideoUsages Profile[]             @relation("ProfileIntroVideo")
   jobIntroVideoUsages     Job[]                 @relation("JobIntroVideo")
 
@@ -563,6 +581,172 @@ model ApplicationView {
   viewer        User?       @relation("ApplicationViewViewer", fields: [viewerUserId], references: [id], onDelete: SetNull)
 
   @@index([applicationId, createdAt])
+}
+
+model Course {
+  id                   String             @id @default(cuid())
+  title                String
+  description          String
+  ageRangeText         String
+  durationValue        Int
+  durationUnit         CourseDurationUnit
+  instructorName       String
+  prerequisiteText     String
+  bannerMediaAssetId   String?
+  introVideoMediaAssetId String?
+  status               CourseStatus       @default(draft)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  bannerMediaAsset     MediaAsset?        @relation("CourseBannerMedia", fields: [bannerMediaAssetId], references: [id], onDelete: SetNull)
+  introVideoMediaAsset MediaAsset?        @relation("CourseIntroVideo", fields: [introVideoMediaAssetId], references: [id], onDelete: SetNull)
+  semesters            Semester[]
+  checkoutSessions     CheckoutSession[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Semester {
+  id                       String                 @id @default(cuid())
+  courseId                 String
+  title                    String
+  startsAt                 DateTime
+  endsAt                   DateTime
+  tuitionAmountIrr         Int
+  currency                 String                 @default("IRR")
+  lumpSumDiscountAmountIrr Int                    @default(0)
+  installmentPlanEnabled   Boolean                @default(false)
+  installmentCount         Int?
+  capacity                 Int?
+  status                   SemesterStatus         @default(draft)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  course                   Course                 @relation(fields: [courseId], references: [id])
+  scheduleDays             SemesterScheduleDay[]
+  enrollments              Enrollment[]
+  checkoutSessions         CheckoutSession[]
+
+  @@index([courseId, status])
+  @@index([startsAt])
+  @@index([endsAt])
+}
+
+model SemesterScheduleDay {
+  id         String             @id @default(cuid())
+  semesterId String
+  dayOfWeek  DayOfWeek
+  semester   Semester           @relation(fields: [semesterId], references: [id])
+  classSlots SemesterClassSlot[]
+
+  @@unique([semesterId, dayOfWeek])
+}
+
+model SemesterClassSlot {
+  id            String              @id @default(cuid())
+  scheduleDayId String
+  title         String?
+  startMinute   Int
+  endMinute     Int
+  scheduleDay   SemesterScheduleDay @relation(fields: [scheduleDayId], references: [id])
+
+  @@index([scheduleDayId])
+  @@unique([scheduleDayId, startMinute, endMinute])
+}
+
+model Enrollment {
+  id                String           @id @default(cuid())
+  semesterId        String
+  userId            String
+  status            EnrollmentStatus @default(pending_payment)
+  chosenPaymentMode PaymentMode
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  semester          Semester         @relation(fields: [semesterId], references: [id])
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkoutSessions  CheckoutSession[]
+  paymentPlan       CoursePaymentPlan?
+  paymentInstallments CoursePaymentInstallment[]
+
+  @@unique([semesterId, userId])
+  @@index([userId])
+  @@index([semesterId, status])
+}
+
+model CoursePaymentPlan {
+  id                   String   @id @default(cuid())
+  enrollmentId         String   @unique
+  installmentCount     Int
+  installmentAmountIrr Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  enrollment           Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+}
+
+model CoursePaymentInstallment {
+  id            String                 @id @default(cuid())
+  enrollmentId  String
+  index         Int
+  amountIrr     Int
+  status        CourseInstallmentStatus @default(due)
+  dueAt         DateTime?
+  paidAt        DateTime?
+  paidPaymentId String?
+  enrollment    Enrollment            @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  paidPayment   Payment?              @relation(fields: [paidPaymentId], references: [id], onDelete: SetNull)
+
+  @@unique([enrollmentId, index])
+  @@index([enrollmentId, status])
+  @@index([paidPaymentId])
+}
+
+enum CourseStatus {
+  draft
+  published
+  archived
+}
+
+enum SemesterStatus {
+  draft
+  open
+  closed
+}
+
+enum EnrollmentStatus {
+  pending_payment
+  active
+  canceled
+  refunded
+}
+
+enum PaymentMode {
+  lumpsum
+  installments
+}
+
+enum CourseInstallmentStatus {
+  due
+  paid
+  failed
+}
+
+enum DayOfWeek {
+  sat
+  sun
+  mon
+  tue
+  wed
+  thu
+  fri
+}
+
+enum CourseDurationUnit {
+  day
+  month
+  year
+}
+
+enum PurchaseType {
+  course_semester
 }
 
 enum ProductType {
