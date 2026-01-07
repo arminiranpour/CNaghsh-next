@@ -84,3 +84,66 @@ body {
   font-size: 1rem;
   line-height: 2rem;
 }
+
+/* Force white background for course card components - must override [&_div]:!bg-transparent */
+@layer utilities {
+  /* Exclude data-card elements from transparent background */
+  [data-no-transparent] div[data-card],
+  [data-no-transparent] div[data-card] > div {
+    background-color: white !important;
+    background: white !important;
+  }
+
+  /* Class-based override */
+  .force-white-bg {
+    background-color: white !important;
+    background: white !important;
+  }
+
+  /* Allow orange background to override white background rule */
+  [data-no-transparent] div[data-card].force-orange-bg {
+    background-color: #FF7F19 !important;
+    background: #FF7F19 !important;
+  }
+  
+  /* Ensure child divs inside orange card don't override the orange background */
+  [data-no-transparent] div[data-card].force-orange-bg > div {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  .force-orange-bg {
+    background-color: #FF7F19 !important;
+    background: #FF7F19 !important;
+  }
+
+  /* Allow gray background for placeholder cards */
+  [data-no-transparent] div[data-card].force-gray-bg,
+  [data-no-transparent] div[data-card][style*="background-color: #D9D9D9"],
+  [data-no-transparent] div[data-card][style*="background-color:#D9D9D9"],
+  [data-no-transparent] div[data-card][style*="background-color: #E0E0E0"],
+  [data-no-transparent] div[data-card][style*="background-color:#E0E0E0"] {
+    background-color: #D9D9D9 !important;
+    background: #D9D9D9 !important;
+    border-radius: var(--radius) !important;
+  }
+  
+  /* Ensure child divs inside gray card don't override the gray background */
+  [data-no-transparent] div[data-card].force-gray-bg > div {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+  
+  .force-gray-bg {
+    background-color: #D9D9D9 !important;
+    background: #D9D9D9 !important;
+    border-radius: var(--radius) !important;
+  }
+
+  /* Force transparent background for course info panel */
+  [data-transparent],
+  [data-transparent] > div {
+    background-color: transparent !important;
+    background: transparent !important;
+  }
+}

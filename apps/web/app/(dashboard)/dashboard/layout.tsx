@@ -16,6 +16,7 @@ export const revalidate = 0;
 const dashboardNav = [
   { href: "/dashboard/profile" as Route, label: "پروفایل" },
   { href: "/dashboard/jobs" as Route, label: "آگهی‌ها" },
+  { href: "/dashboard/courses" as Route, label: "دوره‌ها" },
   { href: "/dashboard/notifications" as Route, label: "اعلان‌ها" },
   { href: "/dashboard/billing" as Route, label: "صورتحساب" },
   { href: "/dashboard/settings" as Route, label: "تنظیمات" },

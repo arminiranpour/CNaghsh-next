@@ -1,6 +1,9 @@
 import {
   ApplicationEventType,
   ApplicationStatus,
+  CourseDurationUnit,
+  CourseStatus,
+  DayOfWeek,
   JobModeration,
   JobStatus,
   MediaStatus,
@@ -12,6 +15,7 @@ import {
   PrismaClient,
   ProductType,
   ProfileVisibility,
+  SemesterStatus,
   TranscodeJobStatus,
   type Job,
   type MediaAsset,
@@ -75,6 +79,14 @@ const JOB_PRODUCT_NAME = 'ثبت آگهی شغلی';
 const JOB_PRICE_AMOUNT = 1_500_000;
 
 const MEDIA_SEED_USER_EMAIL = 'media-seed@example.com';
+
+const COURSE_TITLE = 'Acting Fundamentals';
+const COURSE_SEMESTER_TITLE = 'Spring 2025';
+const COURSE_TUITION_AMOUNT = 12_000_000;
+const COURSE_LUMP_SUM_DISCOUNT = 1_000_000;
+const COURSE_INSTALLMENT_COUNT = 4;
+const COURSE_STARTS_AT = new Date('2025-01-15T00:00:00.000Z');
+const COURSE_ENDS_AT = new Date('2025-04-15T00:00:00.000Z');
 
 async function ensureSeedUser() {
   const existingUser = await prisma.user.findFirst();
@@ -292,6 +304,121 @@ async function ensureProductPrice(productId: string, amount: number) {
   });
 
   return price;
+}
+
+type SemesterScheduleSeed = {
+  dayOfWeek: DayOfWeek;
+  slots: Array<{ title?: string; startMinute: number; endMinute: number }>;
+};
+
+async function ensureCourse(seed: {
+  title: string;
+  description: string;
+  ageRangeText: string;
+  durationValue: number;
+  durationUnit: CourseDurationUnit;
+  instructorName: string;
+  prerequisiteText: string;
+  bannerMediaAssetId: string | null;
+  introVideoMediaAssetId: string | null;
+  status: CourseStatus;
+}) {
+  const existing = await prisma.course.findFirst({
+    where: {
+      title: seed.title,
+    },
+  });
+
+  if (existing) {
+    return prisma.course.update({
+      where: { id: existing.id },
+      data: seed,
+    });
+  }
+
+  return prisma.course.create({
+    data: seed,
+  });
+}
+
+async function ensureSemester(
+  courseId: string,
+  seed: {
+    title: string;
+    startsAt: Date;
+    endsAt: Date;
+    tuitionAmountIrr: number;
+    currency: string;
+    lumpSumDiscountAmountIrr: number;
+    installmentPlanEnabled: boolean;
+    installmentCount: number | null;
+    status: SemesterStatus;
+  },
+) {
+  const existing = await prisma.semester.findFirst({
+    where: {
+      courseId,
+      title: seed.title,
+    },
+  });
+
+  const payload = {
+    ...seed,
+    courseId,
+  };
+
+  if (existing) {
+    return prisma.semester.update({
+      where: { id: existing.id },
+      data: payload,
+    });
+  }
+
+  return prisma.semester.create({
+    data: payload,
+  });
+}
+
+async function ensureSemesterSchedule(
+  semesterId: string,
+  schedule: SemesterScheduleSeed[],
+) {
+  for (const day of schedule) {
+    const scheduleDay = await prisma.semesterScheduleDay.upsert({
+      where: {
+        semesterId_dayOfWeek: {
+          semesterId,
+          dayOfWeek: day.dayOfWeek,
+        },
+      },
+      update: {},
+      create: {
+        semesterId,
+        dayOfWeek: day.dayOfWeek,
+      },
+    });
+
+    for (const slot of day.slots) {
+      await prisma.semesterClassSlot.upsert({
+        where: {
+          scheduleDayId_startMinute_endMinute: {
+            scheduleDayId: scheduleDay.id,
+            startMinute: slot.startMinute,
+            endMinute: slot.endMinute,
+          },
+        },
+        update: {
+          title: slot.title ?? null,
+        },
+        create: {
+          scheduleDayId: scheduleDay.id,
+          title: slot.title ?? null,
+          startMinute: slot.startMinute,
+          endMinute: slot.endMinute,
+        },
+      });
+    }
+  }
 }
 
 const APPLICATION_ATTACHMENT_LIMIT = 5;
@@ -640,6 +767,45 @@ async function main() {
 
   const { mediaAsset, transcodeJob } = await ensureSeedMediaAsset(seedUser.id);
 
+  const course = await ensureCourse({
+    title: COURSE_TITLE,
+    description: 'Foundational acting techniques with scene work and improvisation.',
+    ageRangeText: '12-16',
+    durationValue: 3,
+    durationUnit: CourseDurationUnit.month,
+    instructorName: 'Sample Instructor',
+    prerequisiteText: 'No prior experience required.',
+    bannerMediaAssetId: null,
+    introVideoMediaAssetId: null,
+    status: CourseStatus.published,
+  });
+
+  const semester = await ensureSemester(course.id, {
+    title: COURSE_SEMESTER_TITLE,
+    startsAt: COURSE_STARTS_AT,
+    endsAt: COURSE_ENDS_AT,
+    tuitionAmountIrr: COURSE_TUITION_AMOUNT,
+    currency: 'IRR',
+    lumpSumDiscountAmountIrr: COURSE_LUMP_SUM_DISCOUNT,
+    installmentPlanEnabled: true,
+    installmentCount: COURSE_INSTALLMENT_COUNT,
+    status: SemesterStatus.open,
+  });
+
+  await ensureSemesterSchedule(semester.id, [
+    {
+      dayOfWeek: DayOfWeek.sat,
+      slots: [
+        { title: 'Scene Study', startMinute: 600, endMinute: 720 },
+        { title: 'Movement Lab', startMinute: 840, endMinute: 960 },
+      ],
+    },
+    {
+      dayOfWeek: DayOfWeek.mon,
+      slots: [{ title: 'Improv Workshop', startMinute: 1080, endMinute: 1170 }],
+    },
+  ]);
+
   const jobOwnerA = await ensureUserAccount('owner-a@example.com', 'Job Owner A');
   const jobOwnerB = await ensureUserAccount('owner-b@example.com', 'Job Owner B');
 
@@ -921,6 +1087,8 @@ async function main() {
   console.log('Media seed user:', seedUser.id);
   console.log('Media asset:', mediaAsset.id);
   console.log('Transcode job:', transcodeJob.id);
+  console.log('Course:', course.id);
+  console.log('Semester:', semester.id);
   console.log('Job owners:', [jobOwnerA.id, jobOwnerB.id]);
   console.log(
     'Applicants:',

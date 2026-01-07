@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 const FRAME_WIDTH = 1200;
-const TOP = 108;
+const TOP = 50;
 const RIGHT_PADDING = 6;
 
 const GAP_GROUPS = 60;
