@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 
 import { prisma } from "@/lib/db";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
+import { getManifestUrlForMedia } from "@/lib/media/manifest";
 
 import { CourseBannerUploader } from "../_components/course-banner-uploader";
+import { CourseIntroVideoUploader } from "../_components/course-intro-video-uploader";
 import { CourseForm } from "../_components/course-form";
 import { updateCourseAction } from "../actions";
 
@@ -17,6 +19,12 @@ export default async function CourseDetailPage({
     where: { id: params.courseId },
     include: {
       bannerMediaAsset: {
+        select: {
+          outputKey: true,
+          visibility: true,
+        },
+      },
+      introVideoMediaAsset: {
         select: {
           outputKey: true,
           visibility: true,
@@ -36,6 +44,17 @@ export default async function CourseDetailPage({
     course.bannerMediaAsset?.outputKey && course.bannerMediaAsset.visibility === "public"
       ? getPublicMediaUrlFromKey(course.bannerMediaAsset.outputKey)
       : null;
+  let introVideoIsHls = Boolean(course.introVideoMediaAsset?.outputKey?.endsWith(".m3u8"));
+  let introVideoUrl: string | null = null;
+  if (course.introVideoMediaAsset?.outputKey && course.introVideoMediaAsset.visibility === "public") {
+    introVideoUrl = getPublicMediaUrlFromKey(course.introVideoMediaAsset.outputKey);
+  } else if (course.introVideoMediaAssetId) {
+    const manifestInfo = await getManifestUrlForMedia(course.introVideoMediaAssetId);
+    introVideoUrl = manifestInfo?.manifestUrl ?? null;
+  }
+  if (!introVideoIsHls && introVideoUrl) {
+    introVideoIsHls = introVideoUrl.split("?")[0]?.endsWith(".m3u8") ?? false;
+  }
 
   return (
     <div className="space-y-10">
@@ -49,6 +68,12 @@ export default async function CourseDetailPage({
           bannerUrl={bannerUrl}
           bannerMediaAssetId={course.bannerMediaAssetId ?? null}
         />
+        <CourseIntroVideoUploader
+          courseId={course.id}
+          introVideoMediaAssetId={course.introVideoMediaAssetId ?? null}
+          videoUrl={introVideoUrl}
+          isHls={introVideoIsHls}
+        />
         <CourseForm
           initialValues={{
             title: course.title,
@@ -59,7 +84,6 @@ export default async function CourseDetailPage({
             instructorName: course.instructorName,
             prerequisiteText: course.prerequisiteText,
             bannerMediaAssetId: course.bannerMediaAssetId ?? "",
-            introVideoMediaAssetId: course.introVideoMediaAssetId ?? "",
             status: course.status,
           }}
           action={updateCourseAction.bind(null, course.id)}

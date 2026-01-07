@@ -161,20 +161,25 @@ export async function createCourse(values: CourseInput) {
 
 export async function updateCourse(courseId: string, values: CourseInput) {
   await ensureCourse(courseId);
+  const data: Prisma.CourseUpdateInput = {
+    title: values.title,
+    description: values.description,
+    ageRangeText: values.ageRangeText,
+    durationValue: values.durationValue,
+    durationUnit: values.durationUnit,
+    instructorName: values.instructorName,
+    prerequisiteText: values.prerequisiteText,
+    status: values.status ?? "draft",
+  };
+  if (values.bannerMediaAssetId !== undefined) {
+    data.bannerMediaAssetId = values.bannerMediaAssetId ?? null;
+  }
+  if (values.introVideoMediaAssetId !== undefined) {
+    data.introVideoMediaAssetId = values.introVideoMediaAssetId ?? null;
+  }
   return prisma.course.update({
     where: { id: courseId },
-    data: {
-      title: values.title,
-      description: values.description,
-      ageRangeText: values.ageRangeText,
-      durationValue: values.durationValue,
-      durationUnit: values.durationUnit,
-      instructorName: values.instructorName,
-      prerequisiteText: values.prerequisiteText,
-      bannerMediaAssetId: values.bannerMediaAssetId ?? null,
-      introVideoMediaAssetId: values.introVideoMediaAssetId ?? null,
-      status: values.status ?? "draft",
-    },
+    data,
   });
 }
 

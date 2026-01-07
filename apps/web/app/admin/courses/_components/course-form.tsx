@@ -46,7 +46,6 @@ const DEFAULT_VALUES: CourseFormValues = {
   instructorName: "",
   prerequisiteText: "",
   bannerMediaAssetId: "",
-  introVideoMediaAssetId: "",
   status: "draft",
 };
 
@@ -204,33 +203,18 @@ export function CourseForm({
             <p className="text-xs text-destructive">{errors.prerequisiteText}</p>
           ) : null}
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="bannerMediaAssetId">Banner Media Asset ID</Label>
-            <Input
-              id="bannerMediaAssetId"
-              value={values.bannerMediaAssetId ?? ""}
-              onChange={(event) =>
-                setValues((prev) => ({ ...prev, bannerMediaAssetId: event.target.value }))
-              }
-            />
-            {errors.bannerMediaAssetId ? (
-              <p className="text-xs text-destructive">{errors.bannerMediaAssetId}</p>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="introVideoMediaAssetId">Intro Video Media Asset ID</Label>
-            <Input
-              id="introVideoMediaAssetId"
-              value={values.introVideoMediaAssetId ?? ""}
-              onChange={(event) =>
-                setValues((prev) => ({ ...prev, introVideoMediaAssetId: event.target.value }))
-              }
-            />
-            {errors.introVideoMediaAssetId ? (
-              <p className="text-xs text-destructive">{errors.introVideoMediaAssetId}</p>
-            ) : null}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="bannerMediaAssetId">Banner Media Asset ID</Label>
+          <Input
+            id="bannerMediaAssetId"
+            value={values.bannerMediaAssetId ?? ""}
+            onChange={(event) =>
+              setValues((prev) => ({ ...prev, bannerMediaAssetId: event.target.value }))
+            }
+          />
+          {errors.bannerMediaAssetId ? (
+            <p className="text-xs text-destructive">{errors.bannerMediaAssetId}</p>
+          ) : null}
         </div>
         {showStatus ? (
           <div className="space-y-2">

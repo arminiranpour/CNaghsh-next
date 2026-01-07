@@ -127,6 +127,15 @@ export async function fetchPublicSemesterById(courseId: string, semesterId: stri
           id: true,
           title: true,
           instructorName: true,
+          introVideoMediaAsset: {
+            select: {
+              id: true,
+              outputKey: true,
+              posterKey: true,
+              visibility: true,
+              status: true,
+            },
+          },
         },
       },
       scheduleDays: {

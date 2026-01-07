@@ -150,6 +150,14 @@ const BANNER_MIME_EXTENSIONS: Record<string, string> = {
 
 const normalizeMime = (value: string) => value.split(";")[0]?.trim().toLowerCase() ?? "";
 
+const trimToUndefined = (value?: string | null): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
 async function ensureAdmin() {
   const session = await getServerAuthSession();
   const user = session?.user;
@@ -174,6 +182,7 @@ function mapZodError<TFields extends string>(
 }
 
 function normalizeCourseValues(values: CourseFormValues) {
+  const introVideoMediaAssetId = trimToUndefined(values.introVideoMediaAssetId ?? undefined);
   return {
     ...values,
     title: values.title.trim(),
@@ -182,7 +191,7 @@ function normalizeCourseValues(values: CourseFormValues) {
     instructorName: values.instructorName.trim(),
     prerequisiteText: values.prerequisiteText?.trim() ?? "",
     bannerMediaAssetId: values.bannerMediaAssetId?.trim() || null,
-    introVideoMediaAssetId: values.introVideoMediaAssetId?.trim() || null,
+    introVideoMediaAssetId,
   };
 }
 

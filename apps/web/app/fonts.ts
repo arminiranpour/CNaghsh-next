@@ -8,3 +8,19 @@ export const iransans = localFont({
   variable: "--font-iransans",
   display: "swap",
 });
+
+export const iransansMedium = localFont({
+  src: [
+    { path: "../public/fonts/IRANSansWeb_Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-iransans-medium",
+  display: "swap",
+});
+
+export const iransansBold = localFont({
+  src: [
+    { path: "../public/fonts/IRANSansWeb_Bold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-iransans-bold",
+  display: "swap",
+});
