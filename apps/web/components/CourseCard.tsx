@@ -16,28 +16,26 @@ export default function CourseCard({ id, title, ageRangeText, imageUrl }: Course
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        width: "100%",
         backgroundColor: "#1a1a1a",
       }}
       dir="rtl"
     >
-      <div
-        className="relative"
-        style={{
-          width: "360px",
-          height: "360px",
-          backgroundColor: "#1a1a1a",
-        }}
-      >
+    <div className="relative h-full w-full overflow-hidden bg-[#1a1a1a]">
+
         {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-contain"
-          />
+          <div className="flex h-full w-full items-center justify-center">
+            <img
+              src={imageUrl}
+              alt={title}
+              loading="lazy"
+              className="max-h-full max-w-full object-contain"
+              style={{ display: "block" }}
+            />
+          </div>
         ) : (
           <div
-            className="absolute inset-0 flex items-center justify-center"
+            className="flex h-full w-full items-center justify-center"
             style={{ backgroundColor: "#2a2a2a" }}
           >
             <p className="text-sm text-gray-400">بدون تصویر</p>
