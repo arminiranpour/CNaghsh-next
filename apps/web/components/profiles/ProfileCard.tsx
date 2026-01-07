@@ -7,7 +7,6 @@ type FeaturedCardProps = {
   level?: string | null;
   rating?: number | null;
   frameSrc?: string;
-  hoverFrameSrc?: string;
   starSrc?: string;
 };
 
@@ -18,12 +17,10 @@ export default function Card({
   level = "حرفه‌ای",
   rating = 4.5,
   frameSrc = "/cineflash/home/Bazigaran/CardFrame.png",
-  hoverFrameSrc = "/cineflash/home/Bazigaran/Actors frame 1.png",
   starSrc = "/cineflash/home/Bazigaran/Star.png",
 }: FeaturedCardProps) {
   const STAR_W = 12;
   const STAR_H = 11;
-  const NUM_H = 19;
 
   const avatarSrc = avatarUrl && avatarUrl.trim()
     ? avatarUrl
@@ -36,54 +33,36 @@ export default function Card({
 
   return (
     <div
-      className="
-        transition-transform duration-300 ease-out
-        w-[280px] h-[312px]
-        hover:scale-[1.25]
-        flex items-center justify-center
-        origin-center
-        group
-      "
-      style={{ direction: "rtl", transformOrigin: "center center" }}
+      className="relative w-full h-full"
+      style={{ direction: "rtl" }}
     >
       <div
         className="
           relative flex flex-col items-center justify-start text-center
-          w-[280px] h-[312px]
+          w-full h-full
         "
       >
         {/* Default Frame */}
-        <div className="absolute inset-0 pointer-events-none transition-opacity duration-300 ease-out group-hover:opacity-0">
+        <div className="absolute inset-0 pointer-events-none">
           <Image
             src={frameSrc}
             alt="قاب کارت"
             fill
             unoptimized
-            sizes="280px"
+            sizes="100vw"
             style={{ objectFit: "contain" }}
           />
         </div>
 
-        {/* Hover Frame */}
-        <div className="absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100">
-          <Image
-            src={hoverFrameSrc}
-            alt="قاب کارت"
-            fill
-            unoptimized
-            sizes="280px"
-            style={{ objectFit: "contain" }}
-          />
-        </div>
 
         {/* Avatar (Profile Picture) */}
         <div
           className="absolute overflow-hidden"
           style={{
-            top: 10,
-            left: 40,
-            width: 200,
-            height: 160,
+            top: "4.2%",
+            left: "6.3%",
+            width: "87.4%",
+            height: "53.3%",
             borderRadius: "15px",
           }}
         >
@@ -91,83 +70,93 @@ export default function Card({
             src={avatarSrc}
             alt={name}
             fill
-            sizes="113px"
+            sizes="100%"
             style={{ objectFit: "cover" }}
           />
         </div>
 
-        {/* Star */}
+        {/* Star, Rating, and Level Container */}
         <div
-          className="absolute"
+          className="absolute flex items-center justify-between w-full px-[14.3%]"
           style={{
-            top: 190,
-            left: 84,
-            width: STAR_W,
-            height: STAR_H,
+            top: "60.9%",
+            left: 0,
           }}
         >
-          <Image
-            src={starSrc}
-            alt="ستاره"
-            fill
-            unoptimized
-            sizes={`${STAR_W}px`}
-            style={{ objectFit: "contain" }}
-          />
-        </div>
+          {/* Left side: Star and Rating */}
+          <div className="flex items-center gap-[1.8%]">
+            {/* Star */}
+            <div
+              className="relative flex items-center justify-center"
+              style={{
+                width: "4.3%",
+                height: "3.5%",
+                minWidth: "12px",
+                minHeight: "11px",
+              }}
+            >
+              <Image
+                src={starSrc}
+                alt="ستاره"
+                fill
+                unoptimized
+                sizes="4.3%"
+                style={{ objectFit: "contain" }}
+              />
+            </div>
 
-        {/* Rating */}
-        <div
-          className="absolute font-iransans"
-          style={{
-            top: 190,
-            left: 95,
-            fontSize: 12,
-            fontWeight: 600,
-            lineHeight: `${NUM_H}px`,
-            color: "#FF7F19",
-          }}
-        >
-          {rating}
-        </div>
+            {/* Rating */}
+            <div
+              className="font-iransans flex items-center justify-center"
+              style={{
+                fontSize: "clamp(10px, 3.8vw, 12px)",
+                fontWeight: 600,
+                lineHeight: "1.2",
+                color: "#FF7F19",
+              }}
+            >
+              {rating}
+            </div>
+          </div>
 
-        {/* Level */}
-        <div
-          className="absolute flex items-center justify-center font-iransans"
-          style={{
-            left: 163,
-            top: 190,
-            width: 47,
-            height: 14,
-            backgroundColor: "#Ff7F19",
-            borderRadius: 19,
-          }}
-        >
-          <span
+          {/* Right side: Level */}
+          <div
+            className="flex items-center justify-center font-iransans"
             style={{
-              fontFamily: "IRANSans",
-              fontSize: 10,
-              color: "#ffffff",
-              lineHeight: "14px",
-              fontWeight: 500,
+              width: "16.8%",
+              height: "4.5%",
+              minWidth: "47px",
+              minHeight: "14px",
+              backgroundColor: "#Ff7F19",
+              borderRadius: "19px",
             }}
           >
-            {level}
-          </span>
+            <span
+              style={{
+                fontFamily: "IRANSans",
+                fontSize: "clamp(8px, 3.2vw, 10px)",
+                color: "#ffffff",
+                lineHeight: "1",
+                fontWeight: 500,
+              }}
+            >
+              {level}
+            </span>
+          </div>
         </div>
 
         {/* Name + Age */}
         <div
           className="absolute w-full text-center"
-          style={{ bottom: 50, left: 0 }}
+          style={{ bottom: "16%", left: 0 }}
         >
           <div
             style={{
               fontFamily: "IRANSans",
-              fontSize: 18,
+              fontSize: "clamp(14px, 5.8vw, 18px)",
               fontWeight: 800,
               color: "#0F0F0F",
-              lineHeight: "34px",
+              lineHeight: "1.2",
             }}
           >
             {name}
@@ -175,9 +164,9 @@ export default function Card({
 
           <div
             style={{
-              marginTop: 6,
+              marginTop: "1.9%",
               fontFamily: "IRANSans",
-              fontSize: 11,
+              fontSize: "clamp(9px, 3.5vw, 11px)",
               fontWeight: 400,
               color: "#0F0F0F",
             }}

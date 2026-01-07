@@ -14,6 +14,7 @@ type ProfilesGridProps = {
   cityMap: Map<string, string>; // kept for compatibility
   normalized: NormalizedSearchParams;
   currentPage: number;
+  lastPage?: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
   clearHref: string;
@@ -25,6 +26,7 @@ export function ProfilesGrid({
   cityMap, // currently unused inside; safe to keep for future
   normalized,
   currentPage,
+  lastPage,
   hasNextPage,
   hasPrevPage,
   clearHref,
@@ -34,12 +36,12 @@ export function ProfilesGrid({
     return <EmptyState clearHref={clearHref} className={className} />;
   }
 
-  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage);
+  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage, lastPage);
 
   return (
     <section className={cn("flex flex-col gap-5", className)} dir="rtl" aria-label="لیست بازیگران">
-      <div className="p-4">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 place-items-center">
+      <div className="p-1">
+        <div className="grid gap-7 sm:grid-cols-4 xl:grid-cols-3 place-items-center">
           {profiles.map((item) => {
             const displayName = resolveDisplayName(item);
 
@@ -48,6 +50,7 @@ export function ProfilesGrid({
                 key={item.id}
                 href={`/profiles/${item.id}`}
                 className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                style={{ width: "230px", height: "325px" }}
               >
                 <ProfileCard
                   name={displayName}
@@ -62,86 +65,68 @@ export function ProfilesGrid({
       </div>
 
       <nav
-        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-white/90 px-4 py-3 text-sm shadow-sm"
+        className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm shadow-sm"
         aria-label="صفحه‌بندی"
       >
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!hasPrevPage}
-          asChild={hasPrevPage}
-          className="min-w-[96px]"
-        >
-          {hasPrevPage ? (
-            <Link
-              href={buildProfilesHref(normalized, () => ({
-                page: currentPage - 1 > 1 ? currentPage - 1 : undefined,
-              }))}
-            >
-              قبلی
-            </Link>
-          ) : (
-            <span>قبلی</span>
-          )}
-        </Button>
-
         <div className="flex items-center gap-2">
-          {pageItems.map((page) => (
-            <Button
-              key={page}
-              size="sm"
-              variant={page === currentPage ? "default" : "outline"}
-              asChild
-              className={cn(
-                "h-9 w-9 rounded-full text-sm",
-                page === currentPage ? "bg-foreground text-background" : "bg-white",
-              )}
-            >
-              <Link
-                href={buildProfilesHref(normalized, () => ({
-                  page: page > 1 ? page : undefined,
-                }))}
-                aria-current={page === currentPage ? "page" : undefined}
+          {pageItems.map((item, index) =>
+            item === "..." ? (
+              <span key={`ellipsis-${index}`} className="px-2 text-lg font-bold text-[#1F1F1F]">
+                ...
+              </span>
+            ) : (
+              <Button
+                key={`page-${item}`}
+                size="sm"
+                variant="outline"
+                asChild
+                className={cn(
+                  "h-7 w-7 rounded-full border bg-white text-sm font-bold",
+                  item === currentPage
+                    ? "border-transparent bg-[#F37C1F] text-white"
+                    : "border-border text-[#1F1F1F]",
+                )}
               >
-                {page}
-              </Link>
-            </Button>
-          ))}
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!hasNextPage}
-          asChild={hasNextPage}
-          className="min-w-[96px]"
-        >
-          {hasNextPage ? (
-            <Link
-              href={buildProfilesHref(normalized, () => ({
-                page: currentPage + 1,
-              }))}
-            >
-              بعدی
-            </Link>
-          ) : (
-            <span>بعدی</span>
+                <Link
+                  href={buildProfilesHref(normalized, () => ({
+                    page: item > 1 ? item : undefined,
+                  }))}
+                  aria-current={item === currentPage ? "page" : undefined}
+                >
+                  {item}
+                </Link>
+              </Button>
+            ),
           )}
-        </Button>
+        </div>
       </nav>
     </section>
   );
 }
 
-function buildPageList(current: number, hasPrevPage: boolean, hasNextPage: boolean) {
-  const pages = new Set<number>([current]);
-  if (hasPrevPage && current > 1) {
-    pages.add(current - 1);
+type PageItem = number | "...";
+
+function buildPageList(
+  current: number,
+  hasPrevPage: boolean,
+  hasNextPage: boolean,
+  lastPage?: number,
+): PageItem[] {
+  const inferredLast = lastPage ?? (hasNextPage ? current + 1 : current);
+  const safeLast = Math.max(inferredLast, current);
+
+  if (safeLast <= 1) return [1];
+  if (safeLast <= 4) return Array.from({ length: safeLast }, (_, i) => i + 1);
+
+  if (current <= 2) {
+    return [1, 2, 3, "...", safeLast];
   }
-  if (hasNextPage) {
-    pages.add(current + 1);
+
+  if (current >= safeLast - 1) {
+    return [1, "...", safeLast - 2, safeLast - 1, safeLast];
   }
-  return Array.from(pages).sort((a, b) => a - b);
+
+  return [1, current, current + 1, "...", safeLast];
 }
 
 function resolveDisplayName(item: {

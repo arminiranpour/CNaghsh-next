@@ -40,7 +40,7 @@ export function ProfilesSearchBar({ initialQuery = "", className }: ProfilesSear
 
   return (
 <form onSubmit={applySearch} className={cn("w-full", className)} role="search" dir="rtl">
-  <div className="flex w-full items-center gap-3 rounded-full border border-border bg-neutral-200/40 px-2 py-0 shadow-sm backdrop-blur">
+  <div className="flex w-full items-center gap-3 rounded-full border border-border bg-[#FFFFFF80] px-2 py-0">
     
     <Input
       type="search"
