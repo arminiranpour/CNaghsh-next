@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 const FRAME_WIDTH = 1200;
 const TOP = 50;
@@ -23,6 +24,7 @@ const LOGO_H = 43;
 export default function Header() {
   // برای هاور شدن هر آیتم
   const [hovered, setHovered] = useState<string | null>(null);
+  const { data: session } = useSession();
 
   // فیلتر نارنجی (مثل قبل)
   const orangeFilter =
@@ -31,14 +33,12 @@ export default function Header() {
   return (
     <header
       style={{
-        position: "absolute",
-        top: TOP,
-        left: "48%",
-        transform: "translateX(-50%)",
-        width: FRAME_WIDTH,
-        height: 0,
+        position: "relative",
+        width: "100%",
+        paddingTop: TOP,
+        paddingBottom: TOP,
+        backgroundColor: "transparent",
         zIndex: 60,
-        pointerEvents: "none",
         direction: "rtl",
         fontFamily: "IRANSans",
         color: "#fff",
@@ -46,14 +46,14 @@ export default function Header() {
     >
       <div
         style={{
-          position: "absolute",
-          right: RIGHT_PADDING,
-          top: 0,
+          maxWidth: FRAME_WIDTH,
+          width: "100%",
+          margin: "0 auto",
+          paddingRight: RIGHT_PADDING,
+          paddingLeft: RIGHT_PADDING,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          width: "100%",
-          pointerEvents: "auto",
         }}
       >
         {/* راست: آیکن‌ها + متن‌ها */}
@@ -94,8 +94,8 @@ export default function Header() {
             </a>
 
             {/* User */}
-            <a
-              href="#"
+            <Link
+              href={session?.user ? "/dashboard/profile" : "/auth?tab=signup"}
               aria-label="user"
               onMouseEnter={() => setHovered("user")}
               onMouseLeave={() => setHovered(null)}
@@ -107,6 +107,7 @@ export default function Header() {
                 border: 0,
                 background: "transparent",
                 cursor: "pointer",
+                textDecoration: "none",
               }}
             >
               <Image
@@ -123,7 +124,7 @@ export default function Header() {
                   transform: hovered === "user" ? "translateY(-1px)" : "none",
                 }}
               />
-            </a>
+            </Link>
           </div>
 
           {/* متن‌ها */}
@@ -139,7 +140,7 @@ export default function Header() {
             }}
           >
             <Link
-              href="/auth/register"
+              href="/auth?tab=signup"
               onMouseEnter={() => setHovered("register")}
               onMouseLeave={() => setHovered(null)}
               style={{
@@ -153,7 +154,7 @@ export default function Header() {
             </Link>
 
             <Link
-              href="/talents/search"
+              href="/profiles"
               onMouseEnter={() => setHovered("search")}
               onMouseLeave={() => setHovered(null)}
               style={{
@@ -169,12 +170,15 @@ export default function Header() {
         </div>
 
         {/* چپ: لوگو (بدون تغییر) */}
-        <div
+        <Link
+          href="/"
           style={{
             position: "relative",
             width: LOGO_W,
             height: LOGO_H,
             marginLeft: GAP_LOGO,
+            display: "block",
+            textDecoration: "none",
           }}
         >
           <Image
@@ -186,7 +190,7 @@ export default function Header() {
             unoptimized
             priority
           />
-        </div>
+        </Link>
       </div>
     </header>
   );

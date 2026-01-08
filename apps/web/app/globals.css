@@ -71,7 +71,7 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: var(--font-vazirmatn), var(--font-sans), sans-serif;
+  font-family: var(--font-iransans-medium), var(--font-vazirmatn), var(--font-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -21,7 +21,7 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ["Vazirmatn", "var(--font-sans)", "sans-serif"]
+        sans: ["var(--font-iransans-medium)", "Vazirmatn", "var(--font-sans)", "sans-serif"]
       },
       colors: {
         border: "hsl(var(--border))",
