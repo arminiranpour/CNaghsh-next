@@ -61,13 +61,13 @@ export default function RootLayout({
 
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning className={iransansMedium.className}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className="min-h-screen font-sans antialiased">
         <SessionProvider>
           <ThemeProvider>
-            <div className="flex min-h-screen flex-col bg-background">
+            <div className="flex min-h-screen flex-col">
               <ConsentGate />
               {!isAuthRoute ? <Header /> : null}
-              <main className="flex-1">{children}</main>
+              <main className={`flex-1${isAuthRoute ? "" : " pt-36"}`}>{children}</main>
               <JsonLd data={organizationJsonLd} />
               {!isAuthRoute ? (
                 <footer className="border-t border-border bg-card/50">
