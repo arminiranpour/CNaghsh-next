@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PersianDatePicker } from "@/components/ui/PersianDatePicker";
 
-import { updateAwards } from "../actions";
+import { updateAwards } from "@/lib/profile/profile-actions";
 
 export type AwardEntry = {
   id?: string;

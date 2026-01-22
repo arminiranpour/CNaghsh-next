@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
-import { updateSkills } from "../actions";
+import { updateSkills } from "@/lib/profile/profile-actions";
 
 type SkillsFormProps = {
   initialSkills: SkillKey[];

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import type { UploadErrorResponse, UploadInitResponse } from "@/lib/media/types";
 
-import { updateVoices } from "../actions";
+import { updateVoices } from "@/lib/profile/profile-actions";
 
 type VoiceEntry = {
   mediaId: string;

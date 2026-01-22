@@ -1,11 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 const ORANGE = "#F58A1F";
 const GRAY = "#7C7C7C";
 
-type ActionId = "bookmark" | "share" | "favorite";
+type ActionId = "share" | "favorite";
+
+type TopActionsProps = {
+  canEdit?: boolean;
+  onEditClick?: () => void;
+};
 
 const ICONS: Record<ActionId, JSX.Element> = {
   favorite: (
@@ -41,19 +47,9 @@ const ICONS: Record<ActionId, JSX.Element> = {
       />
     </svg>
   ),
-  bookmark: (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M6 2h12a1 1 0 0 1 1 1v18l-7-4-7 4V3a1 1 0 0 1 1-1z"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
-    </svg>
-  ),
 };
 
-export function TopActions() {
+export function TopActions({ canEdit, onEditClick }: TopActionsProps) {
   const [activeAction, setActiveAction] = useState<ActionId | null>(null);
 
   return (
@@ -72,7 +68,7 @@ export function TopActions() {
         zIndex: 10, // مهم: روی اسلاید قرار بگیرد تا کلیک‌ها را بگیرد
       }}
     >
-      {(["bookmark", "share", "favorite"] as ActionId[]).map((id) => {
+      {(["share", "favorite"] as ActionId[]).map((id) => {
         const isActive = id === activeAction;
 
         return (
@@ -109,6 +105,32 @@ export function TopActions() {
       >
         ۲۵۳۲
       </span>
+
+      {canEdit ? (
+        <button
+          type="button"
+          onClick={() => onEditClick?.()}
+          style={{
+            width: 25,
+            height: 25,
+            padding: 0,
+            margin: 0,
+            border: "none",
+            backgroundColor: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <Image
+            src="/cineflash/profile/edit.png"
+            alt="ویرایش پروفایل"
+            width={16}
+            height={16}
+          />
+        </button>
+      ) : null}
     </div>
   );
 }

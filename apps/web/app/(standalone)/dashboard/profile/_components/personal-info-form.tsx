@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import type { City } from "@/lib/location/cities";
 
-import { upsertPersonalInfo } from "../actions";
+import { upsertPersonalInfo } from "@/lib/profile/profile-actions";
 
 type PersonalInfoFormValues = {
   firstName: string;

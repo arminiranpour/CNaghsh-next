@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 
-import { unpublishProfile } from "../actions";
+import { unpublishProfile } from "@/lib/profile/profile-actions";
 
 type PublishStatusBannerProps = {
   canPublish: boolean;

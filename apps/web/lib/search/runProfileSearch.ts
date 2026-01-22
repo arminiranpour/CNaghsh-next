@@ -331,8 +331,12 @@ function buildAccentClause(accents: string[] | undefined): Prisma.Sql | null {
   return Prisma.sql`
     AND EXISTS (
       SELECT 1
-      FROM jsonb_array_elements_text(COALESCE(p."accents"::jsonb, '[]'::jsonb)) accent(value)
-      WHERE lower(accent.value) = ANY(${normalized})
+      FROM jsonb_array_elements(COALESCE(p."accents"::jsonb, '[]'::jsonb)) accent(value)
+      WHERE (
+        (jsonb_typeof(accent.value) = 'string' AND lower(accent.value #>> '{}') = ANY(${normalized}))
+        OR (jsonb_typeof(accent.value) = 'object' AND lower(coalesce(accent.value->>'title','')) = ANY(${normalized}))
+        OR (jsonb_typeof(accent.value) = 'object' AND lower(coalesce(accent.value->>'label','')) = ANY(${normalized}))
+      )
     )
   `;
 }

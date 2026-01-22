@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
-import { updateAccents } from "../actions";
+import { updateAccents } from "@/lib/profile/profile-actions";
 
 type AccentsFormProps = {
   initialAccents: string[];

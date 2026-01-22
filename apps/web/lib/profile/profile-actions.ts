@@ -180,6 +180,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       cityId: (formData.get("cityId") ?? "").toString().trim(),
       avatarUrl: typeof rawAvatarUrl === "string" ? rawAvatarUrl.trim() : "",
       bio: (formData.get("bio") ?? "").toString().trim(),
+      birthDate: (formData.get("birthDate") ?? "").toString().trim(),
       introVideoMediaId: (formData.get("introVideoMediaId") ?? "").toString().trim(),
     } satisfies Record<keyof z.infer<typeof personalInfoSchema>, unknown>;
 
@@ -207,6 +208,38 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
 
     const data = parsed.data;
 
+    let birthDate: Date | null = null;
+
+    if (data.birthDate && data.birthDate.trim()) {
+      const parts = data.birthDate.split("-").map((value) => Number(value));
+      if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
+        return {
+          ok: false,
+          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+        };
+      }
+
+      const [year, month, day] = parts;
+      const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+      if (Number.isNaN(parsedDate.getTime())) {
+        return {
+          ok: false,
+          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+        };
+      }
+
+      const today = new Date();
+      if (parsedDate > today) {
+        return {
+          ok: false,
+          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+        };
+      }
+
+      birthDate = parsedDate;
+    }
+
     let introVideoMediaId: string | null = null;
 
     if (data.introVideoMediaId && data.introVideoMediaId.trim()) {
@@ -225,6 +258,11 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       select: MODERATION_PROFILE_SELECT,
     });
 
+    const cleanedAge = typeof data.age === "number" ? data.age : null;
+    const cleanedPhone = data.phone?.trim() ? data.phone.trim() : null;
+    const cleanedAddress = data.address?.trim() ? data.address.trim() : null;
+    const cleanedCityId = data.cityId?.trim() ? data.cityId.trim() : null;
+
     const result = await prisma.profile.upsert({
       where: { userId },
       create: {
@@ -232,24 +270,26 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
         firstName: data.firstName,
         lastName: data.lastName,
         stageName: data.stageName?.trim() ? data.stageName.trim() : null,
-        age: data.age,
-        phone: data.phone,
-        address: data.address?.trim() ? data.address.trim() : null,
-        cityId: data.cityId,
+        age: cleanedAge,
+        phone: cleanedPhone,
+        address: cleanedAddress,
+        cityId: cleanedCityId,
         avatarUrl: data.avatarUrl,
         bio: data.bio?.trim() ? data.bio.trim() : null,
+        birthDate,
         introVideoMediaId,
       },
       update: {
         firstName: data.firstName,
         lastName: data.lastName,
         stageName: data.stageName?.trim() ? data.stageName.trim() : null,
-        age: data.age,
-        phone: data.phone,
-        address: data.address?.trim() ? data.address.trim() : null,
-        cityId: data.cityId,
+        age: cleanedAge,
+        phone: cleanedPhone,
+        address: cleanedAddress,
+        cityId: cleanedCityId,
         avatarUrl: data.avatarUrl,
         bio: data.bio?.trim() ? data.bio.trim() : null,
+        birthDate,
         introVideoMediaId,
       },
       select: MODERATION_PROFILE_SELECT,
@@ -344,6 +384,28 @@ export async function updateLanguages(formData: FormData): Promise<LanguagesActi
       };
     }
 
+    const cleanedLanguages =
+      parsed.data?.map((entry) => {
+        const mediaId = entry.mediaId?.trim() ?? "";
+        const url = entry.url?.trim() ?? "";
+        const duration =
+          typeof entry.duration === "number" && Number.isFinite(entry.duration)
+            ? entry.duration
+            : null;
+
+        return {
+          label: entry.label.trim(),
+          level: entry.level,
+          ...(mediaId && url
+            ? {
+                mediaId,
+                url,
+                duration,
+              }
+            : {}),
+        };
+      }) ?? [];
+
     const previousProfile = await prisma.profile.findUnique({
       where: { userId },
       select: MODERATION_PROFILE_SELECT,
@@ -353,10 +415,10 @@ export async function updateLanguages(formData: FormData): Promise<LanguagesActi
       where: { userId },
       create: {
         userId,
-        languages: parsed.data,
+        languages: cleanedLanguages,
       },
       update: {
-        languages: parsed.data,
+        languages: cleanedLanguages,
       },
       select: MODERATION_PROFILE_SELECT,
     });
@@ -403,8 +465,73 @@ export async function updateAccents(formData: FormData): Promise<AccentsActionRe
       };
     }
 
-    const cleanedAccents =
-      parsed.data?.map((item) => item.trim()).filter((value) => value.length > 0) ?? [];
+    const cleanedAccents: Array<{
+      title: string;
+      mediaId?: string;
+      url?: string;
+      duration?: number | null;
+    }> = [];
+    const seen = new Set<string>();
+
+    for (const entry of parsed.data ?? []) {
+      if (typeof entry === "string") {
+        const title = entry.trim();
+        if (!title) {
+          continue;
+        }
+        const key = title.toLowerCase();
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        cleanedAccents.push({ title });
+        continue;
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        continue;
+      }
+
+      const title =
+        typeof (entry as { title?: unknown }).title === "string"
+          ? ((entry as { title?: string }).title ?? "").trim()
+          : "";
+
+      if (!title) {
+        continue;
+      }
+
+      const dedupeKey = title.toLowerCase();
+      if (seen.has(dedupeKey)) {
+        continue;
+      }
+
+      const mediaId =
+        typeof (entry as { mediaId?: unknown }).mediaId === "string"
+          ? ((entry as { mediaId?: string }).mediaId ?? "").trim()
+          : "";
+      const url =
+        typeof (entry as { url?: unknown }).url === "string"
+          ? ((entry as { url?: string }).url ?? "").trim()
+          : "";
+      const duration =
+        typeof (entry as { duration?: unknown }).duration === "number" &&
+        Number.isFinite((entry as { duration?: number }).duration)
+          ? (entry as { duration?: number }).duration
+          : null;
+
+      seen.add(dedupeKey);
+      cleanedAccents.push({
+        title,
+        ...(mediaId && url
+          ? {
+              mediaId,
+              url,
+              duration,
+            }
+          : {}),
+      });
+    }
 
     const previousProfile = await prisma.profile.findUnique({
       where: { userId },
@@ -515,6 +642,23 @@ export async function updateExperience(formData: FormData): Promise<ExperienceAc
       };
     }
 
+    const cleanedExperience = {
+      ...parsed.data,
+      resume:
+        parsed.data.resume?.map((entry) => ({
+          type: entry.type?.trim() ?? "",
+          title: entry.title?.trim() ?? "",
+          position: entry.position?.trim() ?? "",
+          role: entry.role?.trim() ?? "",
+          director: entry.director?.trim() ?? "",
+        }))?.filter((entry) => Object.values(entry).some((value) => value)) ?? [],
+      courses:
+        parsed.data.courses?.map((entry) => ({
+          title: entry.title?.trim() ?? "",
+          instructor: entry.instructor?.trim() ?? "",
+        }))?.filter((entry) => entry.title || entry.instructor) ?? [],
+    };
+
     const previousProfile = await prisma.profile.findUnique({
       where: { userId },
       select: MODERATION_PROFILE_SELECT,
@@ -524,10 +668,10 @@ export async function updateExperience(formData: FormData): Promise<ExperienceAc
       where: { userId },
       create: {
         userId,
-        experience: parsed.data,
+        experience: cleanedExperience,
       },
       update: {
-        experience: parsed.data,
+        experience: cleanedExperience,
       },
       select: MODERATION_PROFILE_SELECT,
     });

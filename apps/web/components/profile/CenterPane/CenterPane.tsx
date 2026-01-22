@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import type { ProfileTabId, PublicProfileData } from "@/components/profile/ProfilePageClient";
 import { PersonalInfoSlide } from "@/components/profile/CenterPane/PersonalInfoSlide";
 import { GallerySlide } from "@/components/profile/CenterPane/GallerySlide";
@@ -12,9 +14,18 @@ import { TopActions } from "./TopActions";
 type CenterPaneProps = {
   activeTab: ProfileTabId;
   profile: PublicProfileData;
+  children?: ReactNode;
+  canEdit?: boolean;
+  onEditClick?: () => void;
 };
 
-export function CenterPane({ activeTab, profile }: CenterPaneProps) {
+export function CenterPane({
+  activeTab,
+  profile,
+  children,
+  canEdit,
+  onEditClick,
+}: CenterPaneProps) {
   return (
     <section
       aria-label="محتوای اصلی پروفایل"
@@ -32,7 +43,8 @@ export function CenterPane({ activeTab, profile }: CenterPaneProps) {
         fontFamily: "IRANSans, sans-serif",
       }}
     >
-      <TopActions />
+      <TopActions canEdit={canEdit} onEditClick={onEditClick} />
+      {children}
       {activeTab === "personal" ? (
         <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />
       ) : null}

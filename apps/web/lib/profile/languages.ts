@@ -3,6 +3,9 @@ export type LanguageOptionKey = "fa" | "en" | "tr";
 export type LanguageSkill = {
   label: string;
   level: number;
+  mediaId?: string;
+  url?: string;
+  duration?: number | null;
 };
 
 export const LANGUAGE_OPTIONS: { key: LanguageOptionKey; label: string }[] = [
@@ -59,13 +62,37 @@ export function normalizeLanguageSkills(value: unknown): LanguageSkill[] {
       continue;
     }
 
+    const mediaId =
+      typeof (entry as { mediaId?: unknown }).mediaId === "string"
+        ? ((entry as { mediaId?: string }).mediaId ?? "").trim()
+        : "";
+    const url =
+      typeof (entry as { url?: unknown }).url === "string"
+        ? ((entry as { url?: string }).url ?? "").trim()
+        : "";
+    const duration =
+      typeof (entry as { duration?: unknown }).duration === "number" &&
+      Number.isFinite((entry as { duration?: number }).duration)
+        ? (entry as { duration?: number }).duration
+        : null;
+
     const dedupeKey = label.toLowerCase();
     if (seen.has(dedupeKey)) {
       continue;
     }
 
     seen.add(dedupeKey);
-    result.push({ label, level: numericLevel });
+    result.push({
+      label,
+      level: numericLevel,
+      ...(mediaId && url
+        ? {
+            mediaId,
+            url,
+            duration,
+          }
+        : {}),
+    });
   }
 
   return result;

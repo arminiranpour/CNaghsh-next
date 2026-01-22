@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 
-import { deleteImage, uploadImage } from "../actions";
+import { deleteImage, uploadImage } from "@/lib/profile/profile-actions";
 
 type GalleryImage = {
   url: string;

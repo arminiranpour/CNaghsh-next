@@ -21,7 +21,7 @@ import {
   type LanguageSkill,
 } from "@/lib/profile/languages";
 
-import { updateLanguages } from "../actions";
+import { updateLanguages } from "@/lib/profile/profile-actions";
 
 type LanguageFormEntry = {
   id: string;

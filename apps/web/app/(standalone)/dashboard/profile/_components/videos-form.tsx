@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
-import { updateVideos } from "../actions";
+import { updateVideos } from "@/lib/profile/profile-actions";
 
 type VideoFormEntry = {
   id: string;

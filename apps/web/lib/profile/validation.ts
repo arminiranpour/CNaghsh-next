@@ -29,21 +29,31 @@ export const personalInfoSchema = z.object({
   firstName: z.string().trim().min(1, "لطفاً نام را وارد کنید.").max(191),
   lastName: z.string().trim().min(1, "لطفاً نام خانوادگی را وارد کنید.").max(191),
   stageName: z.string().trim().max(191).optional().or(z.literal("")),
-  age: z.coerce.number().int().min(5, "سن معتبر نیست.").max(120, "سن معتبر نیست."),
+  age: z
+    .preprocess(
+      (value) => (value === "" || value === null || value === undefined ? undefined : value),
+      z.coerce.number().int().min(5, "سن معتبر نیست.").max(120, "سن معتبر نیست."),
+    )
+    .optional(),
   phone: z
     .string()
     .trim()
-    .regex(/^0\d{10}$/, "شماره تلفن باید با 0 شروع شده و 11 رقم باشد."),
+    .regex(/^0\d{10}$/, "شماره تلفن باید با 0 شروع شده و 11 رقم باشد.")
+    .optional()
+    .or(z.literal("")),
   address: z.string().trim().max(1000).optional().or(z.literal("")),
-  cityId: z
-    .string()
-    .trim()
-    .min(1, "لطفاً شهر را انتخاب کنید."),
+  cityId: z.string().trim().optional().or(z.literal("")),
   avatarUrl: z
     .string()
     .trim()
     .refine(isValidAvatarUrl, AVATAR_URL_ERROR),
   bio: z.string().trim().max(2000).optional().or(z.literal("")),
+  birthDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "تاریخ باید به صورت YYYY-MM-DD باشد.")
+    .optional()
+    .or(z.literal("")),
   introVideoMediaId: z
     .string()
     .trim()
@@ -72,6 +82,27 @@ export const experienceSchema = z.object({
   shortFilm: z.array(experienceEntrySchema).optional().default([]),
   cinema: z.array(experienceEntrySchema).optional().default([]),
   tv: z.array(experienceEntrySchema).optional().default([]),
+  resume: z
+    .array(
+      z.object({
+        type: z.string().trim().max(191).optional().or(z.literal("")),
+        title: z.string().trim().max(191).optional().or(z.literal("")),
+        position: z.string().trim().max(191).optional().or(z.literal("")),
+        role: z.string().trim().max(191).optional().or(z.literal("")),
+        director: z.string().trim().max(191).optional().or(z.literal("")),
+      }),
+    )
+    .optional()
+    .default([]),
+  courses: z
+    .array(
+      z.object({
+        title: z.string().trim().max(191).optional().or(z.literal("")),
+        instructor: z.string().trim().max(191).optional().or(z.literal("")),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 const languageEntrySchema = z.object({
@@ -81,11 +112,24 @@ const languageEntrySchema = z.object({
     .int()
     .min(1, "سطح باید بین ۱ تا ۵ باشد.")
     .max(LANGUAGE_LEVEL_MAX, "سطح باید بین ۱ تا ۵ باشد."),
+  mediaId: z.string().trim().max(191).optional().or(z.literal("")),
+  url: z.string().trim().url().optional().or(z.literal("")),
+  duration: z.number().nonnegative().optional().nullable(),
 });
 
 export const languagesSchema = z.array(languageEntrySchema).optional().default([]);
 
-export const accentsSchema = z.array(z.string().trim().max(100)).optional().nullable();
+export const accentEntrySchema = z.object({
+  title: z.string().trim().min(1, "لطفاً عنوان لهجه را وارد کنید.").max(100),
+  mediaId: z.string().trim().max(191).optional().or(z.literal("")),
+  url: z.string().trim().url().optional().or(z.literal("")),
+  duration: z.number().nonnegative().optional().nullable(),
+});
+
+export const accentsSchema = z
+  .array(z.union([z.string().trim().max(100), accentEntrySchema]))
+  .optional()
+  .nullable();
 
 export const degreeEntrySchema = z.object({
   degreeLevel: z.string().trim().max(100),

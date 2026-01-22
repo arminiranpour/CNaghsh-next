@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
-import { updateExperience } from "../actions";
+import { updateExperience } from "@/lib/profile/profile-actions";
 
 type ExperienceEntry = {
   role: string;
