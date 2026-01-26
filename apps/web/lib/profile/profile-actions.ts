@@ -22,6 +22,7 @@ import {
   personalInfoSchema,
   profileVideosSchema,
   awardsSchema,
+  gallerySchema,
   voicesSchema,
   skillsSchema,
 } from "@/lib/profile/validation";
@@ -920,6 +921,75 @@ export async function updateVoices(formData: FormData): Promise<VoicesActionResu
     }
 
     console.error("updateVoices", error);
+    return { ok: false, error: GENERIC_ERROR };
+  }
+}
+
+export async function updateGallery(formData: FormData): Promise<GalleryActionResult> {
+  try {
+    const userId = await ensureSessionUserId();
+    const rawGallery = formData.get("gallery");
+
+    if (typeof rawGallery !== "string") {
+      return { ok: false, error: "لطفاً تصاویر گالری را بررسی کنید." };
+    }
+
+    let parsedGallery: unknown;
+
+    try {
+      parsedGallery = JSON.parse(rawGallery);
+    } catch {
+      return { ok: false, error: "ساختار گالری معتبر نیست." };
+    }
+
+    const parsed = gallerySchema.safeParse(parsedGallery);
+
+    if (!parsed.success) {
+      return { ok: false, error: "لطفاً تصاویر گالری را بررسی کنید." };
+    }
+
+    const cleaned =
+      parsed.data
+        ?.map((entry) => {
+          const url = entry.url.trim();
+          if (!url) {
+            return null;
+          }
+          const slot = entry.slot?.trim();
+          return slot ? { url, slot } : { url };
+        })
+        .filter((entry): entry is { url: string; slot?: string } => Boolean(entry)) ?? [];
+
+    const trimmed = cleaned.slice(0, 7);
+
+    const previousProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    const result = await prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        gallery: trimmed.length ? trimmed : Prisma.DbNull,
+      },
+      update: {
+        gallery: trimmed.length ? trimmed : Prisma.DbNull,
+      },
+      select: MODERATION_PROFILE_SELECT,
+    });
+
+    await maybeMarkPendingOnCriticalEdit({ old: previousProfile, next: result });
+    await revalidateProfilePaths(result.id);
+    await enforceUserProfileVisibility(userId);
+
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Error && error.message === AUTH_ERROR) {
+      return { ok: false, error: AUTH_ERROR };
+    }
+
+    console.error("updateGallery", error);
     return { ok: false, error: GENERIC_ERROR };
   }
 }

@@ -1,16 +1,23 @@
 "use client";
 
+import Image from "next/image";
+import addImage from "./add-image.png";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
   useTransition,
+  type CSSProperties,
   type ChangeEvent,
   type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
 
+import type { ProfileTabId } from "@/components/profile/ProfilePageClient";
+import { AudioWaveform } from "@/components/profile/CenterPane/AudioSlide";
+import type { WaveformAudioPlayerHandle } from "@/components/ui/WaveformAudioPlayer";
 import { useToast } from "@/components/ui/use-toast";
 import type { City } from "@/lib/location/cities";
 import { LANGUAGE_LEVEL_MAX, type LanguageSkill } from "@/lib/profile/languages";
@@ -26,9 +33,13 @@ import type {
 import {
   updateAccents,
   updateDegrees,
+  updateGallery,
   updateExperience,
   updateLanguages,
   updateSkills,
+  updateVideos,
+  updateVoices,
+  uploadImage,
   upsertPersonalInfo,
 } from "@/lib/profile/profile-actions";
 
@@ -41,6 +52,11 @@ type AudioAttachment = {
   mediaId: string;
   url: string;
   duration?: number | null;
+};
+
+type VideoAttachment = {
+  mediaId: string;
+  url?: string | null;
 };
 
 type LanguageEntryState = {
@@ -61,6 +77,21 @@ type SkillEntryState = {
   value: SkillKey | "";
 };
 
+type VideoEntryState = {
+  id: string;
+  title: string;
+  recordedMonth: string;
+  recordedYear: string;
+  mediaId?: string;
+  url?: string | null;
+};
+
+type VoiceEntryState = {
+  id: string;
+  title: string;
+  audio?: AudioAttachment | null;
+};
+
 type ResumeEntryState = ResumeEntry & { id: string };
 type CourseEntryState = CourseEntry & { id: string };
 type DegreeEntryState = {
@@ -68,6 +99,20 @@ type DegreeEntryState = {
   degreeLevel: string;
   major: string;
 };
+
+type GalleryAsset = {
+  url: string;
+  slot?: "headshotFront" | "profileSide" | "profileThreeQuarter" | "fullBody" | "other";
+};
+
+type GallerySlotId =
+  | "headshotFront"
+  | "profileSide"
+  | "profileThreeQuarter"
+  | "fullBody"
+  | "other-0"
+  | "other-1"
+  | "other-2";
 
 type PortfolioEditCenterPaneProps = {
   initialValues: PortfolioEditInitialValues;
@@ -78,7 +123,13 @@ type PortfolioEditCenterPaneProps = {
 };
 
 const AUDIO_MAX_BYTES = 10 * 1024 * 1024;
+const VIDEO_MAX_BYTES = 40 * 1024 * 1024;
+const VIDEO_MAX_DURATION_SEC = 120;
 const POLL_INTERVAL_MS = 3000;
+const DASH_BORDER_COLOR = "#D9D9D9";
+const DASH_BORDER_LENGTH = 16;
+const DASH_BORDER_GAP = 12;
+const DASH_BORDER_THICKNESS = 0.5;
 const DEGREE_LEVEL_OPTIONS = [
   "دیپلم",
   "کاردانی",
@@ -87,6 +138,16 @@ const DEGREE_LEVEL_OPTIONS = [
   "دکترا",
   "سایر",
 ];
+const EDIT_TABS = [
+  { id: "personal", label: "اطلاعات شخصی" },
+  { id: "gallery", label: "گالری تصاویر" },
+  { id: "videos", label: "ویدئوها" },
+  { id: "audio", label: "فایل‌های صوتی" },
+  { id: "awards", label: "افتخارات" },
+] as const satisfies ReadonlyArray<{ id: ProfileTabId; label: string }>;
+const MAX_OTHER_IMAGES = 3;
+const NOTE_TEXT =
+  "اطلاعات خواسته شده همان چیزهایی هستن که عوامل برای انتخاب بازیگر بیش‌تر توجه می‌کنند. هرچی اطلاعات کامل‌تر باشه، شانس انتخاب شدن بیشتر می‌شه. یادت باشه که داری مسیر حرفه‌ای خودت رو دقیق‌تر می‌کنی.";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -123,6 +184,90 @@ const createId = () => {
 };
 
 const pad2 = (value: string) => value.padStart(2, "0");
+const formatAudioDuration = (duration?: number | null) => {
+  if (typeof duration !== "number" || !Number.isFinite(duration)) {
+    return "--:--";
+  }
+  const totalSeconds = Math.max(0, Math.round(duration));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${pad2(String(minutes))}:${pad2(String(seconds))}`;
+};
+
+const resolveGallerySlots = (entries: GalleryAsset[]) => {
+  const result: {
+    headshotFront: GalleryAsset | null;
+    profileSide: GalleryAsset | null;
+    profileThreeQuarter: GalleryAsset | null;
+    fullBody: GalleryAsset | null;
+    other: GalleryAsset[];
+  } = {
+    headshotFront: null,
+    profileSide: null,
+    profileThreeQuarter: null,
+    fullBody: null,
+    other: [],
+  };
+
+  const unassigned: GalleryAsset[] = [];
+
+  for (const entry of entries) {
+    if (!entry || typeof entry.url !== "string") {
+      continue;
+    }
+
+    const url = entry.url.trim();
+    if (!url) {
+      continue;
+    }
+
+    const asset: GalleryAsset = { url, slot: entry.slot };
+
+    switch (entry.slot) {
+      case "headshotFront":
+        if (!result.headshotFront) result.headshotFront = asset;
+        else unassigned.push(asset);
+        break;
+      case "profileSide":
+        if (!result.profileSide) result.profileSide = asset;
+        else unassigned.push(asset);
+        break;
+      case "profileThreeQuarter":
+        if (!result.profileThreeQuarter) result.profileThreeQuarter = asset;
+        else unassigned.push(asset);
+        break;
+      case "fullBody":
+        if (!result.fullBody) result.fullBody = asset;
+        else unassigned.push(asset);
+        break;
+      case "other":
+        result.other.push(asset);
+        break;
+      default:
+        unassigned.push(asset);
+    }
+  }
+
+  const fallbackSlots = [
+    "headshotFront",
+    "profileSide",
+    "profileThreeQuarter",
+    "fullBody",
+  ] as const;
+
+  for (const slot of fallbackSlots) {
+    if (!result[slot] && unassigned.length > 0) {
+      const next = unassigned.shift();
+      if (next) {
+        result[slot] = { ...next, slot };
+      }
+    }
+  }
+
+  result.other = [...result.other, ...unassigned].slice(0, MAX_OTHER_IMAGES);
+
+  return result;
+};
 
 async function uploadAudioFile(file: File): Promise<AudioAttachment> {
   const initResponse = await fetch("/api/media/upload", {
@@ -207,6 +352,141 @@ async function uploadAudioFile(file: File): Promise<AudioAttachment> {
     duration,
   };
 }
+
+async function getVideoDuration(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const url = URL.createObjectURL(file);
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      video.load();
+    };
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      cleanup();
+      resolve(duration);
+    };
+    video.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+    video.src = url;
+  });
+}
+
+async function uploadVideoFile(
+  file: File,
+  durationSec?: number | null,
+): Promise<VideoAttachment> {
+  const metadata: {
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    estimatedDurationSec?: number;
+  } = {
+    fileName: file.name || "video",
+    contentType: file.type || "video/mp4",
+    sizeBytes: file.size,
+  };
+
+  if (typeof durationSec === "number" && Number.isFinite(durationSec)) {
+    metadata.estimatedDurationSec = Math.ceil(durationSec);
+  }
+
+  const initResponse = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(metadata),
+  });
+
+  const initPayload = (await initResponse.json()) as UploadInitResponse | UploadErrorResponse;
+
+  if (!initResponse.ok || !("ok" in initPayload) || !initPayload.ok) {
+    const message =
+      (initPayload as UploadErrorResponse)?.messageFa ?? "خطا در شروع آپلود ویدئو.";
+    throw new Error(message);
+  }
+
+  const mediaId = initPayload.mediaId;
+  const signedUrl = initPayload.signedUrl;
+  const checkStatusUrl = initPayload.next?.checkStatusUrl ?? `/api/media/${mediaId}/status`;
+  const finalizeUrl = initPayload.next?.finalizeUrl ?? `/api/media/${mediaId}/finalize`;
+
+  if (!mediaId) {
+    throw new Error("اطلاعات آپلود ناقص است.");
+  }
+
+  if (initPayload.mode !== "signed-put" || !signedUrl) {
+    throw new Error("روش آپلود پشتیبانی نمی‌شود.");
+  }
+
+  const putResponse = await fetch(signedUrl, {
+    method: "PUT",
+    headers: { "content-type": file.type || "application/octet-stream" },
+    body: file,
+  });
+
+  if (!putResponse.ok) {
+    throw new Error("بارگذاری ویدئو ناموفق بود.");
+  }
+
+  const finalizeResponse = await fetch(finalizeUrl, {
+    method: "POST",
+    cache: "no-store",
+  });
+
+  if (!finalizeResponse.ok) {
+    throw new Error("تأیید نهایی آپلود ناموفق بود.");
+  }
+
+  const pollUntilReady = async () => {
+    while (true) {
+      const response = await fetch(checkStatusUrl, { cache: "no-store" });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        status?: string;
+        errorMessage?: string | null;
+      };
+
+      if (!response.ok || !payload?.ok || !payload.status) {
+        throw new Error("وضعیت آپلود قابل دریافت نیست.");
+      }
+
+      if (payload.status === "ready") {
+        return;
+      }
+
+      if (payload.status === "failed") {
+        throw new Error(payload.errorMessage || "پردازش ویدئو ناموفق بود.");
+      }
+
+      await sleep(POLL_INTERVAL_MS);
+    }
+  };
+
+  await pollUntilReady();
+
+  return {
+    mediaId,
+  };
+}
+
+const buildDashedBorderStyle = (radius: number): CSSProperties => ({
+  backgroundImage: `
+    repeating-linear-gradient(90deg, ${DASH_BORDER_COLOR} 0 ${DASH_BORDER_LENGTH}px, transparent ${DASH_BORDER_LENGTH}px ${DASH_BORDER_LENGTH + DASH_BORDER_GAP}px),
+    repeating-linear-gradient(90deg, ${DASH_BORDER_COLOR} 0 ${DASH_BORDER_LENGTH}px, transparent ${DASH_BORDER_LENGTH}px ${DASH_BORDER_LENGTH + DASH_BORDER_GAP}px),
+    repeating-linear-gradient(0deg, ${DASH_BORDER_COLOR} 0 ${DASH_BORDER_LENGTH}px, transparent ${DASH_BORDER_LENGTH}px ${DASH_BORDER_LENGTH + DASH_BORDER_GAP}px),
+    repeating-linear-gradient(0deg, ${DASH_BORDER_COLOR} 0 ${DASH_BORDER_LENGTH}px, transparent ${DASH_BORDER_LENGTH}px ${DASH_BORDER_LENGTH + DASH_BORDER_GAP}px)
+  `,
+  backgroundPosition: "0 0, 0 100%, 0 0, 100% 0",
+  backgroundSize: `100% ${DASH_BORDER_THICKNESS}px, 100% ${DASH_BORDER_THICKNESS}px, ${DASH_BORDER_THICKNESS}px 100%, ${DASH_BORDER_THICKNESS}px 100%`,
+  backgroundRepeat: "repeat-x, repeat-x, repeat-y, repeat-y",
+  borderRadius: `${radius}px`,
+});
 
 function LevelDots({
   value,
@@ -326,6 +606,548 @@ function AudioUploadField({
   );
 }
 
+function AudioRow({
+  entry,
+  isActive,
+  onDelete,
+  onPlayStateChange,
+}: {
+  entry: VoiceEntryState & { audio: AudioAttachment };
+  isActive: boolean;
+  onDelete: () => void;
+  onPlayStateChange: (isPlaying: boolean) => void;
+}) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const waveformRef = useRef<WaveformAudioPlayerHandle | null>(null);
+
+  const title = entry.title.trim() || "فایل صوتی بدون عنوان";
+  const durationLabel = formatAudioDuration(entry.audio.duration);
+
+  const handleToggle = () => {
+    waveformRef.current?.togglePlay();
+  };
+
+  const handlePlayStateChange = (nextIsPlaying: boolean) => {
+    setIsPlaying(nextIsPlaying);
+    onPlayStateChange(nextIsPlaying);
+  };
+
+  return (
+    <div className="rounded-[16px] border border-[#E8E8E8] bg-white px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+                <button
+          type="button"
+          onClick={onDelete}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#D56732]"
+          aria-label="حذف فایل صوتی"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+          </svg>
+        </button>
+        <div className="flex items-center justify-end gap-3">
+          <span
+            className={`text-[14px] font-semibold ${
+              isActive ? "text-[#FF7F19]" : "text-black"
+            }`}
+          >
+            {title}
+          </span>
+          <button
+            type="button"
+            onClick={handleToggle}
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: isPlaying ? "#FF7F19" : "#B1ADAD" }}
+          >
+            {isPlaying ? (
+              <div className="flex gap-1">
+                <span className="h-4 w-[3px] bg-white" />
+                <span className="h-4 w-[3px] bg-white" />
+              </div>
+            ) : (
+              <span className="ml-0.5 h-0 w-0 border-y-[7px] border-y-transparent border-l-[11px] border-l-white" />
+            )}
+          </button>
+        </div>
+
+      </div>
+      <div
+        className={`mt-3 flex items-center gap-3 rounded-full border px-4 py-2 ${
+          isActive ? "border-[#FF7F19]" : "border-[#E8E8E8]"
+        }`}
+      >
+        <div className="flex-1">
+          <AudioWaveform
+            ref={waveformRef}
+            src={entry.audio.url}
+            onPlayStateChange={handlePlayStateChange}
+            className="w-full"
+          />
+        </div>
+        <span className="shrink-0 text-[11px] text-[#A9A9A9]">
+          {durationLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AudioUploadCard({
+  entry,
+  inputClass,
+  sectionTitleClass,
+  onChangeTitle,
+  onChangeAudio,
+  onCancel,
+  onUploadStart,
+  onUploadEnd,
+  onError,
+  disabled,
+}: {
+  entry: VoiceEntryState;
+  inputClass: string;
+  sectionTitleClass: string;
+  onChangeTitle: (value: string) => void;
+  onChangeAudio: (audio: AudioAttachment | null) => void;
+  onCancel: () => void;
+  onUploadStart: () => void;
+  onUploadEnd: () => void;
+  onError: (message: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-3">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-col gap-2">
+            <label className={`${sectionTitleClass} block`}>عنوان</label>
+            <input
+              className={inputClass}
+              placeholder="عنوان"
+              value={entry.title}
+              onChange={(event) => onChangeTitle(event.target.value)}
+              disabled={disabled}
+              maxLength={100}
+            />
+          </div>
+          <AudioUploadField
+            value={entry.audio}
+            onChange={onChangeAudio}
+            onUploadStart={onUploadStart}
+            onUploadEnd={onUploadEnd}
+            onError={onError}
+            disabled={disabled}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={disabled}
+          className="text-[12px] text-[#D56732]"
+        >
+          انصراف
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddAudioBar({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="dash-pill flex h-[36px] w-full items-center justify-center rounded-full text-[16px] text-[#B5B5B5]"
+    >
+      +
+    </button>
+  );
+}
+
+function VideoUploadCard({
+  value,
+  monthOptions,
+  yearOptions,
+  uploadPhase,
+  onPickFile,
+  onRemove,
+  onChangeTitle,
+  onChangeMonth,
+  onChangeYear,
+  disabled,
+}: {
+  value: VideoEntryState;
+  monthOptions: number[];
+  yearOptions: number[];
+  uploadPhase: "idle" | "uploading" | "processing";
+  onPickFile: () => void;
+  onRemove: () => void;
+  onChangeTitle: (value: string) => void;
+  onChangeMonth: (value: string) => void;
+  onChangeYear: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const hasVideo = Boolean(value.mediaId || value.url);
+  const statusLabel =
+    uploadPhase === "processing"
+      ? "در حال پردازش ویدئو..."
+      : uploadPhase === "uploading"
+        ? "در حال بارگذاری ویدئو..."
+        : hasVideo
+          ? "ویدئو بارگذاری شد"
+          : "فایل ویدئو را بارگذاری کنید";
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col gap-2">
+        <label className="text-[15px] text-[#5C5A5A]">عنوان</label>
+        <input
+          className="h-[35px] w-[245px] rounded-full bg-[#EFEFEF] px-4 text-[12px] text-[#7A7A7A] placeholder:text-[#7A7A7A] focus:outline-none"
+          value={value.title}
+          onChange={(event) => onChangeTitle(event.target.value)}
+          disabled={disabled}
+        />
+      </div>
+
+
+        <div className="space-y-2">
+          <label className="text-[15px] text-[#5C5A5A]">تاریخ ضبط</label>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <img
+                src="/images/flash-down.png"
+                alt=""
+                className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+              />
+              <select
+                className="h-[35px] w-[90px] appearance-none rounded-full bg-[#EFEFEF] pl-8 pr-4 text-[12px] text-[#7A7A7A] focus:outline-none"
+                value={value.recordedMonth}
+                onChange={(event) => onChangeMonth(event.target.value)}
+                disabled={disabled}
+              >
+                <option value="">ماه</option>
+                {monthOptions.map((month) => (
+                  <option key={month} value={String(month)}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative">
+              <img
+                src="/images/flash-down.png"
+                alt=""
+                className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+              />
+              <select
+                className="h-[35px] w-[110px] appearance-none rounded-full bg-[#EFEFEF] pl-8 pr-4 text-[12px] text-[#7A7A7A] focus:outline-none"
+                value={value.recordedYear}
+                onChange={(event) => onChangeYear(event.target.value)}
+                disabled={disabled}
+              >
+                <option value="">سال</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={String(year)}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onPickFile}
+        disabled={disabled}
+        className="flex h-[191px] w-full items-center justify-center rounded-[15px] bg-[#F3F3F3]"
+        style={buildDashedBorderStyle(10)}
+      >
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-[43px] w-[43px] items-center justify-center rounded-[12px] bg-white shadow-[0_2px_6px_rgba(0,0,0,0.08)]">
+            <svg
+              width="22"
+              height="16"
+              viewBox="0 0 22 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M6.8 12.5H16.2C18.4 12.5 20 11 20 9.1C20 7.5 18.9 6.2 17.4 5.9C17.2 3.4 15.2 1.5 12.6 1.5C10.6 1.5 8.9 2.6 8.1 4.3C7.9 4.3 7.7 4.3 7.5 4.3C5.3 4.3 3.5 6 3.5 8.1C3.5 10.2 5.1 12 6.8 12.5Z"
+                stroke="#A6A6A6"
+                strokeWidth="1.1"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M11 6.4V10.6"
+                stroke="#A6A6A6"
+                strokeWidth="1.1"
+                strokeLinecap="round"
+              />
+              <path
+                d="M9.2 8.2L11 6.4L12.8 8.2"
+                stroke="#A6A6A6"
+                strokeWidth="1.1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <p className="text-[11px] text-[#5C5A5A]">{statusLabel}</p>
+          <p className="text-[9px] text-[#7A7A7A]">حداکثر حجم: ۴۰ مگابایت</p>
+          <p className="text-[9px] text-[#7A7A7A]">حداکثر مدت: ۲ دقیقه</p>
+        </div>
+      </button>
+
+      {uploadPhase === "idle" ? (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          className={hasVideo ? "text-[12px] text-[#D56732]" : "text-[12px] text-[#B5B5B5]"}
+        >
+          {hasVideo ? "حذف ویدئو" : "انصراف"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function AddVideoBar({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-[36px] w-full items-center justify-center rounded-[15px] text-[16px] text-[#B5B5B5]"
+      style={buildDashedBorderStyle(15)}
+    >
+      +
+    </button>
+  );
+}
+
+function EditProfileTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: ProfileTabId;
+  onChange: (tab: ProfileTabId) => void;
+}) {
+  return (
+<div className="mt-4 w-full bg-white pt-4" dir="rtl">
+  <div className="relative flex flex-row-reverse items-center justify-between px-[112px] pb-3 text-[14px] font-semibold">
+    {/* Gray base line (constant) */}
+    <div className="absolute inset-x-[112px] bottom-[13px] h-px bg-[#B4B4B4]" />
+
+    {EDIT_TABS.map((tab) => {
+      const isActive = tab.id === activeTab;
+
+      return (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          className="relative pb-2"
+        >
+          <span className={isActive ? "font-bold text-[#FF7F19]" : "text-[#B4B4B4]"}>
+            {tab.label}
+          </span>
+
+          {/* Orange underline exactly on gray line */}
+          {isActive && (
+            <span className="absolute inset-x-0 bottom-0 h-px pb-[3px] bg-[#FF7F19]" />
+          )}
+        </button>
+      );
+    })}
+  </div>
+</div>
+
+
+  );
+}
+
+function GalleryImageSlot({
+  title,
+  value,
+  onPick,
+  disabled,
+}: {
+  title?: string;
+  value?: GalleryAsset | null;
+  onPick: () => void;
+  disabled?: boolean;
+}) {
+  const hasValue = Boolean(value?.url);
+
+  return (
+    <div className="flex flex-col items-start gap-2 text-left">
+      {title ? <span className="text-[15px] text-[#5C5A5A]">{title}</span> : null}
+
+      <button
+        type="button"
+        onClick={onPick}
+        disabled={disabled}
+        aria-label={title ?? "انتخاب تصویر"}
+        className={`relative flex h-[181px] w-[165px] items-center justify-center rounded-[13px] ${
+          hasValue ? "overflow-hidden" : "border-[1px] border-dashed border-[#808080]"
+        } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+      >
+        {hasValue ? (
+          <>
+            <img src={value?.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <div className="absolute right-2 top-2 flex flex-col gap-1">
+              <span className="h-1 w-1 rounded-full bg-white/80" />
+              <span className="h-1 w-1 rounded-full bg-white/80" />
+              <span className="h-1 w-1 rounded-full bg-white/80" />
+            </div>
+            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/70 to-transparent" />
+            <span className="absolute bottom-2 right-2 text-[11px] text-white">عنوان تصویر...</span>
+          </>
+        ) : (
+        <Image
+          src={addImage}
+          alt=""
+          className="h-8 w-8 opacity-40"
+          width={32}
+          height={32}
+        />
+
+        )}
+      </button>
+    </div>
+  );
+}
+
+
+function EditProfileGalleryPane({
+  headshotFront,
+  profileSide,
+  profileThreeQuarter,
+  fullBody,
+  otherImages,
+  onPick,
+  onSave,
+  isBusy,
+  error,
+}: {
+  headshotFront: GalleryAsset | null;
+  profileSide: GalleryAsset | null;
+  profileThreeQuarter: GalleryAsset | null;
+  fullBody: GalleryAsset | null;
+  otherImages: Array<GalleryAsset | null>;
+  onPick: (slot: GallerySlotId) => void;
+  onSave: () => void;
+  isBusy?: boolean;
+  error?: string | null;
+}) {
+  return (
+    <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
+      <div className="space-y-6">
+        <div className="grid grid-cols-3 justify-items-start gap-6">
+          <GalleryImageSlot
+            title="تصویر تمام‌رخ"
+            value={headshotFront}
+            onPick={() => onPick("headshotFront")}
+            disabled={isBusy}
+          />
+          <GalleryImageSlot
+            title="تصویر نیم‌رخ"
+            value={profileSide}
+            onPick={() => onPick("profileSide")}
+            disabled={isBusy}
+          />
+          <GalleryImageSlot
+            title="تصویر سه‌رخ"
+            value={profileThreeQuarter}
+            onPick={() => onPick("profileThreeQuarter")}
+            disabled={isBusy}
+          />
+        </div>
+
+        <div className="flex justify-start">
+          <GalleryImageSlot
+            title="تصویر قدی"
+            value={fullBody}
+            onPick={() => onPick("fullBody")}
+            disabled={isBusy}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <div className="text-[15px] font-normal text-black">تصاویر دیگر</div>
+
+          <div className="grid grid-cols-3 justify-items-start gap-6">
+            {otherImages.map((image, index) => (
+              <GalleryImageSlot
+                key={`other-${index}`}
+                value={image}
+                onPick={() => onPick(`other-${index}` as GallerySlotId)}
+                disabled={isBusy}
+              />
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {error ? (
+        <div className="mt-6 rounded-[7px] bg-[#FFE6E6] px-4 py-2 text-[12px] text-[#D12424]">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="mt-6 flex justify-center">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isBusy}
+          className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+        >
+          <span>ذخیره و صفحه بعد</span>
+          <img
+            src="/images/vecteezy_arrow-small-left_33295051.png"
+            alt=""
+            className="h-4 w-4"
+            loading="lazy"
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PortfolioEditCenterPane({
   initialValues,
   cities,
@@ -338,6 +1160,67 @@ export function PortfolioEditCenterPane({
   const [isPending, startTransition] = useTransition();
   const [uploadingCount, setUploadingCount] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const activeVideoIdRef = useRef<string | null>(null);
+  const [activeGallerySlot, setActiveGallerySlot] = useState<GallerySlotId | null>(null);
+
+  const initialGallerySlots = resolveGallerySlots(initialValues.gallery ?? []);
+  const [videos, setVideos] = useState<VideoEntryState[]>(() => {
+    const initialVideos = (
+      initialValues as PortfolioEditInitialValues & {
+        videos?: Array<{
+          mediaId?: string | null;
+          url?: string | null;
+          title?: string | null;
+          recordedMonth?: string | number | null;
+          recordedYear?: string | number | null;
+        }>;
+      }
+    ).videos;
+
+    if (!Array.isArray(initialVideos) || initialVideos.length === 0) {
+      return [];
+    }
+
+    return initialVideos
+      .filter((entry) => Boolean(entry?.mediaId || entry?.url))
+      .map((entry) => ({
+        id: createId(),
+        title: entry.title ?? "",
+        recordedMonth: entry.recordedMonth ? String(entry.recordedMonth) : "",
+        recordedYear: entry.recordedYear ? String(entry.recordedYear) : "",
+        mediaId: entry.mediaId ?? undefined,
+        url: entry.url ?? undefined,
+      }));
+  });
+  const [voices, setVoices] = useState<VoiceEntryState[]>(() => {
+    const initialVoices = initialValues.voices;
+
+    if (!Array.isArray(initialVoices) || initialVoices.length === 0) {
+      return [];
+    }
+
+    return initialVoices
+      .filter((entry) => Boolean(entry?.mediaId && entry?.url))
+      .map((entry) => ({
+        id: createId(),
+        title: entry.title ?? "",
+        audio: {
+          mediaId: entry.mediaId,
+          url: entry.url,
+          duration: entry.duration ?? null,
+        },
+      }));
+  });
+  const [videoUploadPhase, setVideoUploadPhase] = useState<"idle" | "uploading" | "processing">(
+    "idle",
+  );
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState(initialValues.firstName);
   const [lastName, setLastName] = useState(initialValues.lastName);
@@ -414,8 +1297,29 @@ export function PortfolioEditCenterPane({
     })),
   );
 
+  const [headshotFront, setHeadshotFront] = useState<GalleryAsset | null>(
+    () => initialGallerySlots.headshotFront ?? null,
+  );
+  const [profileSide, setProfileSide] = useState<GalleryAsset | null>(
+    () => initialGallerySlots.profileSide ?? null,
+  );
+  const [profileThreeQuarter, setProfileThreeQuarter] = useState<GalleryAsset | null>(
+    () => initialGallerySlots.profileThreeQuarter ?? null,
+  );
+  const [fullBody, setFullBody] = useState<GalleryAsset | null>(
+    () => initialGallerySlots.fullBody ?? null,
+  );
+  const [otherImages, setOtherImages] = useState<GalleryAsset[]>(() =>
+    initialGallerySlots.other.slice(0, MAX_OTHER_IMAGES),
+  );
+
   const isUploading = uploadingCount > 0;
   const isBusy = isPending || isUploading;
+
+  useEffect(() => {
+    setFormError(null);
+    setGalleryError(null);
+  }, [activeTab]);
 
   const yearOptions = useMemo(() => {
     const current = new Date().getFullYear();
@@ -479,6 +1383,32 @@ export function PortfolioEditCenterPane({
     ]);
   };
 
+  const handleAddVoice = () => {
+    if (isBusy) {
+      return;
+    }
+    setVoices((prev) => [...prev, { id: createId(), title: "", audio: null }]);
+  };
+
+  const handleAddVideo = () => {
+    if (isBusy) {
+      return;
+    }
+    setVideos((prev) => [
+      ...prev,
+      { id: createId(), title: "", recordedMonth: "", recordedYear: "" },
+    ]);
+  };
+
+  const handlePickVideoFile = (videoId: string) => {
+    if (isBusy) {
+      return;
+    }
+    setActiveVideoId(videoId);
+    activeVideoIdRef.current = videoId;
+    videoInputRef.current?.click();
+  };
+
   const updateResumeEntry = (id: string, patch: Partial<ResumeEntry>) => {
     setResumeEntries((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
@@ -509,9 +1439,349 @@ export function PortfolioEditCenterPane({
     );
   };
 
+  const updateVoiceEntry = (id: string, patch: Partial<VoiceEntryState>) => {
+    setVoices((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
+    );
+  };
+
+  const updateVideoEntry = (id: string, patch: Partial<VideoEntryState>) => {
+    setVideos((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
+    );
+  };
+
+  const handlePickGallerySlot = (slot: GallerySlotId) => {
+    if (isBusy) {
+      return;
+    }
+    setActiveGallerySlot(slot);
+    galleryInputRef.current?.click();
+  };
+
+  const handleDeleteVoice = (voiceId: string) => {
+    if (isBusy) {
+      return;
+    }
+    setVoices((prev) => prev.filter((entry) => entry.id !== voiceId));
+    setActiveAudioId((prev) => (prev === voiceId ? null : prev));
+  };
+
+  const handleDeleteVideo = (videoId: string) => {
+    if (isBusy) {
+      return;
+    }
+    setVideos((prev) => prev.filter((entry) => entry.id !== videoId));
+    if (activeVideoIdRef.current === videoId) {
+      activeVideoIdRef.current = null;
+      setActiveVideoId(null);
+      setVideoUploadPhase("idle");
+    }
+  };
+
+  const handleGalleryFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (!file || !activeGallerySlot) {
+        setActiveGallerySlot(null);
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setGalleryError("لطفاً یک تصویر انتخاب کنید.");
+        setActiveGallerySlot(null);
+        return;
+      }
+
+      setGalleryError(null);
+      setUploadingCount((prev) => prev + 1);
+
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+        const result = await uploadImage(formData);
+
+        if (!result.ok || !result.url) {
+          setGalleryError(result.error ?? "آپلود تصویر ناموفق بود.");
+          return;
+        }
+
+        const asset: GalleryAsset = { url: result.url };
+
+        if (activeGallerySlot === "headshotFront") {
+          setHeadshotFront({ ...asset, slot: "headshotFront" });
+        } else if (activeGallerySlot === "profileSide") {
+          setProfileSide({ ...asset, slot: "profileSide" });
+        } else if (activeGallerySlot === "profileThreeQuarter") {
+          setProfileThreeQuarter({ ...asset, slot: "profileThreeQuarter" });
+        } else if (activeGallerySlot === "fullBody") {
+          setFullBody({ ...asset, slot: "fullBody" });
+        } else if (activeGallerySlot.startsWith("other-")) {
+          const index = Number(activeGallerySlot.split("-")[1]);
+          if (!Number.isNaN(index)) {
+            setOtherImages((prev) => {
+              const next = [...prev];
+              next[index] = { ...asset, slot: "other" };
+              return next.slice(0, MAX_OTHER_IMAGES);
+            });
+          }
+        }
+      } catch (error) {
+        setGalleryError(error instanceof Error ? error.message : "آپلود تصویر ناموفق بود.");
+      } finally {
+        setUploadingCount((prev) => Math.max(0, prev - 1));
+        setActiveGallerySlot(null);
+      }
+    },
+    [
+      activeGallerySlot,
+      setActiveGallerySlot,
+      setFullBody,
+      setGalleryError,
+      setHeadshotFront,
+      setOtherImages,
+      setProfileSide,
+      setProfileThreeQuarter,
+      setUploadingCount,
+      uploadImage,
+    ],
+  );
+
+  const handleVideoFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (!file) {
+        return;
+      }
+
+      if (!file.type.startsWith("video/")) {
+        toast({
+          variant: "destructive",
+          title: "خطا",
+          description: "لطفاً یک فایل ویدئو انتخاب کنید.",
+        });
+        return;
+      }
+
+      if (file.size > VIDEO_MAX_BYTES) {
+        toast({
+          variant: "destructive",
+          title: "خطا",
+          description: "حجم فایل ویدئو نباید بیشتر از ۴۰ مگابایت باشد.",
+        });
+        return;
+      }
+
+      const duration = await getVideoDuration(file);
+      if (duration && duration > VIDEO_MAX_DURATION_SEC) {
+        toast({
+          variant: "destructive",
+          title: "خطا",
+          description: "مدت ویدئو نباید بیشتر از ۲ دقیقه باشد.",
+        });
+        return;
+      }
+
+      const targetId = activeVideoIdRef.current;
+      if (!targetId) {
+        return;
+      }
+
+      setVideoUploadPhase("uploading");
+      setUploadingCount((prev) => prev + 1);
+
+      try {
+        const result = await uploadVideoFile(file, duration);
+        setVideos((prev) =>
+          prev.map((entry) =>
+            entry.id === targetId
+              ? { ...entry, mediaId: result.mediaId, url: result.url ?? undefined }
+              : entry,
+          ),
+        );
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "خطا",
+          description:
+            error instanceof Error ? error.message : "آپلود ویدئو ناموفق بود.",
+        });
+      } finally {
+        setVideoUploadPhase("idle");
+        setUploadingCount((prev) => Math.max(0, prev - 1));
+        setActiveVideoId(null);
+        activeVideoIdRef.current = null;
+      }
+    },
+    [setActiveVideoId, setUploadingCount, setVideos, setVideoUploadPhase, toast],
+  );
+
+  const buildGalleryPayload = useCallback(() => {
+    const payload: GalleryAsset[] = [];
+
+    if (headshotFront?.url) {
+      payload.push({ url: headshotFront.url, slot: "headshotFront" });
+    }
+    if (profileSide?.url) {
+      payload.push({ url: profileSide.url, slot: "profileSide" });
+    }
+    if (profileThreeQuarter?.url) {
+      payload.push({ url: profileThreeQuarter.url, slot: "profileThreeQuarter" });
+    }
+    if (fullBody?.url) {
+      payload.push({ url: fullBody.url, slot: "fullBody" });
+    }
+
+    otherImages
+      .filter((entry): entry is GalleryAsset => Boolean(entry?.url))
+      .slice(0, MAX_OTHER_IMAGES)
+      .forEach((entry) => {
+        payload.push({ url: entry.url, slot: "other" });
+      });
+
+    return payload;
+  }, [fullBody, headshotFront, otherImages, profileSide, profileThreeQuarter]);
+
+  const persistGallery = useCallback(async () => {
+    const galleryFormData = new FormData();
+    galleryFormData.set("gallery", JSON.stringify(buildGalleryPayload()));
+    return updateGallery(galleryFormData);
+  }, [buildGalleryPayload, updateGallery]);
+
+  const handleGallerySave = () => {
+    setGalleryError(null);
+    startTransition(() => {
+      (async () => {
+        const galleryResult = await persistGallery();
+        if (!galleryResult.ok) {
+          setGalleryError(galleryResult.error ?? "ذخیره گالری ناموفق بود.");
+          return;
+        }
+
+        toast({
+          title: "اطلاعات ذخیره شد.",
+          description: "گالری با موفقیت به‌روزرسانی شد.",
+        });
+        setActiveTab("videos");
+        router.refresh();
+      })().catch(() => {
+        setGalleryError("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      });
+    });
+  };
+
+  const buildVideosPayload = useCallback(() => {
+    const cleaned: { mediaId: string; title?: string; order?: number }[] = [];
+    const seen = new Set<string>();
+
+    for (const entry of videos) {
+      const mediaId = entry.mediaId?.trim();
+      if (!mediaId) {
+        continue;
+      }
+      if (seen.has(mediaId)) {
+        return null;
+      }
+      seen.add(mediaId);
+
+      const title = entry.title.trim();
+      cleaned.push({
+        mediaId,
+        ...(title ? { title } : {}),
+        order: cleaned.length + 1,
+      });
+    }
+
+    return cleaned;
+  }, [videos]);
+
+  const buildVoicesPayload = useCallback(() => {
+    return voices
+      .filter((entry) => entry.audio?.mediaId && entry.audio?.url)
+      .map((entry) => ({
+        mediaId: entry.audio?.mediaId ?? "",
+        url: entry.audio?.url ?? "",
+        title: entry.title.trim() ? entry.title.trim() : null,
+        duration: entry.audio?.duration ?? null,
+      }));
+  }, [voices]);
+
+  const handleVideosSave = () => {
+    setFormError(null);
+    const payload = buildVideosPayload();
+    if (payload === null) {
+      setFormError("هر ویدئو باید یکتا باشد.");
+      return;
+    }
+    const formData = new FormData();
+    formData.set("videos", JSON.stringify(payload));
+
+    startTransition(() => {
+      (async () => {
+        const videosResult = await updateVideos(formData);
+        if (!videosResult.ok) {
+          setFormError(videosResult.error ?? "ذخیره ویدئوها ناموفق بود.");
+          return;
+        }
+
+        toast({
+          title: "اطلاعات ذخیره شد.",
+          description: "ویدئوها با موفقیت به‌روزرسانی شد.",
+        });
+        setActiveTab("audio");
+        router.refresh();
+      })().catch(() => {
+        setFormError("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      });
+    });
+  };
+
+  const handleVoicesSave = () => {
+    setFormError(null);
+    const payload = buildVoicesPayload();
+    const formData = new FormData();
+    formData.set("voices", JSON.stringify(payload));
+
+    startTransition(() => {
+      (async () => {
+        const voicesResult = await updateVoices(formData);
+        if (!voicesResult.ok) {
+          setFormError(voicesResult.error ?? "ذخیره فایل‌های صوتی ناموفق بود.");
+          return;
+        }
+
+        toast({
+          title: "اطلاعات ذخیره شد.",
+          description: "فایل‌های صوتی با موفقیت به‌روزرسانی شد.",
+        });
+        setActiveTab("awards");
+        router.refresh();
+      })().catch(() => {
+        setFormError("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      });
+    });
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
+
+    if (activeTab === "gallery") {
+      handleGallerySave();
+      return;
+    }
+    if (activeTab === "videos") {
+      handleVideosSave();
+      return;
+    }
+    if (activeTab === "audio") {
+      handleVoicesSave();
+      return;
+    }
 
     const cleanedFirstName = firstName.trim();
     const cleanedLastName = lastName.trim();
@@ -709,6 +1979,12 @@ export function PortfolioEditCenterPane({
           return;
         }
 
+        const galleryResult = await persistGallery();
+        if (!galleryResult.ok) {
+          setFormError(galleryResult.error ?? "ذخیره گالری ناموفق بود.");
+          return;
+        }
+
         toast({
           title: "اطلاعات ذخیره شد.",
           description: "پورتفولیو با موفقیت به‌روزرسانی شد.",
@@ -725,11 +2001,17 @@ export function PortfolioEditCenterPane({
     "h-[34px] w-full rounded-full bg-[#EFEFEF] px-4 text-[12px] text-[#6B6B6B] placeholder:text-[#B5B5B5] focus:outline-none";
   const selectClass = `${inputClass} appearance-none`;
   const sectionTitleClass = "text-[14px] font-semibold text-[#000000]";
+  const hasUploadedVoices = voices.some(
+    (entry) => entry.audio?.mediaId && entry.audio?.url,
+  );
+  const canAddVoice = !isBusy;
 
   return (
     <section
       aria-label="فرم ویرایش پورتفولیو"
-      className="absolute left-[273px] top-[315px] h-[804px] w-[797px] overflow-hidden rounded-[20px] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)]"
+      className={`absolute left-[273px] top-[315px] h-[804px] ${
+        activeTab === "gallery" ? "w-[797px]" : "w-[797px]"
+      } overflow-hidden rounded-[20px] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)]`}
       dir="rtl"
     >
       <form
@@ -740,23 +2022,34 @@ export function PortfolioEditCenterPane({
           <div className="flex items-center justify-between">
             <div className="text-[28px] font-black text-black">اطلاعات من</div>
           </div>
+        </div>
 
-          <div className="mt-4 mx-auto flex w-[568px] items-center justify-between text-[12px] text-[#A2A2A2]">
-  <span className="font-semibold text-[#F58A1F]">اطلاعات شخصی</span>
-  <span>گالری تصاویر</span>
-  <span>ویدئوها</span>
-  <span>فایل‌های صوتی</span>
-  <span>افتخارات</span>
-</div>
+        <EditProfileTabs activeTab={activeTab} onChange={setActiveTab} />
 
-
-          <div className="mt-4 rounded-[10px] bg-[#FFE6D3] px-4 py-3 text-[11px] leading-6 text-[#E57A20]">
-            اطلاعات خواسته شده همان چیزهایی هستن که عوامل برای انتخاب بازیگر بیش‌تر توجه
-            می‌کنند. هرچی اطلاعات کامل‌تر باشه، شانس انتخاب شدن بیشتر می‌شه. یادت باشه که
-            داری مسیر حرفه‌ای خودت رو دقیق‌تر می‌کنی.
+        <div className="px-[32px]">
+          <div className="mt-4 mx-auto w-[568px] rounded-[7px] bg-[#FF7F19]/20 px-4 py-3 text-right text-[12px] leading-6 text-[#FF7F19]">
+            {NOTE_TEXT}
           </div>
         </div>
 
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={handleGalleryFileChange}
+          disabled={isBusy}
+        />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept="video/*"
+          className="hidden"
+          onChange={handleVideoFileChange}
+          disabled={isBusy}
+        />
+
+        {activeTab === "personal" ? (
         <div className="space-y-8 px-[82px] pb-8 pt-6 text-[12px] text-[#5C5A5A]">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -1328,6 +2621,153 @@ export function PortfolioEditCenterPane({
             </button>
           </div>
         </div>
+        ) : null}
+
+        {activeTab === "gallery" ? (
+          <EditProfileGalleryPane
+            headshotFront={headshotFront}
+            profileSide={profileSide}
+            profileThreeQuarter={profileThreeQuarter}
+            fullBody={fullBody}
+            otherImages={[
+              otherImages[0] ?? null,
+              otherImages[1] ?? null,
+              otherImages[2] ?? null,
+            ]}
+            isBusy={isBusy}
+            error={galleryError}
+            onPick={handlePickGallerySlot}
+            onSave={handleGallerySave}
+          />
+        ) : null}
+
+        {activeTab === "videos" ? (
+          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
+            <div className="mx-auto w-[568px] space-y-4">
+              {videos.length === 0 ? (
+                <AddVideoBar onClick={handleAddVideo} disabled={isBusy} />
+              ) : (
+                <>
+                  {videos.map((entry) => (
+                    <VideoUploadCard
+                      key={entry.id}
+                      value={entry}
+                      monthOptions={monthOptions}
+                      yearOptions={yearOptions}
+                      uploadPhase={
+                        activeVideoId === entry.id ? videoUploadPhase : "idle"
+                      }
+                      onPickFile={() => handlePickVideoFile(entry.id)}
+                      onRemove={() => handleDeleteVideo(entry.id)}
+                      onChangeTitle={(title) => updateVideoEntry(entry.id, { title })}
+                      onChangeMonth={(recordedMonth) =>
+                        updateVideoEntry(entry.id, { recordedMonth })
+                      }
+                      onChangeYear={(recordedYear) =>
+                        updateVideoEntry(entry.id, { recordedYear })
+                      }
+                      disabled={isBusy}
+                    />
+                  ))}
+                  <AddVideoBar onClick={handleAddVideo} disabled={isBusy} />
+                </>
+              )}
+            </div>
+
+            {formError ? (
+              <div className="mt-6 rounded-[7px] bg-[#FFE6E6] px-4 py-2 text-[12px] text-[#D12424]">
+                {formError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={handleVideosSave}
+                disabled={isBusy}
+                className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+              >
+                <span>ذخیره و صفحه بعد</span>
+                <img
+                  src="/images/vecteezy_arrow-small-left_33295051.png"
+                  alt=""
+                  className="h-4 w-4"
+                  loading="lazy"
+                />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "audio" ? (
+          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
+            <div className="mx-auto w-[568px] space-y-4">
+              {!hasUploadedVoices && voices.length === 0 ? (
+                <AddAudioBar onClick={handleAddVoice} disabled={!canAddVoice} />
+              ) : (
+                <>
+                  {voices.map((entry) =>
+                    entry.audio?.mediaId && entry.audio?.url ? (
+                      <AudioRow
+                        key={entry.id}
+                        entry={entry as VoiceEntryState & { audio: AudioAttachment }}
+                        isActive={activeAudioId === entry.id}
+                        onDelete={() => handleDeleteVoice(entry.id)}
+                        onPlayStateChange={(isPlaying) =>
+                          setActiveAudioId((prev) =>
+                            isPlaying ? entry.id : prev === entry.id ? null : prev,
+                          )
+                        }
+                      />
+                    ) : (
+                      <AudioUploadCard
+                        key={entry.id}
+                        entry={entry}
+                        inputClass={inputClass}
+                        sectionTitleClass={sectionTitleClass}
+                        onChangeTitle={(title) => updateVoiceEntry(entry.id, { title })}
+                        onChangeAudio={(audio) => updateVoiceEntry(entry.id, { audio })}
+                        onCancel={() => handleDeleteVoice(entry.id)}
+                        onUploadStart={() => setUploadingCount((prev) => prev + 1)}
+                        onUploadEnd={() =>
+                          setUploadingCount((prev) => (prev > 0 ? prev - 1 : 0))
+                        }
+                        onError={(message) => setFormError(message)}
+                        disabled={isBusy}
+                      />
+                    ),
+                  )}
+                  {canAddVoice ? (
+                    <AddAudioBar onClick={handleAddVoice} disabled={!canAddVoice} />
+                  ) : null}
+                </>
+              )}
+            </div>
+
+            {formError ? (
+              <div className="mt-6 rounded-[7px] bg-[#FFE6E6] px-4 py-2 text-[12px] text-[#D12424]">
+                {formError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={handleVoicesSave}
+                disabled={isBusy}
+                className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+              >
+                <span>ذخیره و صفحه بعد</span>
+                <img
+                  src="/images/vecteezy_arrow-small-left_33295051.png"
+                  alt=""
+                  className="h-4 w-4"
+                  loading="lazy"
+                />
+              </button>
+            </div>
+          </div>
+        ) : null}
       </form>
     </section>
   );

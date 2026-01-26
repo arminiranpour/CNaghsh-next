@@ -105,6 +105,7 @@ export default async function DashboardProfilePage() {
     skills: normalizeSkillKeys(profile?.skills ?? null),
     languages: normalizeLanguageEntries(profile?.languages ?? null),
     accents: normalizeAccentEntries(profile?.accents ?? null),
+    voices: profileData.voices ?? [],
     degrees: normalizeDegreeEntries(profile?.degrees ?? null),
     resume: portfolioExperience.resume,
     courses: portfolioExperience.courses,
@@ -120,6 +121,7 @@ export default async function DashboardProfilePage() {
     phone: profile?.phone ?? "",
     address: profile?.address ?? "",
     introVideoMediaId: profile?.introVideoMediaId ?? "",
+    gallery: profileData.gallery ?? [],
   };
 
   const isOwner = session.user.id === profileData.userId;

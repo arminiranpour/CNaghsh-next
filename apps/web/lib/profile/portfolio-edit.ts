@@ -10,6 +10,13 @@ export type AccentEntry = {
   duration?: number | null;
 };
 
+export type VoiceEntry = {
+  mediaId: string;
+  url: string;
+  title?: string | null;
+  duration?: number | null;
+};
+
 export type ResumeEntry = {
   type: string;
   title: string;
@@ -40,6 +47,11 @@ export type ExperienceData = {
   tv?: ExperienceEntry[];
 };
 
+export type GalleryImageEntry = {
+  url: string;
+  slot?: "headshotFront" | "profileSide" | "profileThreeQuarter" | "fullBody" | "other";
+};
+
 export type PortfolioExperienceData = ExperienceData & {
   resume: ResumeEntry[];
   courses: CourseEntry[];
@@ -54,6 +66,7 @@ export type PortfolioEditInitialValues = {
   skills: SkillKey[];
   languages: LanguageSkill[];
   accents: AccentEntry[];
+  voices?: VoiceEntry[];
   degrees: DegreeEntry[];
   resume: ResumeEntry[];
   courses: CourseEntry[];
@@ -64,6 +77,7 @@ export type PortfolioEditInitialValues = {
   phone: string;
   address: string;
   introVideoMediaId: string;
+  gallery: GalleryImageEntry[];
 };
 
 export function normalizeSkillKeys(raw: Prisma.JsonValue | null | undefined): SkillKey[] {

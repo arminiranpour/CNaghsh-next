@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { forwardRef, useMemo, useRef, useState } from "react";
 import {
   WaveformAudioPlayer,
   type WaveformAudioPlayerHandle,
@@ -14,6 +14,22 @@ type AudioEntry = {
 type AudioSlideProps = {
   voices?: AudioEntry[];
 };
+
+type AudioWaveformProps = {
+  src: string;
+  onPlayStateChange?: (isPlaying: boolean) => void;
+  className?: string;
+};
+
+export const AudioWaveform = forwardRef<WaveformAudioPlayerHandle, AudioWaveformProps>(
+  function AudioWaveform({ src, onPlayStateChange, className }, ref) {
+    return (
+      <div className={className ?? "w-full"}>
+        <WaveformAudioPlayer ref={ref} src={src} onPlayStateChange={onPlayStateChange} />
+      </div>
+    );
+  },
+);
 
 function AudioRow({ voice }: { voice: AudioEntry }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,19 +120,19 @@ function AudioRow({ voice }: { voice: AudioEntry }) {
         </button>
       </div>
 
-<div
-  style={{
-    borderRadius: "68px",
-    border: "1px solid #E5E7EB",
-    padding: 10,
-  }}
->
-  <WaveformAudioPlayer
-    ref={waveformRef}
-    src={voice.url}
-    onPlayStateChange={setIsPlaying}
-  />
-</div>
+      <div
+        style={{
+          borderRadius: "68px",
+          border: "1px solid #E5E7EB",
+          padding: 10,
+        }}
+      >
+        <AudioWaveform
+          ref={waveformRef}
+          src={voice.url}
+          onPlayStateChange={setIsPlaying}
+        />
+      </div>
 
     </div>
   );

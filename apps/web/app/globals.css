@@ -146,4 +146,39 @@ body {
     background-color: transparent !important;
     background: transparent !important;
   }
+
+  .dash-pill {
+    --dash-color: #D9D9D9;
+    --dash-length: 16px;
+    --dash-gap: 12px;
+    --dash-thickness: 0.5px;
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        var(--dash-color) 0 var(--dash-length),
+        transparent var(--dash-length) calc(var(--dash-length) + var(--dash-gap))
+      ),
+      repeating-linear-gradient(
+        90deg,
+        var(--dash-color) 0 var(--dash-length),
+        transparent var(--dash-length) calc(var(--dash-length) + var(--dash-gap))
+      ),
+      repeating-linear-gradient(
+        0deg,
+        var(--dash-color) 0 var(--dash-length),
+        transparent var(--dash-length) calc(var(--dash-length) + var(--dash-gap))
+      ),
+      repeating-linear-gradient(
+        0deg,
+        var(--dash-color) 0 var(--dash-length),
+        transparent var(--dash-length) calc(var(--dash-length) + var(--dash-gap))
+      );
+    background-position: 0 0, 0 100%, 0 0, 100% 0;
+    background-size:
+      100% var(--dash-thickness),
+      100% var(--dash-thickness),
+      var(--dash-thickness) 100%,
+      var(--dash-thickness) 100%;
+    background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  }
 }

@@ -175,6 +175,21 @@ export const profileVideosSchema = z
   .optional()
   .nullable();
 
+const gallerySlotSchema = z.enum([
+  "headshotFront",
+  "profileSide",
+  "profileThreeQuarter",
+  "fullBody",
+  "other",
+]);
+
+export const galleryEntrySchema = z.object({
+  url: z.string().trim().min(1),
+  slot: gallerySlotSchema.optional(),
+});
+
+export const gallerySchema = z.array(galleryEntrySchema).optional().nullable();
+
 export function validateReadyToPublish(input: unknown) {
   return personalInfoSchema.safeParse(input);
 }
