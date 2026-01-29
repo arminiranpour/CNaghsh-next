@@ -1,0 +1,137 @@
+"use client";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+type Category = {
+  id: string;
+  labelLine1: string;
+  labelLine2: string;
+  iconSrc: string;
+  href: string;
+};
+
+const categories: Category[] = [
+  {
+    id: "adult-male",
+    labelLine1: "بازیگران بزرگسال آقا",
+    labelLine2: "",
+    iconSrc: "/cineflash/home/categories/adult-male.png",
+    href: "/categories/adult-male",
+  },
+  {
+    id: "adult-female",
+    labelLine1: "بازیگران بزرگسال خانم",
+    labelLine2: "",
+    iconSrc: "/cineflash/home/categories/adult-female1.png",
+    href: "/categories/adult-female",
+  },
+  {
+    id: "boys",
+    labelLine1: "بازیگران کودک",
+    labelLine2: "و نوجوان پسر",
+    iconSrc: "/cineflash/home/categories/boy.png",
+    href: "/categories/boys",
+  },
+  {
+    id: "girls",
+    labelLine1: "بازیگران کودک",
+    labelLine2: "و نوجوان دختر",
+    iconSrc: "/cineflash/home/categories/girl.png",
+    href: "/categories/girls",
+  },
+];
+
+export default function AgeGenderCategories() {
+  const router = useRouter();
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  return (
+    <section
+      dir="rtl"
+      className="w-full flex justify-center"
+      style={{
+        marginTop: "80px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          columnGap: "160px",
+        }}
+      >
+        {categories.map((cat) => {
+          const isHovered = hovered === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => router.push(cat.href)}
+              onMouseEnter={() => setHovered(cat.id)}
+              onMouseLeave={() => setHovered(null)}
+              className="flex flex-col items-center text-center transition-all duration-300"
+              style={{
+                cursor: "pointer",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+              }}
+            >
+              {/* آیکن */}
+              <div
+                style={{
+                  width: "141px",
+                  height: "141px",
+                  position: "relative",
+                  transition: "filter 0.4s ease",
+                }}
+              >
+                <Image
+                  src={cat.iconSrc}
+                  alt={cat.labelLine1}
+                  fill
+                  unoptimized
+                  style={{
+                    objectFit: "contain",
+                    filter: isHovered
+      ? "invert(58%) sepia(83%) saturate(2300%) brightness(1.05) contrast(1.05)"
+      : "invert(0.60) sepia(0) saturate(0) hue-rotate(180deg) brightness(0.9)",
+    transform: cat.id === "adult-female" ? "scale(1.39)" : "scale(1)",
+    transition: "filter 0.3s ease, transform 0.3s ease",
+                  }}
+                  sizes="141px"
+                />
+              </div>
+
+              {/* متن زیر آیکن */}
+              <div
+                className="font-iransans text-center transition-all duration-300"
+                style={{
+                  fontFamily: "IRANSans",
+                  marginTop: "20px",
+                  lineHeight: 1.4,
+                  fontSize: "18px",
+                  fontWeight: 400,
+                  background: isHovered
+                    ? "linear-gradient(90deg, #FFC919 0%, #FF7F19 100%)"
+                    : "none",
+                  WebkitBackgroundClip: isHovered ? "text" : "unset",
+                  WebkitTextFillColor: isHovered ? "transparent" : "#969696",
+                  color: isHovered ? "transparent" : "#969696",
+                  whiteSpace: "pre-line",
+                  transition: "all 0.4s ease",
+                }}
+              >
+                <div>{cat.labelLine1}</div>
+                {cat.labelLine2 && <div>{cat.labelLine2}</div>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
