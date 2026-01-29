@@ -88,6 +88,28 @@ const COURSE_INSTALLMENT_COUNT = 4;
 const COURSE_STARTS_AT = new Date('2025-01-15T00:00:00.000Z');
 const COURSE_ENDS_AT = new Date('2025-04-15T00:00:00.000Z');
 
+const MOVIE_GENRES = [
+  { slug: 'action', nameEn: 'Action', nameFa: 'اکشن' },
+  { slug: 'drama', nameEn: 'Drama', nameFa: 'درام' },
+  { slug: 'comedy', nameEn: 'Comedy', nameFa: 'کمدی' },
+  { slug: 'thriller', nameEn: 'Thriller', nameFa: 'هیجان‌انگیز' },
+  { slug: 'horror', nameEn: 'Horror', nameFa: 'ترسناک' },
+  { slug: 'romance', nameEn: 'Romance', nameFa: 'عاشقانه' },
+  { slug: 'sci-fi', nameEn: 'Sci-Fi', nameFa: 'علمی‌تخیلی' },
+  { slug: 'fantasy', nameEn: 'Fantasy', nameFa: 'فانتزی' },
+  { slug: 'documentary', nameEn: 'Documentary', nameFa: 'مستند' },
+  { slug: 'animation', nameEn: 'Animation', nameFa: 'انیمیشن' },
+  { slug: 'crime', nameEn: 'Crime', nameFa: 'جنایی' },
+  { slug: 'family', nameEn: 'Family', nameFa: 'خانوادگی' },
+  { slug: 'war', nameEn: 'War', nameFa: 'جنگی' },
+  { slug: 'history', nameEn: 'History', nameFa: 'تاریخی' },
+  { slug: 'music', nameEn: 'Music', nameFa: 'موزیکال' },
+  { slug: 'mystery', nameEn: 'Mystery', nameFa: 'رازآلود' },
+  { slug: 'adventure', nameEn: 'Adventure', nameFa: 'ماجراجویی' },
+  { slug: 'western', nameEn: 'Western', nameFa: 'وسترن' },
+  { slug: 'biography', nameEn: 'Biography', nameFa: 'زندگی‌نامه‌ای' },
+] as const;
+
 async function ensureSeedUser() {
   const existingUser = await prisma.user.findFirst();
 
@@ -146,6 +168,17 @@ async function ensureSeedMediaAsset(ownerId: string) {
   }
 
   return { mediaAsset, transcodeJob };
+}
+
+async function ensureGenres() {
+  await prisma.genre.createMany({
+    data: MOVIE_GENRES.map((genre) => ({
+      slug: genre.slug,
+      nameEn: genre.nameEn,
+      nameFa: genre.nameFa,
+    })),
+    skipDuplicates: true,
+  });
 }
 
 async function ensureProduct(type: ProductType, name: string) {
@@ -743,6 +776,8 @@ async function verifyDuplicatePrevention(example: { jobId: string; applicantUser
 
 async function main() {
   await waitForDatabase();
+
+  await ensureGenres();
 
   const seedUser = await ensureSeedUser();
 

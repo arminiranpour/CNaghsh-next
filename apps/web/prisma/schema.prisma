@@ -33,6 +33,7 @@ model User {
   notificationMessageLogs NotificationMessageLog[]
   mediaAssets             MediaAsset[]
   mediaModerationReviews  MediaAsset[]             @relation("MediaModerationReviewer")
+  createdMovies           Movie[]
   applications            Application[]            @relation("ApplicantApplications")
   applicationEvents       ApplicationEvent[]       @relation("ApplicationEventActor")
   applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
@@ -535,6 +536,8 @@ model MediaAsset {
   courseIntroVideoUsages  Course[]              @relation("CourseIntroVideo")
   profileIntroVideoUsages Profile[]             @relation("ProfileIntroVideo")
   jobIntroVideoUsages     Job[]                 @relation("JobIntroVideo")
+  moviePosterBigUsages    Movie[]               @relation("MoviePosterBig")
+  moviePosterCardUsages   Movie[]               @relation("MoviePosterCard")
 
   @@index([ownerUserId, type, status])
   @@index([createdAt])
@@ -624,6 +627,43 @@ model Course {
   checkoutSessions     CheckoutSession[]
 
   @@index([status])
+  @@index([createdAt])
+}
+
+model Genre {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  nameEn    String
+  nameFa    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  movies    Movie[]
+}
+
+model Movie {
+  id                      String          @id @default(cuid())
+  titleEn                 String
+  titleFa                 String
+  director                String
+  yearReleased            Int
+  durationMinutes         Int
+  stars                   String?         @db.Text
+  awards                  String?         @db.Text
+  mediaType               MovieMediaType
+  ageRange                String
+  country                 String?
+  posterBigMediaAssetId   String
+  posterCardMediaAssetId  String
+  createdByUserId         String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  posterBigMediaAsset     MediaAsset      @relation("MoviePosterBig", fields: [posterBigMediaAssetId], references: [id])
+  posterCardMediaAsset    MediaAsset      @relation("MoviePosterCard", fields: [posterCardMediaAssetId], references: [id])
+  createdByUser           User?           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  genres                  Genre[]
+
+  @@index([yearReleased])
+  @@index([mediaType])
   @@index([createdAt])
 }
 
@@ -903,6 +943,11 @@ enum MediaType {
   image
   video
   audio
+}
+
+enum MovieMediaType {
+  movie
+  series
 }
 
 enum MediaStatus {
