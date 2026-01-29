@@ -33,12 +33,15 @@ export default function Header() {
   return (
     <header
       style={{
-        position: "relative",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
         width: "100%",
         paddingTop: TOP,
         paddingBottom: TOP,
         backgroundColor: "transparent",
-        zIndex: 60,
+        zIndex: 100,
         direction: "rtl",
         fontFamily: "IRANSans",
         color: "#fff",

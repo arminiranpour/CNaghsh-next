@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { ListAnalyticsTracker } from "@/components/analytics/ListAnalyticsTracker";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -25,7 +26,6 @@ import { cn } from "@/lib/utils";
 import { ProfilesFilterSidebar } from "@/components/profiles/ProfilesFilterSidebar";
 import { ProfilesGrid } from "@/components/profiles/ProfilesGrid";
 import { ProfilesSearchBar } from "@/components/profiles/ProfilesSearchBar";
-import Header from "@/components/Header";
 import { buildProfilesHref } from "@/lib/url/buildProfilesHref";
 
 export const revalidate = 60;
@@ -146,29 +146,30 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
   });
 
   return (
-    <div className="relative w-full" dir="rtl">
-      {/* 🔥 Full-width background */}
-      <div
-        className="
-          absolute inset-0
-          bg-[url('/profiles/concretewall-bg.png')]
-          bg-cover bg-center bg-no-repeat
-        "
+    <div className="relative w-full min-h-screen" dir="rtl">
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/profiles/concretewall-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+        />
+      </div>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 pt-[120px]">
+      <ListAnalyticsTracker
+        scope="profiles"
+        query={normalized.query ?? undefined}
+        city={normalized.city ?? undefined}
+        sort={normalized.sort ?? undefined}
+        page={currentPage}
       />
 
-      {/* Centered content container – unchanged */}
-      <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
-        <ListAnalyticsTracker
-          scope="profiles"
-          query={normalized.query ?? undefined}
-          city={normalized.city ?? undefined}
-          sort={normalized.sort ?? undefined}
-          page={currentPage}
-        />
+      <JsonLd data={jsonLd} />
 
-        <JsonLd data={jsonLd} />
-      
-      <div className="flex items-center justify-between mb-6" dir="rtl">
+      <div className="mb-6 flex items-center justify-between" dir="rtl">
         <header className="flex flex-col">
           <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
         </header>
@@ -176,48 +177,47 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
         <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="w-[790px]" />
       </div>
 
+      {appliedFilters.length ? (
+        <section
+          aria-label="فیلترهای اعمال شده"
+          className="mb-6 flex flex-wrap gap-2"
+        >
+          {appliedFilters.map((chip) => (
+            <a
+              key={chip.key}
+              href={chip.href}
+              className={cn(
+                badgeVariants({ variant: "outline" }),
+                "group inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs hover:bg-muted"
+              )}
+              aria-label={`حذف فیلتر ${chip.label}`}
+            >
+              <span>{chip.label}</span>
+              <span aria-hidden className="text-muted-foreground">×</span>
+            </a>
+          ))}
+        </section>
+      ) : null}
 
-        {appliedFilters.length ? (
-          <section
-            aria-label="فیلترهای اعمال شده"
-            className="mb-6 flex flex-wrap gap-2"
-          >
-            {appliedFilters.map((chip) => (
-              <a
-                key={chip.key}
-                href={chip.href}
-                className={cn(
-                  badgeVariants({ variant: "outline" }),
-                  "group inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs hover:bg-muted"
-                )}
-                aria-label={`حذف فیلتر ${chip.label}`}
-              >
-                <span>{chip.label}</span>
-                <span aria-hidden className="text-muted-foreground">×</span>
-              </a>
-            ))}
-          </section>
-        ) : null}
+      <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
+        <ProfilesFilterSidebar
+          cities={cities}
+          initialFilters={normalizedForLinks}
+          clearHref={clearFiltersHref}
+          className="w-full xl:w-[371px] shrink-0"
+        />
 
-        <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
-          <ProfilesFilterSidebar
-            cities={cities}
-            initialFilters={normalizedForLinks}
-            clearHref={clearFiltersHref}
-            className="w-full xl:w-[371px] shrink-0"
-          />
-
-          <ProfilesGrid
-            profiles={data.items}
-            cityMap={cityMap}
-            normalized={normalizedForLinks}
-            currentPage={currentPage}
-            hasNextPage={hasNextPage}
-            hasPrevPage={hasPrevPage}
-            clearHref={clearFiltersHref}
-            className="flex-1"
-          />
-        </main>
+        <ProfilesGrid
+          profiles={data.items}
+          cityMap={cityMap}
+          normalized={normalizedForLinks}
+          currentPage={currentPage}
+          hasNextPage={hasNextPage}
+          hasPrevPage={hasPrevPage}
+          clearHref={clearFiltersHref}
+          className="flex-1"
+        />
+      </main>
       </div>
     </div>
   );

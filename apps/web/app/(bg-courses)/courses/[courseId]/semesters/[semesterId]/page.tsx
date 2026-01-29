@@ -36,10 +36,6 @@ export default async function SemesterDetailPage({
 
   return (
     <div className="relative min-h-screen" dir="rtl">
-      <div
-        className="fixed inset-0 z-0 bg-[url('/images/concrete-wall.png')] bg-cover bg-center bg-no-repeat"
-        aria-hidden="true"
-      />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10">
         {/* Back Button */}
         <div className="flex justify-begin mb-4">

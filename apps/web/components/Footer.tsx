@@ -1,16 +1,28 @@
 import Image from "next/image";
 import Link from "next/link";
 
+const FRAME_WIDTH = 1200;
+const RIGHT_PADDING = 6;
+
 export default function Footer() {
   return (
     <footer
-      className="border-t border-border bg-card/50"
+      className="relative z-20 w-full bg-transparent -mt-[120px]"
       style={{
         direction: "rtl",
         fontFamily: "IRANSans",
       }}
     >
-      <div className="container mx-auto px-4 py-12">
+      <div
+        style={{
+          maxWidth: FRAME_WIDTH,
+          width: "100%",
+          margin: "0 auto",
+          paddingRight: RIGHT_PADDING,
+          paddingLeft: RIGHT_PADDING,
+        }}
+        className="relative pt-[120px] pb-12"
+      >
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           {/* Column 1: Logo */}
           <div className="flex flex-col">
@@ -168,4 +180,3 @@ export default function Footer() {
     </footer>
   );
 }
-

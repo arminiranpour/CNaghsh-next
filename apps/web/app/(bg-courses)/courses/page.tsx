@@ -3,8 +3,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { fetchPublishedCourses } from "@/lib/courses/public/queries";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import CourseCard from "@/components/CourseCard";
 import { iranSans } from "@/lib/fonts/iransans";
 
@@ -24,25 +22,9 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
     nextPage <= 1 ? "/courses" : `/courses?page=${nextPage}`;
 
   return (
-    <div
-    className={`${iranSans.className} min-h-screen`}
-    style={{
-        backgroundImage: "url('/images/concrete-wall.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        position: "relative",
-      }}
-      dir="rtl"
-    >
-      <Header />
-
-      <main
-        className="container mx-auto px-4 pb-24"
-        style={{
-          paddingTop: "180px", // Account for header at top: 108px + header height + spacing
-        }}
-      >
+    <div className={`${iranSans.className} min-h-screen`} dir="rtl">
+      <main className="container mx-auto px-4 pb-24 mt-[120px]">
+        
         {/* Title */}
         <div className="mb-20 px-20 text-right">
           <h1
@@ -119,8 +101,6 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
           </>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }
