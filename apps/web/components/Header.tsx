@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 const FRAME_WIDTH = 1200;
@@ -21,22 +22,72 @@ const USER_H = 26;
 const LOGO_W = 140;
 const LOGO_H = 43;
 
-export default function Header() {
+type HeaderVariant = "static" | "overlay";
+
+type HeaderProps = {
+  variant?: HeaderVariant;
+};
+
+export default function Header({ variant = "static" }: HeaderProps) {
   // برای هاور شدن هر آیتم
   const [hovered, setHovered] = useState<string | null>(null);
+  const [isHidden, setIsHidden] = useState(false);
   const { data: session } = useSession();
+  const pathname = usePathname();
+  const shouldAutoHide =
+    pathname === "/profiles" ||
+    pathname.startsWith("/profiles/") ||
+    pathname === "/dashboard/profile" ||
+    pathname.startsWith("/dashboard/profile/");
 
   // فیلتر نارنجی (مثل قبل)
   const orangeFilter =
     "brightness(0) saturate(100%) invert(61%) sepia(61%) saturate(1043%) hue-rotate(351deg) brightness(98%) contrast(98%)";
 
+  useEffect(() => {
+    if (!shouldAutoHide) {
+      setIsHidden(false);
+      return;
+    }
+
+    let rafId = 0;
+
+    const updateHidden = (event?: Event) => {
+      const target = event?.target instanceof HTMLElement ? event.target : null;
+      const windowScrolled = window.scrollY > 4;
+      const documentScrolled = (document.scrollingElement?.scrollTop ?? 0) > 4;
+      const targetScrolled = target ? target.scrollTop > 4 : false;
+      setIsHidden(windowScrolled || documentScrolled || targetScrolled);
+    };
+
+    const handleScroll = (event: Event) => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      rafId = requestAnimationFrame(() => updateHidden(event));
+    };
+
+    updateHidden();
+
+    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      document.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [pathname, shouldAutoHide]);
+
   return (
     <header
       style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
+        position: variant === "overlay" ? "absolute" : "relative",
+        top: variant === "overlay" ? 0 : undefined,
+        left: variant === "overlay" ? 0 : undefined,
+        right: variant === "overlay" ? 0 : undefined,
         width: "100%",
         paddingTop: TOP,
         paddingBottom: TOP,
@@ -45,6 +96,10 @@ export default function Header() {
         direction: "rtl",
         fontFamily: "IRANSans",
         color: "#fff",
+        transform: isHidden ? "translateY(-120px)" : "translateY(0)",
+        opacity: isHidden ? 0 : 1,
+        pointerEvents: isHidden ? "none" : "auto",
+        transition: "transform 0.2s ease, opacity 0.2s ease",
       }}
     >
       <div

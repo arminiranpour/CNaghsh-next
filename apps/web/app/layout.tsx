@@ -58,7 +58,9 @@ export default function RootLayout({
     url: baseUrl,
     logoUrl: `${baseUrl}${SITE_LOGO_PATH}`,
   });
-  const isAuthRoute = isAuthPath();
+  const normalizedPathname = getNormalizedPathname();
+  const isAuthRoute = isAuthPath(normalizedPathname);
+  const isOverlayHeaderRoute = isOverlayHeaderPath(normalizedPathname);
 
   return (
     <html lang="fa-IR" dir="rtl" suppressHydrationWarning className={iransansMedium.className}>
@@ -67,7 +69,7 @@ export default function RootLayout({
           <ThemeProvider>
             <div className="relative flex min-h-screen flex-col">
               <ConsentGate />
-              {!isAuthRoute ? <Header /> : null}
+              {!isAuthRoute && !isOverlayHeaderRoute ? <Header variant="static" /> : null}
               <main className="flex-1">{children}</main>
               <JsonLd data={organizationJsonLd} />
               {!isAuthRoute ? <Footer /> : null}
@@ -80,7 +82,33 @@ export default function RootLayout({
   );
 }
 
-function isAuthPath() {
+function isAuthPath(normalizedPathname: string | null) {
+  if (!normalizedPathname) {
+    return false;
+  }
+  const authRoutes = ["/auth", "/signin", "/signup"];
+
+  return authRoutes.some((route) => {
+    return (
+      normalizedPathname === route ||
+      normalizedPathname.startsWith(`${route}/`)
+    );
+  });
+}
+
+function isOverlayHeaderPath(normalizedPathname: string | null) {
+  if (!normalizedPathname) {
+    return false;
+  }
+
+  if (normalizedPathname === "/movies") {
+    return false;
+  }
+
+  return normalizedPathname.startsWith("/movies/");
+}
+
+function getNormalizedPathname() {
   const headerList = headers();
   const headerCandidates = ["x-invoke-path", "x-matched-path", "next-url"] as const;
   let pathname: string | null = null;
@@ -101,18 +129,10 @@ function isAuthPath() {
   }
 
   if (!pathname) {
-    return false;
+    return null;
   }
 
-  const normalizedPathname = pathname.replace(/\/\([^/]+\)/g, "");
-  const authRoutes = ["/auth", "/signin", "/signup"];
-
-  return authRoutes.some((route) => {
-    return (
-      normalizedPathname === route ||
-      normalizedPathname.startsWith(`${route}/`)
-    );
-  });
+  return pathname.replace(/\/\([^/]+\)/g, "");
 }
 
 function extractPathname(value: string) {

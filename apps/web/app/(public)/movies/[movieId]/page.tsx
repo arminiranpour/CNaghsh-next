@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { iransansBold } from "@/app/fonts";
 import { MovieHeroSaveButton } from "@/components/movies/MovieHeroSaveButton";
+import Header from "@/components/Header";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 
@@ -96,6 +97,7 @@ export default async function MovieDetailsPage({
   return (
     <div className="w-full bg-black" dir="rtl">
       <div className="relative mx-auto h-[849px] w-[1440px] overflow-hidden bg-black text-white">
+        <Header variant="overlay" />
         {posterUrl ? (
           <img
             src={posterUrl}
@@ -110,7 +112,7 @@ export default async function MovieDetailsPage({
 
         <Link
           href="/movies"
-          className="absolute left-[1266px] top-[70px] z-20 flex h-[46px] w-[50px] items-center justify-center rounded-[7px] bg-white/90 mix-blend-soft-light"
+          className="absolute left-[1266px] top-[120px] z-20 flex h-[46px] w-[50px] items-center justify-center rounded-[7px] bg-white/90 mix-blend-soft-light"
           aria-label="بازگشت"
         >
           <ArrowLeft className="h-[20px] w-[20px] rotate-180 text-black/80" />
