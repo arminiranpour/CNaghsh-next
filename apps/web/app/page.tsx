@@ -5,7 +5,6 @@ import FeaturedHeader from "@/components/Home/FeaturedHeader";
 import FeaturedCard from "@/components/Home/FeaturedCard";
 import AgeGenderCategories from "@/components/Home/AgeGenderCategories";
 import CommunityBanner from "@/components/Home/CommunityBanner";
-import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
@@ -40,7 +39,6 @@ export default function HomePage() {
 
         <AgeGenderCategories />
         <CommunityBanner />
-        <Footer />
       </div>
     </main>
   );
