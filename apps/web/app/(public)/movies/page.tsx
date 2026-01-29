@@ -221,7 +221,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: Searc
       />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
-        <div className="flex items-center justify-between mb-6" dir="rtl">
+        <div className="flex items-center justify-between mb-6 mt-[120px]" dir="rtl">
           <header className="flex flex-col">
             <h1 className={styles.pageTitle}>معرفی فیلم سی‌نقش</h1>
           </header>

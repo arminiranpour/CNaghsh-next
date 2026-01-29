@@ -171,6 +171,7 @@ export function AudioSlide({ voices }: AudioSlideProps) {
         </p>
       ) : (
         <div
+          data-header-scroll
           style={{
             position: "absolute",
             top: 120,

@@ -2016,6 +2016,7 @@ export function PortfolioEditCenterPane({
     >
       <form
         className="h-full w-full overflow-y-auto pb-10"
+        data-header-scroll
         onSubmit={handleSubmit}
       >
         <div className="px-[32px] pt-[22px]">

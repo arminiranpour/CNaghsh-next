@@ -84,10 +84,11 @@ export default function Header({ variant = "static" }: HeaderProps) {
   return (
     <header
       style={{
-        position: variant === "overlay" ? "absolute" : "relative",
-        top: variant === "overlay" ? 0 : undefined,
-        left: variant === "overlay" ? 0 : undefined,
-        right: variant === "overlay" ? 0 : undefined,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+
         width: "100%",
         paddingTop: TOP,
         paddingBottom: TOP,
