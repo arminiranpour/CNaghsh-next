@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export default function ProfilesBackgroundLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div className="absolute inset-0 -z-10">
+      <div className="fixed inset-0 -z-10">
         <div
           className="absolute inset-0 bg-[url('/profiles/concretewall-bg.png')] bg-cover bg-center bg-no-repeat"
           aria-hidden="true"

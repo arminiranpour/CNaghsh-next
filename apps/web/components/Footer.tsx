@@ -7,9 +7,9 @@ const RIGHT_PADDING = 6;
 export default function Footer() {
   return (
     <footer
-      className="relative z-20 w-full bg-transparent -mt-[120px]"
+      className="relative z-20 w-full bg-transparent"
       style={{
-        direction: "rtl",
+        direction: "ltr",
         fontFamily: "IRANSans",
       }}
     >
@@ -21,7 +21,7 @@ export default function Footer() {
           paddingRight: RIGHT_PADDING,
           paddingLeft: RIGHT_PADDING,
         }}
-        className="relative pt-[120px] pb-12"
+        className="relative pt-8 pb-12"
       >
         <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
           {/* Column 1: Logo */}
@@ -48,16 +48,16 @@ export default function Footer() {
 
           {/* Column 2: Si Naghsh Links */}
           <div className="flex flex-col space-y-3">
-            <h3 className="font-semibold text-foreground">سی نقش</h3>
+            <h3 className="font-semibold text-black">سی نقش</h3>
             <Link
               href="/"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-black transition-colors hover:text-foreground"
             >
               خانه
             </Link>
             <Link
               href="/about"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-black transition-colors hover:text-foreground"
             >
               درباره سی نقش
             </Link>
@@ -65,22 +65,22 @@ export default function Footer() {
 
           {/* Column 3: Profile Links */}
           <div className="flex flex-col space-y-3">
-            <h3 className="font-semibold text-foreground">پروفایل</h3>
+            <h3 className="font-semibold text-black">پروفایل</h3>
             <Link
               href="/dashboard/profile"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-black transition-colors hover:text-foreground"
             >
               ثبت نام
             </Link>
             <Link
               href="/pricing"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-black transition-colors hover:text-foreground"
             >
               خرید اشتراک
             </Link>
             <Link
               href="/dashboard/profile"
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="text-sm text-black transition-colors hover:text-foreground"
             >
               تکمیل پورتفولیو
             </Link>
@@ -88,13 +88,13 @@ export default function Footer() {
 
           {/* Column 4: Contact */}
           <div className="flex flex-col space-y-3">
-            <h3 className="font-semibold text-foreground">ارتباط با ما</h3>
+            <h3 className="font-semibold text-black">ارتباط با ما</h3>
             <div className="flex gap-4">
               <a
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-black transition-colors hover:text-foreground"
                 aria-label="Instagram"
               >
                 <svg
@@ -116,7 +116,7 @@ export default function Footer() {
                 href="https://telegram.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-black transition-colors hover:text-foreground"
                 aria-label="Telegram"
               >
                 <svg
@@ -135,7 +135,7 @@ export default function Footer() {
               </a>
               <a
                 href="mailto:contact@cnaghsh.com"
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-black transition-colors hover:text-foreground"
                 aria-label="Email"
               >
                 <svg
@@ -157,22 +157,24 @@ export default function Footer() {
 
           {/* Column 5: Newsletter */}
           <div className="flex flex-col space-y-3">
-            <h3 className="font-semibold text-foreground">
+            <h3 className="text-right text-semibold font-bold leading-[31px] text-black">
               به خبرنامه سی نقش بپیوندید
             </h3>
-            <form className="flex flex-col gap-2">
-              <input
-                type="email"
-                placeholder="آدرس ایمیل"
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                dir="ltr"
-              />
-              <button
-                type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                ارسال
-              </button>
+            <form className="w-full max-w-[262px]">
+              <div className="flex h-[33px] w-full items-center rounded-full bg-[#D9D9D9]/65 ">
+                <button
+                  type="submit"
+                  className="flex-none h-[33px] w-[55px] rounded-full bg-[#979797] text-[13px] font-bold leading-[20px] text-white"
+                >
+                  ارسال
+                </button>
+                <input
+                  type="email"
+                  placeholder="آدرس ایمیل"
+                  className="h-full flex-1 bg-transparent pr-6 text-right text-[13px] leading-[20px] text-black placeholder:text-black/70 focus:outline-none"
+                  dir="rtl"
+                />
+              </div>
             </form>
           </div>
         </div>

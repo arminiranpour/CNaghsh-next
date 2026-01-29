@@ -116,7 +116,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
         }}
       >
         {/* راست: آیکن‌ها + متن‌ها */}
-        <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
+        <div className="text-black" style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
           {/* آیکن‌ها */}
           <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
             {/* Menu */}
