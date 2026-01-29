@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_DESCRIPTION, SITE_LOCALE, SITE_LOGO_PATH, SITE_NAME } from "@/lib/seo/constants";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
@@ -69,14 +70,7 @@ export default function RootLayout({
               {!isAuthRoute ? <Header /> : null}
               <main className="flex-1">{children}</main>
               <JsonLd data={organizationJsonLd} />
-              {!isAuthRoute ? (
-                <footer className="border-t border-border bg-card/50">
-                  <div className="container flex flex-col gap-2 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                    <span>© {new Date().getFullYear()} بازارگاه فراخوان‌ها</span>
-                    <span>ساخته شده برای اسپرینت صفر</span>
-                  </div>
-                </footer>
-              ) : null}
+              {!isAuthRoute ? <Footer /> : null}
             </div>
             <Toaster />
           </ThemeProvider>
