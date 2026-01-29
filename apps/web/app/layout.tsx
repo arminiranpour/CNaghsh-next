@@ -64,10 +64,10 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased">
         <SessionProvider>
           <ThemeProvider>
-            <div className="flex min-h-screen flex-col">
+            <div className="relative flex min-h-screen flex-col">
               <ConsentGate />
               {!isAuthRoute ? <Header /> : null}
-              <main className={`flex-1${isAuthRoute ? "" : " pt-36"}`}>{children}</main>
+              <main className="flex-1">{children}</main>
               <JsonLd data={organizationJsonLd} />
               {!isAuthRoute ? (
                 <footer className="border-t border-border bg-card/50">

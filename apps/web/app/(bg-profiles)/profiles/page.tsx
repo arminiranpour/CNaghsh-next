@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 import { ListAnalyticsTracker } from "@/components/analytics/ListAnalyticsTracker";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -145,7 +146,19 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
   });
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10" dir="rtl">
+    <div className="relative w-full min-h-screen" dir="rtl">
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/profiles/concretewall-bg.png"
+          alt=""
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+        />
+      </div>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 pt-[120px]">
       <ListAnalyticsTracker
         scope="profiles"
         query={normalized.query ?? undefined}
@@ -205,6 +218,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
           className="flex-1"
         />
       </main>
+      </div>
     </div>
   );
 }

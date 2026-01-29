@@ -23,7 +23,8 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
 
   return (
     <div className={`${iranSans.className} min-h-screen`} dir="rtl">
-      <main className="container mx-auto px-4 pb-24">
+      <main className="container mx-auto px-4 pb-24 mt-[120px]">
+        
         {/* Title */}
         <div className="mb-20 px-20 text-right">
           <h1

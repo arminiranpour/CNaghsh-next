@@ -687,7 +687,7 @@ export default async function PricingPage({
       className={`${iranSans.className} relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat`}
       style={{ backgroundImage: "url('/images/auth-bg.jpg')" }}
     >
-      <div className="w-full h-full px-4 py-12">
+      <div className="w-full h-full px-4 py-12 mt-[120px]">
         <div className="relative flex items-center justify-center min-h-screen">
           <div
             className="
