@@ -12,8 +12,8 @@
   background: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 8px;
+  gap: 14px;
+  padding: 0 10px 0 0px;
 }
 
 .searchInput {
@@ -56,6 +56,7 @@
   height: 220px;
   border-radius: 12px;
   object-fit: cover;
+  box-shadow: #000000b2 5px 10px 16px;
 }
 
 .titleFa {
@@ -66,14 +67,14 @@
 }
 
 .titleEn {
-  font-size: 10px;
+  font-size: 11px;
   color: #8a8a8a;
   text-align: center;
   font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
 }
 
 .director {
-  font-size: 9px;
+  font-size: 11px;
   color: #1f1f1f;
   text-align: center;
 }

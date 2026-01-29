@@ -4,11 +4,13 @@ import { headers } from "next/headers";
 import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { buildMoviesHref, type MovieSearchParams } from "@/lib/url/buildMoviesHref";
 import { cn } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 import { MoviesFilterSidebar } from "./_components/movies-filter-sidebar";
 import { MoviesGrid } from "./_components/movies-grid";
 import { MoviesSearchBar } from "./_components/movies-search-bar";
 import styles from "./movies.module.css";
+import countriesData from "../../../public/countries/countries.json";
 
 export const revalidate = 60;
 
@@ -45,6 +47,28 @@ type FiltersResponse = {
   yearMin: number;
   yearMax: number;
 };
+
+type CountryRecord = {
+  name?: string;
+  code?: string;
+  name_fa?: string;
+};
+
+const countryOptions = Array.from(
+  new Set(
+    (countriesData as CountryRecord[])
+      .map((item) => (item.name_fa ?? item.name ?? "").trim())
+      .filter((value) => value.length > 0),
+  ),
+).sort((a, b) => a.localeCompare(b, "fa"));
+
+const ageRangeOptions = [
+  "G (General Audiences)",
+  "PG (Parental Guidance)",
+  "PG-13 (Parents Strongly Cautioned)",
+  "R (Restricted)",
+  "NC-17 (Adults Only)",
+];
 
 const parseParam = (params: SearchParams, key: string) => {
   const value = params[key];
@@ -167,6 +191,14 @@ export default async function MoviesPage({ searchParams }: { searchParams: Searc
     };
   }
 
+  const genreOptions =
+    filtersData.genres.length > 0
+      ? filtersData.genres
+      : await prisma.genre.findMany({
+          select: { id: true, slug: true, nameFa: true, nameEn: true },
+          orderBy: { nameFa: "asc" },
+        });
+
   const currentPage = moviesData.page ?? page;
   const pageCount = moviesData.pageCount ?? 1;
   const hasNextPage = currentPage < pageCount;
@@ -198,9 +230,9 @@ export default async function MoviesPage({ searchParams }: { searchParams: Searc
 
         <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
           <MoviesFilterSidebar
-            genres={filtersData.genres}
-            countries={filtersData.countries}
-            ageRanges={filtersData.ageRanges}
+            genres={genreOptions}
+            countries={countryOptions}
+            ageRanges={ageRangeOptions}
             yearMin={filtersData.yearMin}
             yearMax={filtersData.yearMax}
             className="w-full xl:w-[371px] shrink-0"

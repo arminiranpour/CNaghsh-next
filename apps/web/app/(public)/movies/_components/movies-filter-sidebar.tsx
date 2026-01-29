@@ -283,22 +283,25 @@ export function MoviesFilterSidebar({
               <button type="button" onClick={() => setCountry("")} className={dropdownItemClass}>
                 همه موارد
               </button>
-              {countries.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => {
-                    setCountry(item);
-                    setCountryOpen(false);
-                  }}
-                  className={cn(
-                    dropdownItemClass,
-                    country === item ? "bg-black text-white hover:bg-black" : "",
-                  )}
-                >
-                  {item}
-                </button>
-              ))}
+              <div className="mt-2 max-h-[200px] overflow-y-auto pr-1">
+                {countries.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      setCountry(item);
+                      setCountryOpen(false);
+                    }}
+                    className={cn(
+                      dropdownItemClass,
+                      "block w-full text-right",
+                      country === item ? "bg-black text-white hover:bg-black" : "",
+                    )}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
         </section>
@@ -373,7 +376,7 @@ export function MoviesFilterSidebar({
                 {genres.map((item) => {
                   const checked = genreIds.includes(item.id);
                   return (
-                    <label key={item.id} className="flex items-center gap-2 text-sm">
+                    <label key={item.id} className="flex items-center gap-2 text-sm text-black">
                       <Checkbox
                         checked={checked}
                         onChange={() =>
