@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { CineMenuOverlay } from "@/components/header/CineMenuOverlay";
 
 const FRAME_WIDTH = 1200;
 const TOP = 50;
@@ -13,7 +14,7 @@ const RIGHT_PADDING = 6;
 const GAP_GROUPS = 60;
 const GAP_TEXTS = 60;
 const GAP_ICONS = 60;
-const GAP_LOGO = 90;
+const GAP_LOGO = 10;
 
 const MENU_W = 50;
 const MENU_H = 22;
@@ -32,6 +33,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
   // برای هاور شدن هر آیتم
   const [hovered, setHovered] = useState<string | null>(null);
   const [isHidden, setIsHidden] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
   const shouldAutoHide =
@@ -39,10 +41,21 @@ export default function Header({ variant = "static" }: HeaderProps) {
     pathname.startsWith("/profiles/") ||
     pathname === "/dashboard/profile" ||
     pathname.startsWith("/dashboard/profile/");
+  const useWhiteHeader =
+    pathname === "/" ||
+    pathname.startsWith("/auth") ||
+    pathname === "/pricing" ||
+    pathname.startsWith("/profiles/") ||
+    pathname.startsWith("/profile/");
+  const topPadding = pathname === "/" ? 100 : TOP;
 
   // فیلتر نارنجی (مثل قبل)
   const orangeFilter =
     "brightness(0) saturate(100%) invert(61%) sepia(61%) saturate(1043%) hue-rotate(351deg) brightness(98%) contrast(98%)";
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!shouldAutoHide) {
@@ -82,75 +95,81 @@ export default function Header({ variant = "static" }: HeaderProps) {
   }, [pathname, shouldAutoHide]);
 
   return (
-    <header
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-
-        width: "100%",
-        paddingTop: TOP,
-        paddingBottom: TOP,
-        backgroundColor: "transparent",
-        zIndex: 100,
-        direction: "rtl",
-        fontFamily: "IRANSans",
-        color: "#fff",
-        transform: isHidden ? "translateY(-120px)" : "translateY(0)",
-        opacity: isHidden ? 0 : 1,
-        pointerEvents: isHidden ? "none" : "auto",
-        transition: "transform 0.2s ease, opacity 0.2s ease",
-      }}
-    >
-      <div
+    <>
+      <header
         style={{
-          maxWidth: FRAME_WIDTH,
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+
           width: "100%",
-          margin: "0 auto",
-          paddingRight: RIGHT_PADDING,
-          paddingLeft: RIGHT_PADDING,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          paddingTop: topPadding,
+          paddingBottom: topPadding,
+          backgroundColor: "transparent",
+          zIndex: 100,
+          direction: "rtl",
+          fontFamily: "IRANSans",
+          color: useWhiteHeader ? "#fff" : "#000",
+          transform: isHidden ? "translateY(-120px)" : "translateY(0)",
+          opacity: isHidden ? 0 : 1,
+          pointerEvents: isHidden ? "none" : "auto",
+          transition: "transform 0.2s ease, opacity 0.2s ease",
         }}
       >
-        {/* راست: آیکن‌ها + متن‌ها */}
-        <div className="text-black" style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
-          {/* آیکن‌ها */}
-          <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
-            {/* Menu */}
-            <a
-              href="#"
-              aria-label="menu"
-              onMouseEnter={() => setHovered("menu")}
-              onMouseLeave={() => setHovered(null)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                border: 0,
-                background: "transparent",
-                cursor: "pointer",
-              }}
-            >
-              <Image
-                src="/cineflash/home/header/menu.png"
-                alt="Menu"
-                width={MENU_W}
-                height={MENU_H}
-                unoptimized
-                priority
+        <div
+          style={{
+            maxWidth: FRAME_WIDTH,
+            width: "100%",
+            margin: "0 auto",
+            paddingRight: RIGHT_PADDING,
+            paddingLeft: RIGHT_PADDING,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* راست: آیکن‌ها + متن‌ها */}
+          <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
+            {/* آیکن‌ها */}
+            <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
+              {/* Menu */}
+              <button
+                type="button"
+                aria-label="menu"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                onMouseEnter={() => setHovered("menu")}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  display: "block",
-                  objectFit: "contain",
-                  transition: "filter .2s ease, transform .15s ease",
-                  filter: hovered === "menu" ? orangeFilter : "none",
-                  transform: hovered === "menu" ? "translateY(-1px)" : "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  border: 0,
+                  background: "transparent",
+                  cursor: "pointer",
                 }}
-              />
-            </a>
+              >
+                <Image
+                  src={
+                    useWhiteHeader
+                      ? "/cineflash/home/Header/menu-white.png"
+                      : "/cineflash/home/header/menu.png"
+                  }
+                  alt="Menu"
+                  width={MENU_W}
+                  height={MENU_H}
+                  unoptimized
+                  priority
+                  style={{
+                    display: "block",
+                    objectFit: "contain",
+                    transition: "filter .2s ease, transform .15s ease",
+                    filter: hovered === "menu" ? orangeFilter : "none",
+                    transform: hovered === "menu" ? "translateY(-1px)" : "none",
+                  }}
+                />
+              </button>
 
             {/* User */}
             <Link
@@ -170,7 +189,11 @@ export default function Header({ variant = "static" }: HeaderProps) {
               }}
             >
               <Image
-                src="/cineflash/home/header/user.png"
+                src={
+                  useWhiteHeader
+                    ? "/cineflash/home/Header/user-white.png"
+                    : "/cineflash/home/header/user.png"
+                }
                 alt="User"
                 width={USER_W}
                 height={USER_H}
@@ -241,7 +264,11 @@ export default function Header({ variant = "static" }: HeaderProps) {
           }}
         >
           <Image
-            src="/cineflash/home/header/cnaghsh-logo.png"
+            src={
+              useWhiteHeader
+                ? "/cineflash/home/Header/cnaghsh-logo-white.png"
+                : "/cineflash/home/header/cnaghsh-logo.png"
+            }
             alt="CNAGHSH ART GROUP"
             fill
             sizes="130px"
@@ -250,7 +277,9 @@ export default function Header({ variant = "static" }: HeaderProps) {
             priority
           />
         </Link>
-      </div>
-    </header>
+        </div>
+      </header>
+      <CineMenuOverlay open={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+    </>
   );
 }
