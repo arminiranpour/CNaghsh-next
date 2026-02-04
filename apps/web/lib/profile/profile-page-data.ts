@@ -13,6 +13,28 @@ type ProfileWithRelations = Prisma.ProfileGetPayload<{
 
 const SKILL_LABELS = new Map(SKILLS.map((skill) => [skill.key, skill.label] as const));
 
+const calculateAge = (birthDate?: Date | null): number | null => {
+  if (!birthDate || Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+
+  const now = new Date();
+  const birthYear = birthDate.getUTCFullYear();
+  const birthMonth = birthDate.getUTCMonth();
+  const birthDay = birthDate.getUTCDate();
+
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth();
+  const currentDay = now.getUTCDate();
+
+  let age = currentYear - birthYear;
+  if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
+    age -= 1;
+  }
+
+  return age >= 0 ? age : null;
+};
+
 export function getDisplayName(
   stageName?: string | null,
   firstName?: string | null,
@@ -308,7 +330,9 @@ export function normalizeAwards(
 export async function buildProfilePageData(
   profile: ProfileWithRelations,
   cities: City[],
+  options?: { includePrivateMedia?: boolean },
 ): Promise<PublicProfileData> {
+  const includePrivateMedia = options?.includePrivateMedia ?? false;
   const videoMediaIds = collectVideoMediaIds(profile.videos);
 
   const videoMedia = videoMediaIds.length
@@ -317,8 +341,8 @@ export async function buildProfilePageData(
           id: { in: videoMediaIds },
           status: "ready",
           type: "video",
-          visibility: "public",
           outputKey: { not: null },
+          ...(includePrivateMedia ? {} : { visibility: "public" }),
         },
       })
     : [];
@@ -329,13 +353,14 @@ export async function buildProfilePageData(
   const videos = normalizeVideos(profile.videos, mediaById);
   const voices = normalizeVoices(profile.voices);
   const awards = normalizeAwards(profile.awards);
+  const derivedAge = calculateAge(profile.birthDate) ?? profile.age ?? null;
 
   return {
     id: profile.id,
     userId: profile.userId,
     displayName: getDisplayName(profile.stageName, profile.firstName, profile.lastName),
     avatarUrl: profile.avatarUrl,
-    age: profile.age,
+    age: derivedAge,
     bio: profile.bio,
     cityName: profile.cityId ? cityMap.get(profile.cityId) ?? undefined : undefined,
     skills: normalizeSkills(profile.skills),

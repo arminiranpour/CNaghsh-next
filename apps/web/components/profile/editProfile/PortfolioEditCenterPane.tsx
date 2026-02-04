@@ -33,6 +33,7 @@ import type {
 import {
   updateAccents,
   updateDegrees,
+  deleteImage,
   updateGallery,
   updateExperience,
   updateLanguages,
@@ -192,6 +193,179 @@ const formatAudioDuration = (duration?: number | null) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${pad2(String(minutes))}:${pad2(String(seconds))}`;
+};
+
+const DIGIT_MAP: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+const normalizeDigits = (value: string) =>
+  value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
+
+const JALALI_MONTHS = [
+  "فروردین",
+  "اردیبهشت",
+  "خرداد",
+  "تیر",
+  "مرداد",
+  "شهریور",
+  "مهر",
+  "آبان",
+  "آذر",
+  "دی",
+  "بهمن",
+  "اسفند",
+];
+
+const div = (value: number, base: number) => Math.trunc(value / base);
+const mod = (value: number, base: number) => value - div(value, base) * base;
+const PERSIAN_NUMBER_FORMATTER = new Intl.NumberFormat("fa-IR", { useGrouping: false });
+const formatPersianNumber = (value: number) => PERSIAN_NUMBER_FORMATTER.format(value);
+
+const jalCal = (jy: number) => {
+  const breaks = [
+    -61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097,
+    2192, 2262, 2324, 2394, 2456, 3178,
+  ];
+  const gy = jy + 621;
+  let leapJ = -14;
+  let jp = breaks[0];
+  let jump = 0;
+
+  if (jy < jp || jy >= breaks[breaks.length - 1]) {
+    throw new Error("Invalid Jalali year");
+  }
+
+  for (let i = 1; i < breaks.length; i += 1) {
+    const jm = breaks[i];
+    jump = jm - jp;
+    if (jy < jm) {
+      break;
+    }
+    leapJ = leapJ + div(jump, 33) * 8 + div(mod(jump, 33), 4);
+    jp = jm;
+  }
+
+  let n = jy - jp;
+  leapJ = leapJ + div(n, 33) * 8 + div(mod(n, 33) + 3, 4);
+  if (mod(jump, 33) === 4 && jump - n === 4) {
+    leapJ += 1;
+  }
+
+  const leapG = div(gy, 4) - div((div(gy, 100) + 1) * 3, 4) - 150;
+  const march = 20 + leapJ - leapG;
+  if (jump - n < 6) {
+    n = n - jump + div(jump + 4, 33) * 33;
+  }
+  let leap = mod(mod(n + 1, 33) - 1, 4);
+  if (leap === -1) {
+    leap = 4;
+  }
+  return { leap, gy, march };
+};
+
+const isLeapJalaliYear = (jy: number) => jalCal(jy).leap === 0;
+
+const j2d = (jy: number, jm: number, jd: number) => {
+  const { gy, march } = jalCal(jy);
+  return (
+    g2d(gy, 3, march) +
+    (jm - 1) * 31 -
+    div(jm, 7) * (jm - 7) +
+    jd -
+    1
+  );
+};
+
+const d2j = (jdn: number) => {
+  const { gy } = d2g(jdn);
+  let jy = gy - 621;
+  const { march } = jalCal(jy);
+  let jdn1f = g2d(gy, 3, march);
+  let k = jdn - jdn1f;
+  let jm;
+  let jd;
+
+  if (k >= 0) {
+    if (k <= 185) {
+      jm = 1 + div(k, 31);
+      jd = mod(k, 31) + 1;
+      return { jy, jm, jd };
+    }
+    k -= 186;
+  } else {
+    jy -= 1;
+    k += 179;
+    if (jalCal(jy).leap === 1) {
+      k += 1;
+    }
+  }
+  jm = 7 + div(k, 30);
+  jd = mod(k, 30) + 1;
+  return { jy, jm, jd };
+};
+
+const g2d = (gy: number, gm: number, gd: number) => {
+  let jdn =
+    div(1461 * (gy + div(gm - 8, 6) + 100100), 4) +
+    div(153 * mod(gm + 9, 12) + 2, 5) +
+    gd -
+    34840408;
+  jdn = jdn - div(div(gy + 100100 + div(gm - 8, 6), 100) * 3, 4) + 752;
+  return jdn;
+};
+
+const d2g = (jdn: number) => {
+  let j = 4 * jdn + 139361631;
+  j = j + div(div(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908;
+  const i = div(mod(j, 1461), 4) * 5 + 308;
+  const gd = div(mod(i, 153), 5) + 1;
+  const gm = mod(div(i, 153), 12) + 1;
+  const gy = div(j, 1461) - 100100 + div(8 - gm, 6);
+  return { gy, gm, gd };
+};
+
+const toGregorian = (jy: number, jm: number, jd: number) => d2g(j2d(jy, jm, jd));
+const toJalali = (gy: number, gm: number, gd: number) => d2j(g2d(gy, gm, gd));
+
+const getJalaliDaysInMonth = (jy: number, jm: number) => {
+  if (jm <= 6) {
+    return 31;
+  }
+  if (jm <= 11) {
+    return 30;
+  }
+  return isLeapJalaliYear(jy) ? 30 : 29;
+};
+
+const getCurrentJalaliYear = () => {
+  const formatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const yearPart = parts.find((part) => part.type === "year")?.value ?? "";
+  const normalized = normalizeDigits(yearPart);
+  return Number(normalized) || 1400;
 };
 
 const resolveGallerySlots = (entries: GalleryAsset[]) => {
@@ -966,7 +1140,7 @@ function EditProfileTabs({
 }) {
   return (
 <div className="mt-4 w-full bg-white pt-4" dir="rtl">
-  <div className="relative flex flex-row-reverse items-center justify-between px-[112px] pb-3 text-[14px] font-semibold">
+  <div className="relative flex items-center justify-between px-[112px] pb-3 text-[14px] font-semibold">
     {/* Gray base line (constant) */}
     <div className="absolute inset-x-[112px] bottom-[13px] h-px bg-[#B4B4B4]" />
 
@@ -1002,11 +1176,13 @@ function GalleryImageSlot({
   title,
   value,
   onPick,
+  onDelete,
   disabled,
 }: {
   title?: string;
   value?: GalleryAsset | null;
   onPick: () => void;
+  onDelete?: () => void;
   disabled?: boolean;
 }) {
   const hasValue = Boolean(value?.url);
@@ -1032,6 +1208,32 @@ function GalleryImageSlot({
               <span className="h-1 w-1 rounded-full bg-white/80" />
               <span className="h-1 w-1 rounded-full bg-white/80" />
             </div>
+            {onDelete ? (
+              <span
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (!disabled) {
+                    onDelete();
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (disabled) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onDelete();
+                  }
+                }}
+                aria-disabled={disabled}
+                aria-label="حذف تصویر"
+                className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[10px] text-[#D12424] shadow"
+              >
+                حذف
+              </span>
+            ) : null}
             <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/70 to-transparent" />
             <span className="absolute bottom-2 right-2 text-[11px] text-white">عنوان تصویر...</span>
           </>
@@ -1058,6 +1260,7 @@ function EditProfileGalleryPane({
   fullBody,
   otherImages,
   onPick,
+  onDelete,
   onSave,
   isBusy,
   error,
@@ -1068,6 +1271,7 @@ function EditProfileGalleryPane({
   fullBody: GalleryAsset | null;
   otherImages: Array<GalleryAsset | null>;
   onPick: (slot: GallerySlotId) => void;
+  onDelete: (slot: GallerySlotId, url?: string | null) => void;
   onSave: () => void;
   isBusy?: boolean;
   error?: string | null;
@@ -1080,18 +1284,21 @@ function EditProfileGalleryPane({
             title="تصویر تمام‌رخ"
             value={headshotFront}
             onPick={() => onPick("headshotFront")}
+            onDelete={() => onDelete("headshotFront", headshotFront?.url ?? null)}
             disabled={isBusy}
           />
           <GalleryImageSlot
             title="تصویر نیم‌رخ"
             value={profileSide}
             onPick={() => onPick("profileSide")}
+            onDelete={() => onDelete("profileSide", profileSide?.url ?? null)}
             disabled={isBusy}
           />
           <GalleryImageSlot
             title="تصویر سه‌رخ"
             value={profileThreeQuarter}
             onPick={() => onPick("profileThreeQuarter")}
+            onDelete={() => onDelete("profileThreeQuarter", profileThreeQuarter?.url ?? null)}
             disabled={isBusy}
           />
         </div>
@@ -1101,6 +1308,7 @@ function EditProfileGalleryPane({
             title="تصویر قدی"
             value={fullBody}
             onPick={() => onPick("fullBody")}
+            onDelete={() => onDelete("fullBody", fullBody?.url ?? null)}
             disabled={isBusy}
           />
         </div>
@@ -1114,6 +1322,9 @@ function EditProfileGalleryPane({
                 key={`other-${index}`}
                 value={image}
                 onPick={() => onPick(`other-${index}` as GallerySlotId)}
+                onDelete={() =>
+                  onDelete(`other-${index}` as GallerySlotId, image?.url ?? null)
+                }
                 disabled={isBusy}
               />
             ))}
@@ -1230,8 +1441,16 @@ export function PortfolioEditCenterPane({
     if (!initialValues.birthDate) {
       return { year: "", month: "", day: "" };
     }
-    const [year, month, day] = initialValues.birthDate.split("-");
-    return { year: year ?? "", month: month ?? "", day: day ?? "" };
+    const [gy, gm, gd] = initialValues.birthDate.split("-").map((value) => Number(value));
+    if (!gy || !gm || !gd) {
+      return { year: "", month: "", day: "" };
+    }
+    const jalali = toJalali(gy, gm, gd);
+    return {
+      year: String(jalali.jy ?? ""),
+      month: String(jalali.jm ?? ""),
+      day: String(jalali.jd ?? ""),
+    };
   });
 
   const [cityId, setCityId] = useState(initialValues.cityId);
@@ -1309,7 +1528,7 @@ export function PortfolioEditCenterPane({
   const [fullBody, setFullBody] = useState<GalleryAsset | null>(
     () => initialGallerySlots.fullBody ?? null,
   );
-  const [otherImages, setOtherImages] = useState<GalleryAsset[]>(() =>
+  const [otherImages, setOtherImages] = useState<Array<GalleryAsset | null>>(() =>
     initialGallerySlots.other.slice(0, MAX_OTHER_IMAGES),
   );
 
@@ -1331,7 +1550,28 @@ export function PortfolioEditCenterPane({
   }, []);
 
   const monthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
-  const dayOptions = useMemo(() => Array.from({ length: 31 }, (_, i) => i + 1), []);
+
+  const birthYearOptions = useMemo(() => {
+    const current = getCurrentJalaliYear();
+    const years: number[] = [];
+    for (let year = current; year >= 1300; year -= 1) {
+      years.push(year);
+    }
+    return years;
+  }, []);
+
+  const birthMonthOptions = useMemo(
+    () => JALALI_MONTHS.map((label, index) => ({ value: index + 1, label })),
+    [],
+  );
+
+  const birthDayOptions = useMemo(() => {
+    const year = Number(birthDate.year);
+    const month = Number(birthDate.month);
+    const maxDays =
+      year && month ? getJalaliDaysInMonth(year, month) : 31;
+    return Array.from({ length: maxDays }, (_, i) => i + 1);
+  }, [birthDate.month, birthDate.year]);
 
   const filteredCities = useMemo(() => {
     if (!selectedProvinceId) {
@@ -1339,6 +1579,19 @@ export function PortfolioEditCenterPane({
     }
     return cities.filter((city) => city.provinceId === selectedProvinceId);
   }, [cities, selectedProvinceId]);
+
+  useEffect(() => {
+    const year = Number(birthDate.year);
+    const month = Number(birthDate.month);
+    const day = Number(birthDate.day);
+    if (!year || !month || !day) {
+      return;
+    }
+    const maxDays = getJalaliDaysInMonth(year, month);
+    if (day > maxDays) {
+      setBirthDate((prev) => ({ ...prev, day: "" }));
+    }
+  }, [birthDate.day, birthDate.month, birthDate.year]);
 
   const handleAddSkill = () => {
     setSkills((prev) => [...prev, { id: createId(), value: "" }]);
@@ -1451,6 +1704,38 @@ export function PortfolioEditCenterPane({
     );
   };
 
+  const clearGallerySlot = useCallback(
+    (slot: GallerySlotId) => {
+      if (slot === "headshotFront") {
+        setHeadshotFront(null);
+        return;
+      }
+      if (slot === "profileSide") {
+        setProfileSide(null);
+        return;
+      }
+      if (slot === "profileThreeQuarter") {
+        setProfileThreeQuarter(null);
+        return;
+      }
+      if (slot === "fullBody") {
+        setFullBody(null);
+        return;
+      }
+      if (slot.startsWith("other-")) {
+        const index = Number(slot.split("-")[1]);
+        if (!Number.isNaN(index)) {
+          setOtherImages((prev) => {
+            const next = [...prev];
+            next[index] = null;
+            return next.slice(0, MAX_OTHER_IMAGES);
+          });
+        }
+      }
+    },
+    [setFullBody, setHeadshotFront, setOtherImages, setProfileSide, setProfileThreeQuarter],
+  );
+
   const handlePickGallerySlot = (slot: GallerySlotId) => {
     if (isBusy) {
       return;
@@ -1458,6 +1743,35 @@ export function PortfolioEditCenterPane({
     setActiveGallerySlot(slot);
     galleryInputRef.current?.click();
   };
+
+  const handleDeleteGallerySlot = useCallback(
+    async (slot: GallerySlotId, url?: string | null) => {
+      if (isBusy) {
+        return;
+      }
+      if (!url) {
+        clearGallerySlot(slot);
+        return;
+      }
+      setGalleryError(null);
+      setUploadingCount((prev) => prev + 1);
+      try {
+        const formData = new FormData();
+        formData.set("url", url);
+        const result = await deleteImage(formData);
+        if (!result.ok) {
+          setGalleryError(result.error ?? "حذف تصویر ناموفق بود.");
+          return;
+        }
+        clearGallerySlot(slot);
+      } catch (error) {
+        setGalleryError(error instanceof Error ? error.message : "حذف تصویر ناموفق بود.");
+      } finally {
+        setUploadingCount((prev) => Math.max(0, prev - 1));
+      }
+    },
+    [clearGallerySlot, deleteImage, isBusy, setGalleryError, setUploadingCount],
+  );
 
   const handleDeleteVoice = (voiceId: string) => {
     if (isBusy) {
@@ -1791,16 +2105,30 @@ export function PortfolioEditCenterPane({
       return;
     }
 
-    if ((birthDate.year || birthDate.month || birthDate.day) &&
-      (!birthDate.year || !birthDate.month || !birthDate.day)) {
+    if (
+      (birthDate.year || birthDate.month || birthDate.day) &&
+      (!birthDate.year || !birthDate.month || !birthDate.day)
+    ) {
       setFormError("لطفاً تاریخ تولد را کامل وارد کنید.");
       return;
     }
 
-    const birthDateString =
-      birthDate.year && birthDate.month && birthDate.day
-        ? `${birthDate.year}-${pad2(birthDate.month)}-${pad2(birthDate.day)}`
-        : "";
+    let birthDateString = "";
+    if (birthDate.year && birthDate.month && birthDate.day) {
+      try {
+        const gregorian = toGregorian(
+          Number(birthDate.year),
+          Number(birthDate.month),
+          Number(birthDate.day),
+        );
+        birthDateString = `${gregorian.gy}-${pad2(String(gregorian.gm))}-${pad2(
+          String(gregorian.gd),
+        )}`;
+      } catch {
+        setFormError("تاریخ تولد معتبر نیست.");
+        return;
+      }
+    }
 
     const languagePayload: Array<LanguageSkill & Partial<AudioAttachment>> = [];
     const seenLanguages = new Set<string>();
@@ -1912,16 +2240,11 @@ export function PortfolioEditCenterPane({
     };
 
     const personalFormData = new FormData();
+    personalFormData.set("partial", "1");
     personalFormData.set("firstName", cleanedFirstName);
     personalFormData.set("lastName", cleanedLastName);
-    personalFormData.set("stageName", initialValues.stageName);
-    personalFormData.set("age", initialValues.age ? String(initialValues.age) : "");
-    personalFormData.set("phone", initialValues.phone ?? "");
-    personalFormData.set("address", initialValues.address ?? "");
     personalFormData.set("cityId", cityId ?? "");
-    personalFormData.set("avatarUrl", initialValues.avatarUrl ?? "");
     personalFormData.set("bio", bio.trim());
-    personalFormData.set("introVideoMediaId", initialValues.introVideoMediaId ?? "");
     personalFormData.set("birthDate", birthDateString);
 
     const skillsFormData = new FormData();
@@ -1945,7 +2268,12 @@ export function PortfolioEditCenterPane({
       (async () => {
         const personalResult = await upsertPersonalInfo(personalFormData);
         if (!personalResult.ok) {
-          setFormError(personalResult.error ?? "ذخیره اطلاعات شخصی ناموفق بود.");
+          const fieldMessage = personalResult.fieldErrors
+            ? Object.values(personalResult.fieldErrors).find(Boolean)
+            : null;
+          setFormError(
+            personalResult.error ?? fieldMessage ?? "ذخیره اطلاعات شخصی ناموفق بود.",
+          );
           return;
         }
 
@@ -2075,83 +2403,82 @@ export function PortfolioEditCenterPane({
               </div>
             </div>
 
-<div className="space-y-2">
-  <label className={sectionTitleClass}>تاریخ تولد</label>
+            <div className="space-y-2">
+              <label className={sectionTitleClass}>تاریخ تولد</label>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="relative">
+                  <img
+                    src="/images/flash-down.png"
+                    alt=""
+                    className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                  />
+                  <select
+                    className={`${selectClass} pl-8`}
+                    value={birthDate.day}
+                    onChange={(event) => {
+                      setBirthDate((prev) => ({ ...prev, day: event.target.value }));
+                      setFormError(null);
+                    }}
+                    disabled={isBusy}
+                  >
+                    <option value="">روز</option>
+                    {birthDayOptions.map((day) => (
+                      <option key={day} value={String(day)}>
+                        {formatPersianNumber(day)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-  <div className="grid grid-cols-3 gap-7">
-    {/* Day */}
-    <div className="relative">
-      <img
-        src="/images/flash-down.png"
-        alt=""
-        className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-      />
-      <select
-        className={`${selectClass} pl-8`}
-        value={birthDate.day}
-        onChange={(event) =>
-          setBirthDate((prev) => ({ ...prev, day: event.target.value }))
-        }
-        disabled={isBusy}
-      >
-        <option value="">روز</option>
-        {dayOptions.map((day) => (
-          <option key={day} value={String(day)}>
-            {day}
-          </option>
-        ))}
-      </select>
-    </div>
+                <div className="relative">
+                  <img
+                    src="/images/flash-down.png"
+                    alt=""
+                    className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                  />
+                  <select
+                    className={`${selectClass} pl-8`}
+                    value={birthDate.month}
+                    onChange={(event) => {
+                      setBirthDate((prev) => ({ ...prev, month: event.target.value }));
+                      setFormError(null);
+                    }}
+                    disabled={isBusy}
+                  >
+                    <option value="">ماه</option>
+                    {birthMonthOptions.map((month) => (
+                      <option key={month.value} value={String(month.value)}>
+                        {month.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-    {/* Month */}
-    <div className="relative">
-      <img
-        src="/images/flash-down.png"
-        alt=""
-        className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-      />
-      <select
-        className={`${selectClass} pl-8`}
-        value={birthDate.month}
-        onChange={(event) =>
-          setBirthDate((prev) => ({ ...prev, month: event.target.value }))
-        }
-        disabled={isBusy}
-      >
-        <option value="">ماه</option>
-        {monthOptions.map((month) => (
-          <option key={month} value={String(month)}>
-            {month}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {/* Year */}
-    <div className="relative">
-      <img
-        src="/images/flash-down.png"
-        alt=""
-        className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-      />
-      <select
-        className={`${selectClass} pl-8`}
-        value={birthDate.year}
-        onChange={(event) =>
-          setBirthDate((prev) => ({ ...prev, year: event.target.value }))
-        }
-        disabled={isBusy}
-      >
-        <option value="">سال</option>
-        {yearOptions.map((year) => (
-          <option key={year} value={String(year)}>
-            {year}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-</div>
+                <div className="relative">
+                  <img
+                    src="/images/flash-down.png"
+                    alt=""
+                    className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                  />
+                  <select
+                    className={`${selectClass} pl-8`}
+                    value={birthDate.year}
+                    onChange={(event) => {
+                      setBirthDate((prev) => ({ ...prev, year: event.target.value }));
+                      setFormError(null);
+                    }}
+                    disabled={isBusy}
+                  >
+                    <option value="">سال</option>
+                    {birthYearOptions.map((year) => (
+                      <option key={year} value={String(year)}>
+                        {formatPersianNumber(year)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
 
           </div>
 
@@ -2638,6 +2965,7 @@ export function PortfolioEditCenterPane({
             isBusy={isBusy}
             error={galleryError}
             onPick={handlePickGallerySlot}
+            onDelete={handleDeleteGallerySlot}
             onSave={handleGallerySave}
           />
         ) : null}

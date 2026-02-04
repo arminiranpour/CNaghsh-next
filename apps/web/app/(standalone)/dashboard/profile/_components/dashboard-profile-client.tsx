@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { ProfileTabId, PublicProfileData } from "@/components/profile/ProfilePageClient";
 import { CenterPane } from "@/components/profile/CenterPane/CenterPane";
 import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
 import { RightPane } from "@/components/profile/RightPane/RightPane";
-import { EditProfileLeftRail } from "@/components/profile/editProfile/EditProfileLeftRail";
+import { SubscriptionPane } from "@/components/profile/editProfile/CenterPane/SubscriptionPane";
+import {
+  EditProfileLeftRail,
+  type EditProfileTabId,
+} from "@/components/profile/editProfile/EditProfileLeftRail";
 import { PortfolioEditCenterPane } from "@/components/profile/editProfile/PortfolioEditCenterPane";
 import { EditProfileRightRail } from "@/components/profile/editProfile/EditProfileRightRail";
+import type { BillingDashboardData } from "@/lib/billing/dashboard.types";
+import { formatJalaliDate } from "@/lib/datetime/jalali";
 import type { City } from "@/lib/location/cities";
 import type { PortfolioEditInitialValues } from "@/lib/profile/portfolio-edit";
 
@@ -23,6 +29,15 @@ type DashboardProfileClientProps = {
   initialValues: PortfolioEditInitialValues;
   cities: City[];
   provinces: ProvinceOption[];
+  billingData: BillingDashboardData;
+};
+
+const paymentStatusLabels: Record<string, string> = {
+  PAID: "پرداخت\u200cشده",
+  PENDING: "در انتظار",
+  FAILED: "ناموفق",
+  REFUNDED: "بازپرداخت\u200cشده",
+  REFUNDED_PARTIAL: "بازپرداخت جزئی",
 };
 
 export function DashboardProfileClient({
@@ -31,22 +46,59 @@ export function DashboardProfileClient({
   initialValues,
   cities,
   provinces,
+  billingData,
 }: DashboardProfileClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
   const [isEditingPortfolio, setIsEditingPortfolio] = useState(false);
+  const [activeEditTab, setActiveEditTab] = useState<EditProfileTabId>("portfolio");
   const canEdit = Boolean(isOwner);
+
+  const subscriptionSummary = useMemo(() => {
+    const subscription = billingData.subscription;
+    const now = new Date(billingData.now);
+    const endsAt = subscription?.endsAt ? new Date(subscription.endsAt) : null;
+    const diffMs = endsAt ? endsAt.getTime() - now.getTime() : 0;
+    const daysLeft =
+      Number.isFinite(diffMs) && diffMs > 0
+        ? Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+        : 0;
+
+    const payments = billingData.payments.map((payment) => {
+      const invoiceNumber = payment.invoice?.number;
+      const title = invoiceNumber ? `فاکتور ${invoiceNumber}` : "پرداخت اشتراک";
+      return {
+        date: formatJalaliDate(payment.createdAt),
+        title,
+        status: paymentStatusLabels[payment.status] ?? payment.status,
+      };
+    });
+
+    return { daysLeft, payments };
+  }, [billingData]);
+
+  const exitEditMode = () => {
+    setIsEditingPortfolio(false);
+    setActiveEditTab("portfolio");
+  };
 
   if (isEditingPortfolio) {
     return (
       <>
-        <EditProfileLeftRail />
-        <PortfolioEditCenterPane
-          initialValues={initialValues}
-          cities={cities}
-          provinces={provinces}
-          onCancel={() => setIsEditingPortfolio(false)}
-          onSaved={() => setIsEditingPortfolio(false)}
-        />
+        <EditProfileLeftRail activeTab={activeEditTab} onTabChange={setActiveEditTab} />
+        {activeEditTab === "subscription" ? (
+          <SubscriptionPane
+            daysLeft={subscriptionSummary.daysLeft}
+            payments={subscriptionSummary.payments}
+          />
+        ) : (
+          <PortfolioEditCenterPane
+            initialValues={initialValues}
+            cities={cities}
+            provinces={provinces}
+            onCancel={exitEditMode}
+            onSaved={exitEditMode}
+          />
+        )}
         <EditProfileRightRail
           avatarUrl={profile.avatarUrl ?? undefined}
           displayName={profile.displayName}
@@ -62,7 +114,10 @@ export function DashboardProfileClient({
         activeTab={activeTab}
         profile={profile}
         canEdit={canEdit}
-        onEditClick={() => setIsEditingPortfolio(true)}
+        onEditClick={() => {
+          setActiveEditTab("portfolio");
+          setIsEditingPortfolio(true);
+        }}
       />
       <RightPane profile={profile} isOwner={isOwner} />
     </>

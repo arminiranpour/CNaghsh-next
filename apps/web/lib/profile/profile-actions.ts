@@ -70,6 +70,28 @@ function normalizeDigits(value: string): string {
   return value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
 }
 
+function calculateAgeFromBirthDate(birthDate: Date): number | null {
+  if (!birthDate || Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+
+  const now = new Date();
+  const birthYear = birthDate.getUTCFullYear();
+  const birthMonth = birthDate.getUTCMonth();
+  const birthDay = birthDate.getUTCDate();
+
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth();
+  const currentDay = now.getUTCDate();
+
+  let age = currentYear - birthYear;
+  if (currentMonth < birthMonth || (currentMonth === birthMonth && currentDay < birthDay)) {
+    age -= 1;
+  }
+
+  return age >= 0 ? age : null;
+}
+
 type PersonalInfoActionResult = {
   ok: boolean;
   fieldErrors?: Partial<Record<keyof z.infer<typeof personalInfoSchema>, string>>;
@@ -147,7 +169,7 @@ async function revalidateProfilePaths(profileId: string) {
 }
 
 function mapZodErrors(
-  error: z.ZodError<z.infer<typeof personalInfoSchema>>,
+  error: z.ZodError,
 ): Partial<Record<keyof z.infer<typeof personalInfoSchema>, string>> {
   const fieldErrors: Partial<
     Record<keyof z.infer<typeof personalInfoSchema>, string>
@@ -167,23 +189,63 @@ function mapZodErrors(
 export async function upsertPersonalInfo(formData: FormData): Promise<PersonalInfoActionResult> {
   try {
     const userId = await ensureSessionUserId();
+    const isPartial = formData.get("partial") === "1";
+    const hasField = (key: string) => formData.has(key);
+    const getString = (key: string) => (formData.get(key) ?? "").toString().trim();
 
     const rawAvatarUrl = formData.get("avatarUrl");
     const avatarFile = formData.get("avatar");
 
-    const baseValues = {
-      firstName: (formData.get("firstName") ?? "").toString().trim(),
-      lastName: (formData.get("lastName") ?? "").toString().trim(),
-      stageName: (formData.get("stageName") ?? "").toString().trim(),
-      age: formData.get("age") ?? "",
-      phone: normalizeDigits((formData.get("phone") ?? "").toString().trim()),
-      address: (formData.get("address") ?? "").toString().trim(),
-      cityId: (formData.get("cityId") ?? "").toString().trim(),
-      avatarUrl: typeof rawAvatarUrl === "string" ? rawAvatarUrl.trim() : "",
-      bio: (formData.get("bio") ?? "").toString().trim(),
-      birthDate: (formData.get("birthDate") ?? "").toString().trim(),
-      introVideoMediaId: (formData.get("introVideoMediaId") ?? "").toString().trim(),
-    } satisfies Record<keyof z.infer<typeof personalInfoSchema>, unknown>;
+    const provided = {
+      firstName: hasField("firstName"),
+      lastName: hasField("lastName"),
+      stageName: hasField("stageName"),
+      age: hasField("age"),
+      phone: hasField("phone"),
+      address: hasField("address"),
+      cityId: hasField("cityId"),
+      avatarUrl: hasField("avatarUrl"),
+      bio: hasField("bio"),
+      birthDate: hasField("birthDate"),
+      introVideoMediaId: hasField("introVideoMediaId"),
+    };
+
+    const baseValues: Partial<Record<keyof z.infer<typeof personalInfoSchema>, unknown>> =
+      {};
+
+    if (provided.firstName) {
+      baseValues.firstName = getString("firstName");
+    }
+    if (provided.lastName) {
+      baseValues.lastName = getString("lastName");
+    }
+    if (provided.stageName) {
+      baseValues.stageName = getString("stageName");
+    }
+    if (provided.age) {
+      baseValues.age = formData.get("age") ?? "";
+    }
+    if (provided.phone) {
+      baseValues.phone = normalizeDigits(getString("phone"));
+    }
+    if (provided.address) {
+      baseValues.address = getString("address");
+    }
+    if (provided.cityId) {
+      baseValues.cityId = getString("cityId");
+    }
+    if (provided.avatarUrl) {
+      baseValues.avatarUrl = typeof rawAvatarUrl === "string" ? rawAvatarUrl.trim() : "";
+    }
+    if (provided.bio) {
+      baseValues.bio = getString("bio");
+    }
+    if (provided.birthDate) {
+      baseValues.birthDate = getString("birthDate");
+    }
+    if (provided.introVideoMediaId) {
+      baseValues.introVideoMediaId = getString("introVideoMediaId");
+    }
 
     let uploadedAvatarUrl: string | null = null;
 
@@ -193,9 +255,11 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       const { url } = await saveImageFromFormData(uploadForm, userId);
       baseValues.avatarUrl = url;
       uploadedAvatarUrl = url;
+      provided.avatarUrl = true;
     }
 
-    const parsed = personalInfoSchema.safeParse(baseValues);
+    const validationSchema = isPartial ? personalInfoSchema.partial() : personalInfoSchema;
+    const parsed = validationSchema.safeParse(baseValues);
 
     if (!parsed.success) {
       if (uploadedAvatarUrl) {
@@ -207,51 +271,65 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       };
     }
 
-    const data = parsed.data;
+    const data = parsed.data as Partial<z.infer<typeof personalInfoSchema>>;
 
-    let birthDate: Date | null = null;
+    let birthDate: Date | null | undefined = undefined;
 
-    if (data.birthDate && data.birthDate.trim()) {
-      const parts = data.birthDate.split("-").map((value) => Number(value));
-      if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
-        return {
-          ok: false,
-          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
-        };
+    if (provided.birthDate) {
+      if (data.birthDate && data.birthDate.trim()) {
+        const parts = data.birthDate.split("-").map((value) => Number(value));
+        if (parts.length !== 3 || parts.some((value) => Number.isNaN(value))) {
+          return {
+            ok: false,
+            fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+          };
+        }
+
+        const [year, month, day] = parts;
+        const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+        if (Number.isNaN(parsedDate.getTime())) {
+          return {
+            ok: false,
+            fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+          };
+        }
+
+        const today = new Date();
+        if (parsedDate > today) {
+          return {
+            ok: false,
+            fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
+          };
+        }
+
+        birthDate = parsedDate;
+      } else {
+        birthDate = null;
       }
-
-      const [year, month, day] = parts;
-      const parsedDate = new Date(Date.UTC(year, month - 1, day));
-
-      if (Number.isNaN(parsedDate.getTime())) {
-        return {
-          ok: false,
-          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
-        };
-      }
-
-      const today = new Date();
-      if (parsedDate > today) {
-        return {
-          ok: false,
-          fieldErrors: { birthDate: "تاریخ تولد معتبر نیست." },
-        };
-      }
-
-      birthDate = parsedDate;
     }
 
-    let introVideoMediaId: string | null = null;
+    const derivedAge = provided.birthDate
+      ? birthDate
+        ? calculateAgeFromBirthDate(birthDate)
+        : null
+      : undefined;
 
-    if (data.introVideoMediaId && data.introVideoMediaId.trim()) {
-      const validation = await validateOwnedReadyVideo(userId, data.introVideoMediaId);
-      if (!validation.ok) {
-        return {
-          ok: false,
-          fieldErrors: { introVideoMediaId: validation.error },
-        };
+    let introVideoMediaId: string | null | undefined = undefined;
+
+    if (provided.introVideoMediaId) {
+      if (data.introVideoMediaId && data.introVideoMediaId.trim()) {
+        const validation = await validateOwnedReadyVideo(userId, data.introVideoMediaId);
+        if (!validation.ok) {
+          return {
+            ok: false,
+            fieldErrors: { introVideoMediaId: validation.error },
+          };
+        }
+        introVideoMediaId = validation.mediaId;
+      } else {
+        introVideoMediaId = null;
       }
-      introVideoMediaId = validation.mediaId;
     }
 
     const previousProfile = await prisma.profile.findUnique({
@@ -259,40 +337,79 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       select: MODERATION_PROFILE_SELECT,
     });
 
-    const cleanedAge = typeof data.age === "number" ? data.age : null;
-    const cleanedPhone = data.phone?.trim() ? data.phone.trim() : null;
-    const cleanedAddress = data.address?.trim() ? data.address.trim() : null;
-    const cleanedCityId = data.cityId?.trim() ? data.cityId.trim() : null;
+    const cleanedAge = provided.age ? (typeof data.age === "number" ? data.age : null) : undefined;
+    const cleanedPhone = provided.phone
+      ? data.phone?.trim()
+        ? data.phone.trim()
+        : null
+      : undefined;
+    const cleanedAddress = provided.address
+      ? data.address?.trim()
+        ? data.address.trim()
+        : null
+      : undefined;
+    const cleanedCityId = provided.cityId
+      ? data.cityId?.trim()
+        ? data.cityId.trim()
+        : null
+      : undefined;
+
+    const updateData: Prisma.ProfileUpdateInput = {};
+    const createData: Prisma.ProfileCreateInput = { userId };
+
+    if (provided.firstName && typeof data.firstName === "string") {
+      updateData.firstName = data.firstName;
+      createData.firstName = data.firstName;
+    }
+    if (provided.lastName && typeof data.lastName === "string") {
+      updateData.lastName = data.lastName;
+      createData.lastName = data.lastName;
+    }
+    if (provided.stageName) {
+      const stageName =
+        data.stageName && data.stageName.trim() ? data.stageName.trim() : null;
+      updateData.stageName = stageName;
+      createData.stageName = stageName;
+    }
+    if (provided.birthDate) {
+      updateData.birthDate = birthDate ?? null;
+      createData.birthDate = birthDate ?? null;
+      updateData.age = derivedAge ?? null;
+      createData.age = derivedAge ?? null;
+    } else if (provided.age) {
+      updateData.age = cleanedAge;
+      createData.age = cleanedAge ?? null;
+    }
+    if (provided.phone) {
+      updateData.phone = cleanedPhone;
+      createData.phone = cleanedPhone ?? null;
+    }
+    if (provided.address) {
+      updateData.address = cleanedAddress;
+      createData.address = cleanedAddress ?? null;
+    }
+    if (provided.cityId) {
+      updateData.cityId = cleanedCityId;
+      createData.cityId = cleanedCityId ?? null;
+    }
+    if (provided.avatarUrl && typeof data.avatarUrl === "string") {
+      updateData.avatarUrl = data.avatarUrl;
+      createData.avatarUrl = data.avatarUrl;
+    }
+    if (provided.bio) {
+      const bio = data.bio?.trim() ? data.bio.trim() : null;
+      updateData.bio = bio;
+      createData.bio = bio;
+    }
+    if (provided.introVideoMediaId) {
+      updateData.introVideoMediaId = introVideoMediaId ?? null;
+      createData.introVideoMediaId = introVideoMediaId ?? null;
+    }
 
     const result = await prisma.profile.upsert({
       where: { userId },
-      create: {
-        userId,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        stageName: data.stageName?.trim() ? data.stageName.trim() : null,
-        age: cleanedAge,
-        phone: cleanedPhone,
-        address: cleanedAddress,
-        cityId: cleanedCityId,
-        avatarUrl: data.avatarUrl,
-        bio: data.bio?.trim() ? data.bio.trim() : null,
-        birthDate,
-        introVideoMediaId,
-      },
-      update: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        stageName: data.stageName?.trim() ? data.stageName.trim() : null,
-        age: cleanedAge,
-        phone: cleanedPhone,
-        address: cleanedAddress,
-        cityId: cleanedCityId,
-        avatarUrl: data.avatarUrl,
-        bio: data.bio?.trim() ? data.bio.trim() : null,
-        birthDate,
-        introVideoMediaId,
-      },
+      create: createData,
+      update: updateData,
       select: MODERATION_PROFILE_SELECT,
     });
 

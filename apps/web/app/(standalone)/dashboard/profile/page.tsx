@@ -4,6 +4,7 @@ import type { PublicProfileData } from "@/components/profile/ProfilePageClient";
 import { ProfilePageLayout } from "@/components/profile/ProfilePageLayout";
 import { iransans } from "@/app/fonts";
 import { getServerAuthSession } from "@/lib/auth/session";
+import { getBillingDashboardData } from "@/lib/billing/dashboard";
 import { getCities, getProvinces } from "@/lib/location/cities";
 import { prisma } from "@/lib/prisma";
 import { canPublishProfile } from "@/lib/profile/entitlement";
@@ -32,7 +33,7 @@ export default async function DashboardProfilePage() {
 
   const userId = session.user.id;
 
-  const [initialProfile, cities, entitlementActive] = await Promise.all([
+  const [initialProfile, cities, entitlementActive, billingData] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
       include: {
@@ -46,6 +47,7 @@ export default async function DashboardProfilePage() {
     }),
     getCities(),
     canPublishProfile(userId),
+    getBillingDashboardData(userId),
   ]);
 
   const provinces = getProvinces().map((province) => ({
@@ -74,7 +76,7 @@ export default async function DashboardProfilePage() {
   }
 
   const profileData: PublicProfileData = profile
-    ? await buildProfilePageData(profile, cities)
+    ? await buildProfilePageData(profile, cities, { includePrivateMedia: true })
     : {
         id: "draft",
         userId,
@@ -122,6 +124,14 @@ export default async function DashboardProfilePage() {
     address: profile?.address ?? "",
     introVideoMediaId: profile?.introVideoMediaId ?? "",
     gallery: profileData.gallery ?? [],
+    videos:
+      profileData.videos?.map((video) => ({
+        mediaId: video.mediaId,
+        url: video.url,
+        title: video.title ?? null,
+        posterUrl: video.posterUrl ?? null,
+        playbackKind: video.playbackKind ?? null,
+      })) ?? [],
   };
 
   const isOwner = session.user.id === profileData.userId;
@@ -135,6 +145,7 @@ export default async function DashboardProfilePage() {
           initialValues={portfolioInitialValues}
           cities={cities}
           provinces={provinces}
+          billingData={billingData}
         />
       </ProfilePageLayout>
     </div>

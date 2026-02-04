@@ -17,6 +17,17 @@ export type VoiceEntry = {
   duration?: number | null;
 };
 
+export type PortfolioVideoEntry = {
+  mediaId?: string | null;
+  url?: string | null;
+  title?: string | null;
+  posterUrl?: string | null;
+  playbackKind?: string | null;
+  recordedMonth?: string | number | null;
+  recordedYear?: string | number | null;
+  order?: number | null;
+};
+
 export type ResumeEntry = {
   type: string;
   title: string;
@@ -67,6 +78,7 @@ export type PortfolioEditInitialValues = {
   languages: LanguageSkill[];
   accents: AccentEntry[];
   voices?: VoiceEntry[];
+  videos?: PortfolioVideoEntry[];
   degrees: DegreeEntry[];
   resume: ResumeEntry[];
   courses: CourseEntry[];

@@ -8,40 +8,57 @@ import portfolioIcon from "./portfolio-white.png";
 import savedIcon from "./saved-gray.png";
 import subscriptionIcon from "./subscription-gray.png";
 
-const NAV_ITEMS = [
+export type EditProfileTabId =
+  | "portfolio"
+  | "messages"
+  | "saved"
+  | "challenges"
+  | "subscription";
+
+const NAV_ITEMS: {
+  id: EditProfileTabId;
+  label: string;
+  iconSrc: typeof portfolioIcon;
+  isEnabled: boolean;
+}[] = [
   {
     id: "portfolio",
     label: "پورتفولیو",
     iconSrc: portfolioIcon,
-    isActive: true,
+    isEnabled: true,
   },
   {
     id: "messages",
     label: "صندوق پیام",
     iconSrc: messageIcon,
-    isActive: false,
+    isEnabled: false,
   },
   {
     id: "saved",
     label: "ذخیره شده",
     iconSrc: savedIcon,
-    isActive: false,
+    isEnabled: false,
   },
   {
     id: "challenges",
     label: "چالش و رویداد",
     iconSrc: challengesIcon,
-    isActive: false,
+    isEnabled: false,
   },
   {
     id: "subscription",
     label: "اشتراک",
     iconSrc: subscriptionIcon,
-    isActive: false,
+    isEnabled: true,
   },
 ];
 
-export function EditProfileLeftRail() {
+type EditProfileLeftRailProps = {
+  activeTab: EditProfileTabId;
+  onTabChange: (tab: EditProfileTabId) => void;
+};
+
+export function EditProfileLeftRail({ activeTab, onTabChange }: EditProfileLeftRailProps) {
   return (
     <aside
       aria-label="ناوبری ویرایش پروفایل"
@@ -63,13 +80,20 @@ export function EditProfileLeftRail() {
       }}
     >
       {NAV_ITEMS.map((item) => {
-        const isActive = item.isActive;
+        const isActive = item.id === activeTab;
+        const isEnabled = item.isEnabled;
 
         return (
           <button
             key={item.id}
             type="button"
-            disabled={!isActive}
+            disabled={!isEnabled}
+            onClick={() => {
+              if (!isEnabled || isActive) {
+                return;
+              }
+              onTabChange(item.id);
+            }}
             style={{
               width: 87.15,
               height: 87.15,
@@ -77,13 +101,13 @@ export function EditProfileLeftRail() {
               backgroundColor: isActive ? "#F58A1F" : "#F1F1F1",
               border: "none",
               padding: 0,
-              cursor: isActive ? "default" : "not-allowed",
+              cursor: isEnabled ? (isActive ? "default" : "pointer") : "not-allowed",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              opacity: isActive ? 1 : 0.6,
+              opacity: isActive ? 1 : isEnabled ? 0.85 : 0.6,
             }}
           >
             <div style={{ width: 35, height: 35, position: "relative" }}>
