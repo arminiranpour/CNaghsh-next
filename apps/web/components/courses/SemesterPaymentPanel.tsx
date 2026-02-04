@@ -11,6 +11,7 @@ import { iransansMedium, iransansBold } from "@/app/fonts";
 type SemesterPaymentPanelProps = {
   semesterTitle: string;
   pricing: SemesterPricing;
+  enrollAction: (formData: FormData) => void | Promise<void>;
   introVideo?: {
     mediaId?: string | null;
     videoUrl: string | null;
@@ -21,6 +22,7 @@ type SemesterPaymentPanelProps = {
 export function SemesterPaymentPanel({
   semesterTitle,
   pricing,
+  enrollAction,
   introVideo,
 }: SemesterPaymentPanelProps) {
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<"lumpsum" | "installments">(
@@ -34,7 +36,8 @@ export function SemesterPaymentPanel({
   const hasIntroVideo = Boolean(introVideoUrl || introVideoPosterUrl);
 
   return (
-    <div className={`${iransansMedium.className} w-full max-w-[448px] rounded-[23px] bg-white p-[19px]`}>
+    <form action={enrollAction}>
+      <div className={`${iransansMedium.className} w-full max-w-[448px] rounded-[23px] bg-white p-[19px]`}>
       {/* Intro Video */}
       {hasIntroVideo ? (
         <div className="mb-[17px] overflow-hidden rounded-[19px]">
@@ -183,15 +186,18 @@ export function SemesterPaymentPanel({
 
       </div>
 
+      <input type="hidden" name="paymentMode" value={selectedPaymentMode} />
+
       {/* Payment Button */}
       <div className="flex justify-center">
         <button
-          type="button"
+          type="submit"
           className="h-[44px] rounded-[39px] bg-[#FF7F19] px-12 text-[20px] font-bold leading-[31px] text-white transition hover:opacity-90"
         >
           پرداخت
         </button>
       </div>
     </div>
+    </form>
   );
 }

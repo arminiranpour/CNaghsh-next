@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/db";
 import { getServerAuthSession } from "@/lib/auth/session";
+import { createCourseCheckoutSession } from "@/lib/courses/payments";
 
 const paymentModeSchema = z.enum(["lumpsum", "installments"]);
 
@@ -67,7 +68,7 @@ export async function startEnrollmentAction(
     redirect(`${semesterUrl}?enrollment=error`);
   }
 
-  await prisma.enrollment.upsert({
+  const enrollment = await prisma.enrollment.upsert({
     where: {
       semesterId_userId: {
         semesterId,
@@ -84,8 +85,21 @@ export async function startEnrollmentAction(
       status: "pending_payment",
       chosenPaymentMode: parsed.data,
     },
+    select: {
+      id: true,
+    },
   });
 
   revalidatePath("/dashboard/courses");
-  redirect(`${semesterUrl}?enrollment=success`);
+
+  try {
+    const checkout = await createCourseCheckoutSession({
+      enrollmentId: enrollment.id,
+      userId,
+      paymentMode: parsed.data,
+    });
+    redirect(`/checkout/${checkout.sessionId}`);
+  } catch {
+    redirect(`${semesterUrl}?enrollment=error`);
+  }
 }

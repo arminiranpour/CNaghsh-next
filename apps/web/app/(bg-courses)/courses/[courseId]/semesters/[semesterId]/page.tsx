@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { SemesterPaymentPanel } from "@/components/courses/SemesterPaymentPanel";
 import { SemesterSchedulePanel } from "@/components/courses/SemesterSchedulePanel";
+import { startEnrollmentAction } from "@/lib/courses/enrollment/actions";
 import { computeSemesterPricing } from "@/lib/courses/pricing";
 import { fetchPublicSemesterById } from "@/lib/courses/public/queries";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
@@ -33,6 +34,8 @@ export default async function SemesterDetailPage({
             : null,
         }
       : null;
+
+  const enrollAction = startEnrollmentAction.bind(null, params.courseId, params.semesterId);
 
   return (
     <div className="relative min-h-screen" dir="rtl">
@@ -66,6 +69,7 @@ export default async function SemesterDetailPage({
               semesterTitle={semester.title}
               pricing={pricing}
               introVideo={introVideo}
+              enrollAction={enrollAction}
             />
           </div>
         </div>
