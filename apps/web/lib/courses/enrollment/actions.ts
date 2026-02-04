@@ -14,6 +14,19 @@ function buildSemesterUrl(courseId: string, semesterId: string) {
   return `/courses/${courseId}/semesters/${semesterId}`;
 }
 
+const appendSearchParams = (path: string, params: URLSearchParams) => {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}${params.toString()}`;
+};
+
+const redirectWithError = (path: string, reason: string) => {
+  const params = new URLSearchParams({
+    enrollment: "error",
+    reason,
+  });
+  redirect(appendSearchParams(path, params));
+};
+
 export async function startEnrollmentAction(
   courseId: string,
   semesterId: string,
@@ -29,7 +42,7 @@ export async function startEnrollmentAction(
 
   const parsed = paymentModeSchema.safeParse(formData.get("paymentMode"));
   if (!parsed.success) {
-    redirect(`${semesterUrl}?enrollment=error`);
+    redirectWithError(semesterUrl, "INVALID_PAYMENT_MODE");
   }
 
   const course = await prisma.course.findFirst({
@@ -38,7 +51,7 @@ export async function startEnrollmentAction(
   });
 
   if (!course) {
-    redirect(`${semesterUrl}?enrollment=error`);
+    redirectWithError(semesterUrl, "COURSE_NOT_PUBLISHED");
   }
 
   const semester = await prisma.semester.findFirst({
@@ -51,12 +64,12 @@ export async function startEnrollmentAction(
   });
 
   if (!semester) {
-    redirect(`${semesterUrl}?enrollment=error`);
+    redirectWithError(semesterUrl, "SEMESTER_NOT_FOUND");
   }
 
   if (semester.status !== "open") {
-    const code = semester.status === "closed" ? "closed" : "error";
-    redirect(`${semesterUrl}?enrollment=${code}`);
+    const code = semester.status === "closed" ? "SEMESTER_CLOSED" : "SEMESTER_NOT_OPEN";
+    redirectWithError(semesterUrl, code);
   }
 
   if (
@@ -65,30 +78,41 @@ export async function startEnrollmentAction(
       !semester.installmentCount ||
       semester.installmentCount < 2)
   ) {
-    redirect(`${semesterUrl}?enrollment=error`);
+    redirectWithError(semesterUrl, "INSTALLMENTS_DISABLED");
   }
 
-  const enrollment = await prisma.enrollment.upsert({
+  const existingEnrollment = await prisma.enrollment.findUnique({
     where: {
       semesterId_userId: {
         semesterId,
         userId,
       },
     },
-    create: {
-      semesterId,
-      userId,
-      status: "pending_payment",
-      chosenPaymentMode: parsed.data,
-    },
-    update: {
-      status: "pending_payment",
-      chosenPaymentMode: parsed.data,
-    },
-    select: {
-      id: true,
-    },
+    select: { id: true, status: true },
   });
+
+  if (existingEnrollment?.status === "active") {
+    redirectWithError(semesterUrl, "ALREADY_PAID");
+  }
+
+  const enrollment = existingEnrollment
+    ? await prisma.enrollment.update({
+        where: { id: existingEnrollment.id },
+        data: {
+          status: "pending_payment",
+          chosenPaymentMode: parsed.data,
+        },
+        select: { id: true },
+      })
+    : await prisma.enrollment.create({
+        data: {
+          semesterId,
+          userId,
+          status: "pending_payment",
+          chosenPaymentMode: parsed.data,
+        },
+        select: { id: true },
+      });
 
   revalidatePath("/dashboard/courses");
 
@@ -99,7 +123,18 @@ export async function startEnrollmentAction(
       paymentMode: parsed.data,
     });
     redirect(`/checkout/${checkout.sessionId}`);
-  } catch {
-    redirect(`${semesterUrl}?enrollment=error`);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof (error as { digest?: unknown }).digest === "string" &&
+      (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
+    const reason = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+    console.error("startEnrollmentAction", { reason, courseId, semesterId, userId });
+    redirectWithError(semesterUrl, reason);
   }
 }

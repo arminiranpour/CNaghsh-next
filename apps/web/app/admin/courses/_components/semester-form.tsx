@@ -23,6 +23,15 @@ type SemesterFormProps = {
 };
 
 type FormErrors = Partial<Record<keyof SemesterFormValues, string>>;
+type SemesterFormState = Omit<
+  SemesterFormValues,
+  "tuitionAmountIrr" | "lumpSumDiscountAmountIrr" | "installmentCount" | "capacity"
+> & {
+  tuitionAmountIrr: string;
+  lumpSumDiscountAmountIrr: string;
+  installmentCount: string;
+  capacity: string;
+};
 
 const statusOptions: Array<{ value: SemesterStatus; label: string }> = [
   { value: "draft", label: "Draft" },
@@ -30,17 +39,59 @@ const statusOptions: Array<{ value: SemesterStatus; label: string }> = [
   { value: "closed", label: "Closed" },
 ];
 
-const DEFAULT_VALUES: SemesterFormValues = {
+const DEFAULT_VALUES: SemesterFormState = {
   title: "",
   startsAt: "",
   endsAt: "",
-  tuitionAmountIrr: 0,
-  lumpSumDiscountAmountIrr: 0,
+  tuitionAmountIrr: "0",
+  lumpSumDiscountAmountIrr: "0",
   installmentPlanEnabled: false,
-  installmentCount: null,
-  capacity: null,
+  installmentCount: "",
+  capacity: "",
   status: "draft",
 };
+
+const normalizeDigits = (value: string) =>
+  value
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+
+const sanitizeNumericInput = (value: string) =>
+  normalizeDigits(value).replace(/[^\d]/g, "");
+
+const parseOptionalInt = (value: string) => {
+  const normalized = sanitizeNumericInput(value);
+  if (!normalized) {
+    return null;
+  }
+  return Number.parseInt(normalized, 10);
+};
+
+const parseRequiredInt = (value: string, fallback = 0) => {
+  const parsed = parseOptionalInt(value);
+  return parsed ?? fallback;
+};
+
+const buildSemesterState = (values?: SemesterFormValues): SemesterFormState => ({
+  ...DEFAULT_VALUES,
+  ...(values ?? {}),
+  tuitionAmountIrr:
+    typeof values?.tuitionAmountIrr === "number"
+      ? String(values.tuitionAmountIrr)
+      : DEFAULT_VALUES.tuitionAmountIrr,
+  lumpSumDiscountAmountIrr:
+    typeof values?.lumpSumDiscountAmountIrr === "number"
+      ? String(values.lumpSumDiscountAmountIrr)
+      : DEFAULT_VALUES.lumpSumDiscountAmountIrr,
+  installmentCount:
+    typeof values?.installmentCount === "number"
+      ? String(values.installmentCount)
+      : DEFAULT_VALUES.installmentCount,
+  capacity:
+    typeof values?.capacity === "number"
+      ? String(values.capacity)
+      : DEFAULT_VALUES.capacity,
+});
 
 export function SemesterForm({
   action,
@@ -50,14 +101,23 @@ export function SemesterForm({
 }: SemesterFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [values, setValues] = useState<SemesterFormValues>(initialValues ?? DEFAULT_VALUES);
+  const [values, setValues] = useState<SemesterFormState>(buildSemesterState(initialValues));
   const [errors, setErrors] = useState<FormErrors>({});
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     startTransition(async () => {
-      const result = await action(values);
+      const payload: SemesterFormValues = {
+        ...values,
+        tuitionAmountIrr: parseRequiredInt(values.tuitionAmountIrr, 0),
+        lumpSumDiscountAmountIrr: parseRequiredInt(values.lumpSumDiscountAmountIrr, 0),
+        installmentCount: values.installmentPlanEnabled
+          ? parseOptionalInt(values.installmentCount)
+          : null,
+        capacity: parseOptionalInt(values.capacity),
+      };
+      const result = await action(payload);
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
         toast({ variant: "destructive", description: result.error });
@@ -116,36 +176,36 @@ export function SemesterForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="tuitionAmountIrr">Tuition Amount (IRR)</Label>
-            <Input
-              id="tuitionAmountIrr"
-              type="number"
-              min={0}
-              value={values.tuitionAmountIrr}
-              onChange={(event) =>
-                setValues((prev) => ({
-                  ...prev,
-                  tuitionAmountIrr: Number(event.target.value),
-                }))
-              }
-            />
+          <Input
+            id="tuitionAmountIrr"
+            type="text"
+            inputMode="numeric"
+            value={values.tuitionAmountIrr}
+            onChange={(event) =>
+              setValues((prev) => ({
+                ...prev,
+                tuitionAmountIrr: sanitizeNumericInput(event.target.value),
+              }))
+            }
+          />
             {errors.tuitionAmountIrr ? (
               <p className="text-xs text-destructive">{errors.tuitionAmountIrr}</p>
             ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="lumpSumDiscountAmountIrr">Lump-Sum Discount (IRR)</Label>
-            <Input
-              id="lumpSumDiscountAmountIrr"
-              type="number"
-              min={0}
-              value={values.lumpSumDiscountAmountIrr}
-              onChange={(event) =>
-                setValues((prev) => ({
-                  ...prev,
-                  lumpSumDiscountAmountIrr: Number(event.target.value),
-                }))
-              }
-            />
+          <Input
+            id="lumpSumDiscountAmountIrr"
+            type="text"
+            inputMode="numeric"
+            value={values.lumpSumDiscountAmountIrr}
+            onChange={(event) =>
+              setValues((prev) => ({
+                ...prev,
+                lumpSumDiscountAmountIrr: sanitizeNumericInput(event.target.value),
+              }))
+            }
+          />
             {errors.lumpSumDiscountAmountIrr ? (
               <p className="text-xs text-destructive">
                 {errors.lumpSumDiscountAmountIrr}
@@ -157,13 +217,13 @@ export function SemesterForm({
           <Label htmlFor="capacity">Capacity (optional)</Label>
           <Input
             id="capacity"
-            type="number"
-            min={0}
+            type="text"
+            inputMode="numeric"
             value={values.capacity ?? ""}
             onChange={(event) =>
               setValues((prev) => ({
                 ...prev,
-                capacity: event.target.value ? Number(event.target.value) : null,
+                capacity: sanitizeNumericInput(event.target.value),
               }))
             }
           />
@@ -182,7 +242,7 @@ export function SemesterForm({
                 setValues((prev) => ({
                   ...prev,
                   installmentPlanEnabled: checked,
-                  installmentCount: checked ? prev.installmentCount ?? 2 : null,
+                  installmentCount: checked ? prev.installmentCount || "2" : "",
                 }))
               }
             />
@@ -191,16 +251,14 @@ export function SemesterForm({
             <Label htmlFor="installmentCount">Installment Count</Label>
             <Input
               id="installmentCount"
-              type="number"
-              min={2}
+              type="text"
+              inputMode="numeric"
               disabled={!values.installmentPlanEnabled}
               value={values.installmentCount ?? ""}
               onChange={(event) =>
                 setValues((prev) => ({
                   ...prev,
-                  installmentCount: event.target.value
-                    ? Number(event.target.value)
-                    : null,
+                  installmentCount: sanitizeNumericInput(event.target.value),
                 }))
               }
             />

@@ -155,16 +155,12 @@ export async function createCourseCheckoutSession({
     throw new Error("FORBIDDEN");
   }
 
-  if (enrollment.status !== "pending_payment" && enrollment.status !== "active") {
-    throw new Error("INVALID_ENROLLMENT_STATUS");
+  if (enrollment.status !== "pending_payment") {
+    throw new Error(enrollment.status === "active" ? "ALREADY_PAID" : "INVALID_ENROLLMENT_STATUS");
   }
 
   if (enrollment.chosenPaymentMode !== paymentMode) {
     throw new Error("PAYMENT_MODE_MISMATCH");
-  }
-
-  if (paymentMode === "lumpsum" && enrollment.status === "active") {
-    throw new Error("ALREADY_PAID");
   }
 
   if (enrollment.semester.course.status !== "published") {
@@ -404,10 +400,19 @@ export async function applyCoursePaymentFromWebhook({
           },
         });
 
-        await tx.enrollment.updateMany({
-          where: { id: enrollmentId, status: "pending_payment" },
-          data: { status: "active" },
+        const remaining = await tx.coursePaymentInstallment.count({
+          where: {
+            enrollmentId,
+            status: { not: "paid" },
+          },
         });
+
+        if (remaining === 0) {
+          await tx.enrollment.updateMany({
+            where: { id: enrollmentId, status: "pending_payment" },
+            data: { status: "active" },
+          });
+        }
 
         return { updated: true as const };
       });

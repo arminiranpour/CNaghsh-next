@@ -24,6 +24,9 @@ type CourseFormProps = {
 };
 
 type FormErrors = Partial<Record<keyof CourseFormValues, string>>;
+type CourseFormState = Omit<CourseFormValues, "durationValue"> & {
+  durationValue: string;
+};
 
 const durationOptions: Array<{ value: CourseDurationUnit; label: string }> = [
   { value: "day", label: "Day" },
@@ -37,17 +40,42 @@ const statusOptions: Array<{ value: CourseStatus; label: string }> = [
   { value: "archived", label: "Archived" },
 ];
 
-const DEFAULT_VALUES: CourseFormValues = {
+const DEFAULT_VALUES: CourseFormState = {
   title: "",
   description: "",
   ageRangeText: "",
-  durationValue: 1,
+  durationValue: "1",
   durationUnit: "month",
   instructorName: "",
   prerequisiteText: "",
   bannerMediaAssetId: "",
   status: "draft",
 };
+
+const normalizeDigits = (value: string) =>
+  value
+    .replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+
+const sanitizeNumericInput = (value: string) =>
+  normalizeDigits(value).replace(/[^\d]/g, "");
+
+const parseRequiredInt = (value: string, fallback = 0) => {
+  const normalized = sanitizeNumericInput(value);
+  if (!normalized) {
+    return fallback;
+  }
+  return Number.parseInt(normalized, 10);
+};
+
+const buildCourseState = (values?: CourseFormValues): CourseFormState => ({
+  ...DEFAULT_VALUES,
+  ...(values ?? {}),
+  durationValue:
+    typeof values?.durationValue === "number"
+      ? String(values.durationValue)
+      : DEFAULT_VALUES.durationValue,
+});
 
 export function CourseForm({
   action,
@@ -58,7 +86,7 @@ export function CourseForm({
 }: CourseFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [values, setValues] = useState<CourseFormValues>(initialValues ?? DEFAULT_VALUES);
+  const [values, setValues] = useState<CourseFormState>(buildCourseState(initialValues));
   const [errors, setErrors] = useState<FormErrors>({});
   const [isPending, startTransition] = useTransition();
   const lastBannerMediaAssetId = useRef(initialValues?.bannerMediaAssetId ?? "");
@@ -80,7 +108,11 @@ export function CourseForm({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     startTransition(async () => {
-      const result = await action(values);
+      const payload: CourseFormValues = {
+        ...values,
+        durationValue: parseRequiredInt(values.durationValue, 0),
+      };
+      const result = await action(payload);
       if (!result.ok) {
         setErrors(result.fieldErrors ?? {});
         toast({ variant: "destructive", description: result.error });
@@ -137,18 +169,18 @@ export function CourseForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="durationValue">Duration Value</Label>
-            <Input
-              id="durationValue"
-              type="number"
-              min={1}
-              value={values.durationValue}
-              onChange={(event) =>
-                setValues((prev) => ({
-                  ...prev,
-                  durationValue: Number(event.target.value),
-                }))
-              }
-            />
+          <Input
+            id="durationValue"
+            type="text"
+            inputMode="numeric"
+            value={values.durationValue}
+            onChange={(event) =>
+              setValues((prev) => ({
+                ...prev,
+                durationValue: sanitizeNumericInput(event.target.value),
+              }))
+            }
+          />
             {errors.durationValue ? (
               <p className="text-xs text-destructive">{errors.durationValue}</p>
             ) : null}

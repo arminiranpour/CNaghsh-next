@@ -101,15 +101,16 @@ export default async function CoursePaymentSuccessPage({
     redirect(`/courses/payment/failure?sessionId=${session.id}`);
   }
 
-  const title = session.status === "SUCCESS" ? "پرداخت موفق" : "در انتظار تأیید";
-  const description =
-    session.status === "SUCCESS"
-      ? "پرداخت شما با موفقیت ثبت شد."
-      : "وضعیت پرداخت هنوز تأیید نشده است.";
-
   const semesterUrl = session.courseId && session.semesterId
     ? `/courses/${session.courseId}/semesters/${session.semesterId}`
     : "/dashboard/courses";
+
+  if (session.status === "SUCCESS") {
+    redirect(semesterUrl);
+  }
+
+  const title = "در انتظار تأیید";
+  const description = "وضعیت پرداخت هنوز تأیید نشده است.";
 
   return (
     <div className="mx-auto max-w-xl" dir="rtl">

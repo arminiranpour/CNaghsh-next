@@ -342,16 +342,7 @@ export default async function DashboardEnrollmentDetailPage({
                 <p className="text-muted-foreground">قسطی برای پرداخت یافت نشد.</p>
               )
             ) : enrollment.status === "active" ? (
-              enrollment.chosenPaymentMode === "installments" && !allInstallmentsPaid && nextInstallment ? (
-                <form action={checkoutAction} className="space-y-2">
-                  <p>مبلغ قسط: {formatIrr(nextInstallment.amountIrr)}</p>
-                  <input type="hidden" name="paymentMode" value="installments" />
-                  <input type="hidden" name="installmentIndex" value={nextInstallment.index} />
-                  <Button type="submit">پرداخت قسط بعدی</Button>
-                </form>
-              ) : (
-                <p className="text-muted-foreground">پرداخت تکمیل شد.</p>
-              )
+              <p className="text-muted-foreground">پرداخت تکمیل شد.</p>
             ) : enrollment.status === "canceled" ? (
               <p className="text-muted-foreground">این ثبت‌نام لغو شده است.</p>
             ) : (

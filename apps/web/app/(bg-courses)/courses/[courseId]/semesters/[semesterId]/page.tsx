@@ -11,8 +11,10 @@ import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 
 export default async function SemesterDetailPage({
   params,
+  searchParams,
 }: {
   params: { courseId: string; semesterId: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const semester = await fetchPublicSemesterById(params.courseId, params.semesterId);
 
@@ -36,6 +38,33 @@ export default async function SemesterDetailPage({
       : null;
 
   const enrollAction = startEnrollmentAction.bind(null, params.courseId, params.semesterId);
+  const enrollmentError =
+    searchParams?.enrollment === "error"
+      ? typeof searchParams?.reason === "string"
+        ? searchParams.reason
+        : Array.isArray(searchParams?.reason)
+          ? searchParams.reason[0]
+          : null
+      : null;
+
+  const enrollmentErrorMessages: Record<string, string> = {
+    INVALID_PAYMENT_MODE: "روش پرداخت معتبر نیست.",
+    COURSE_NOT_PUBLISHED: "دوره منتشر نشده است.",
+    SEMESTER_NOT_FOUND: "ترم پیدا نشد.",
+    SEMESTER_CLOSED: "ترم بسته شده است.",
+    SEMESTER_NOT_OPEN: "ترم برای ثبت‌نام باز نیست.",
+    INSTALLMENTS_DISABLED: "پرداخت اقساطی فعال نیست.",
+    ENROLLMENT_NOT_FOUND: "ثبت‌نام پیدا نشد.",
+    FORBIDDEN: "اجازه دسترسی ندارید.",
+    INVALID_ENROLLMENT_STATUS: "وضعیت ثبت‌نام معتبر نیست.",
+    PAYMENT_MODE_MISMATCH: "روش پرداخت با ثبت‌نام همخوانی ندارد.",
+    ALREADY_PAID: "پرداخت قبلاً ثبت شده است.",
+    UNSUPPORTED_CURRENCY: "ارز پشتیبانی نمی‌شود.",
+    INVALID_INSTALLMENT: "قسط انتخابی معتبر نیست.",
+    INVALID_AMOUNT: "مبلغ معتبر نیست.",
+    UNKNOWN_PROVIDER: "درگاه پرداخت معتبر نیست.",
+    UNKNOWN_ERROR: "عملیات ناموفق بود.",
+  };
 
   return (
     <div className="relative min-h-screen" dir="rtl">
@@ -55,6 +84,12 @@ export default async function SemesterDetailPage({
 
         {/* Main Content Grid */}
         <div className="grid gap-2 lg:grid-cols-11" data-no-transparent>
+          {enrollmentError ? (
+            <div className="lg:col-span-11 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {enrollmentErrorMessages[enrollmentError] ??
+                enrollmentErrorMessages.UNKNOWN_ERROR}
+            </div>
+          ) : null}
           {/* Right Pane - Schedule Panel (appears on right in RTL) */}
           <div className="flex justify-start lg:col-span-6 overflow-auto">
             <SemesterSchedulePanel
