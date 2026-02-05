@@ -7,15 +7,47 @@ import { cn } from "@/lib/utils";
 
 type MovieHeroSaveButtonProps = {
   className?: string;
+  movieId: string;
+  initialSaved?: boolean;
 };
 
-export function MovieHeroSaveButton({ className }: MovieHeroSaveButtonProps) {
-  const [saved, setSaved] = useState(false);
+export function MovieHeroSaveButton({
+  className,
+  movieId,
+  initialSaved = false,
+}: MovieHeroSaveButtonProps) {
+  const [saved, setSaved] = useState(initialSaved);
+  const [isPending, setIsPending] = useState(false);
 
   return (
     <button
       type="button"
-      onClick={() => setSaved((prev) => !prev)}
+      disabled={isPending}
+      onClick={async () => {
+        if (isPending) {
+          return;
+        }
+        const next = !saved;
+        const previous = saved;
+        setSaved(next);
+        setIsPending(true);
+        try {
+          const response = await fetch("/api/saves/movies/toggle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ movieId }),
+          });
+          if (!response.ok) {
+            throw new Error("REQUEST_FAILED");
+          }
+          const data = (await response.json()) as { saved?: boolean };
+          setSaved(Boolean(data.saved));
+        } catch (error) {
+          setSaved(previous);
+        } finally {
+          setIsPending(false);
+        }
+      }}
       className={cn("flex items-center gap-[10px] text-[20px] font-bold text-white", className)}
       dir="rtl"
     >

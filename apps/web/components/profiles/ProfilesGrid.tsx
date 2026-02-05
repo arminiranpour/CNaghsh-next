@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { PaginationNav } from "@/components/ui/pagination-nav";
+import { buildPageList } from "@/lib/pagination";
 import ProfileCard from "@/components/profiles/ProfileCard";
 import { buildProfilesHref } from "@/lib/url/buildProfilesHref";
 import type { NormalizedSearchParams } from "@/lib/url/normalizeSearchParams";
@@ -37,6 +38,18 @@ export function ProfilesGrid({
     return <EmptyState clearHref={clearHref} className={className} />;
   }
 
+  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage, lastPage);
+  const pageHrefs = Object.fromEntries(
+    pageItems
+      .filter((item): item is number => typeof item === "number")
+      .map((page) => [
+        page,
+        buildProfilesHref(normalized, () => ({
+          page: page > 1 ? page : undefined,
+        })),
+      ]),
+  );
+
   return (
     <section className={cn("flex flex-col gap-5", className)} dir="rtl" aria-label="لیست بازیگران">
       <div className="p-1">
@@ -68,11 +81,8 @@ export function ProfilesGrid({
         hasPrevPage={hasPrevPage}
         hasNextPage={hasNextPage}
         lastPage={lastPage}
-        buildHref={(page) =>
-          buildProfilesHref(normalized, () => ({
-            page: page > 1 ? page : undefined,
-          }))
-        }
+        pageItems={pageItems}
+        pageHrefs={pageHrefs}
       />
     </section>
   );

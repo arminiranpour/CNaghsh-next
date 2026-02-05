@@ -37,9 +37,9 @@ const NAV_ITEMS: {
   },
   {
     id: "saved",
-    label: "ذخیره شده",
+    label: "آرشیو",
     iconSrc: savedIcon,
-    isEnabled: false,
+    isEnabled: true,
   },
   {
     id: "challenges",

@@ -26,6 +26,8 @@ export type PublicProfileData = {
   age?: number | null;
   bio?: string | null;
   cityName?: string | null;
+  likesCount: number;
+  isSavedByMe?: boolean;
   skills: string[];
   languages: LanguageSkill[];
   accents?: string[];

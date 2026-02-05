@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { PaginationNav } from "@/components/ui/pagination-nav";
+import { buildPageList } from "@/lib/pagination";
 import { buildMoviesHref, type MovieSearchParams } from "@/lib/url/buildMoviesHref";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,18 @@ export function MoviesGrid({
     return <EmptyState clearHref={clearHref} className={className} />;
   }
 
+  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage, pageCount);
+  const pageHrefs = Object.fromEntries(
+    pageItems
+      .filter((item): item is number => typeof item === "number")
+      .map((page) => [
+        page,
+        buildMoviesHref(normalized, () => ({
+          page: page > 1 ? page : undefined,
+        })),
+      ]),
+  );
+
   return (
     <section className={cn("flex flex-col gap-5", className)} dir="rtl" aria-label="لیست فیلم‌ها">
       <div className="p-1">
@@ -47,11 +60,8 @@ export function MoviesGrid({
         hasPrevPage={hasPrevPage}
         hasNextPage={hasNextPage}
         lastPage={pageCount}
-        buildHref={(page) =>
-          buildMoviesHref(normalized, () => ({
-            page: page > 1 ? page : undefined,
-          }))
-        }
+        pageItems={pageItems}
+        pageHrefs={pageHrefs}
       />
     </section>
   );

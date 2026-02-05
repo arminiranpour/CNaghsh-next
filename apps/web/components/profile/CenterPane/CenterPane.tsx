@@ -43,7 +43,13 @@ export function CenterPane({
         fontFamily: "IRANSans, sans-serif",
       }}
     >
-      <TopActions canEdit={canEdit} onEditClick={onEditClick} />
+      <TopActions
+        canEdit={canEdit}
+        onEditClick={onEditClick}
+        profileId={profile.id}
+        initialSaved={profile.isSavedByMe}
+        initialLikesCount={profile.likesCount}
+      />
       {children}
       {activeTab === "personal" ? (
         <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />

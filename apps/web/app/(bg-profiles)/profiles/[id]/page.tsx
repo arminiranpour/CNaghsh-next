@@ -12,6 +12,9 @@ import { prisma } from "@/lib/prisma";
 import { buildProfilePageData, getDisplayName } from "@/lib/profile/profile-page-data";
 
 type PageProps = { params: { id: string } };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const profile = await prisma.profile.findUnique({
     where: { id: params.id },
@@ -64,13 +67,32 @@ export default async function PublicProfilePage({ params }: PageProps) {
   }
 
   const profileData: PublicProfileData = await buildProfilePageData(profile, cities);
+  const isSavedByMe = session?.user?.id
+    ? await prisma.savedItem.findUnique({
+        where: {
+          userId_type_entityId: {
+            userId: session.user.id,
+            type: "PROFILE",
+            entityId: profile.id,
+          },
+        },
+        select: { id: true },
+      })
+    : null;
 
   const isOwner = session?.user?.id === profile.userId;
 
   return (
     <div className={iransans.className}>
       <ProfilePageLayout>
-        <ProfilePageClient profile={profileData} isOwner={isOwner} />
+        <ProfilePageClient
+          profile={{
+            ...profileData,
+            likesCount: profile.likesCount ?? 0,
+            isSavedByMe: Boolean(isSavedByMe),
+          }}
+          isOwner={isOwner}
+        />
       </ProfilePageLayout>
     </div>
   );

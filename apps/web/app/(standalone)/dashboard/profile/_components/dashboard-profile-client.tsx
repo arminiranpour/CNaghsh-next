@@ -8,6 +8,7 @@ import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
 import { RightPane } from "@/components/profile/RightPane/RightPane";
 import { SubscriptionPane } from "@/components/profile/editProfile/CenterPane/SubscriptionPane";
 import { EditProfileCoursesPane } from "@/components/profile/editProfile/CenterPane/EditProfileCoursesPane";
+import { EditProfileArchivePane } from "@/components/profile/editProfile/CenterPane/EditProfileArchivePane";
 import {
   EditProfileLeftRail,
   type EditProfileTabId,
@@ -36,6 +37,12 @@ type DashboardProfileClientProps = {
     title: string;
     imageUrl: string | null;
   }>;
+  savedSummary: {
+    profiles: number;
+    movies: number;
+    books: number;
+    monologues: number;
+  };
 };
 
 const paymentStatusLabels: Record<string, string> = {
@@ -54,6 +61,7 @@ export function DashboardProfileClient({
   provinces,
   billingData,
   enrolledCourses,
+  savedSummary,
 }: DashboardProfileClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
   const [isEditingPortfolio, setIsEditingPortfolio] = useState(false);
@@ -97,6 +105,8 @@ export function DashboardProfileClient({
             daysLeft={subscriptionSummary.daysLeft}
             payments={subscriptionSummary.payments}
           />
+        ) : activeEditTab === "saved" ? (
+          <EditProfileArchivePane counts={savedSummary} />
         ) : activeEditTab === "courses" ? (
           <EditProfileCoursesPane courses={enrolledCourses} />
         ) : (

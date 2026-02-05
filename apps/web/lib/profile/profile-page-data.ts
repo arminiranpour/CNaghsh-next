@@ -363,6 +363,8 @@ export async function buildProfilePageData(
     age: derivedAge,
     bio: profile.bio,
     cityName: profile.cityId ? cityMap.get(profile.cityId) ?? undefined : undefined,
+    likesCount: profile.likesCount ?? 0,
+    isSavedByMe: false,
     skills: normalizeSkills(profile.skills),
     languages: normalizeLanguages(profile.languages),
     accents: normalizeAccents(profile.accents),

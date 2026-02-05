@@ -3,16 +3,16 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { buildPageList, type PageItem } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
-
-type PageItem = number | "...";
 
 type PaginationNavProps = {
   currentPage: number;
   hasPrevPage: boolean;
   hasNextPage: boolean;
   lastPage?: number;
-  buildHref?: (page: number) => string;
+  pageItems?: PageItem[];
+  pageHrefs?: Record<number, string>;
   onPageChange?: (page: number) => void;
   className?: string;
 };
@@ -22,11 +22,12 @@ export function PaginationNav({
   hasPrevPage,
   hasNextPage,
   lastPage,
-  buildHref,
+  pageItems,
+  pageHrefs,
   onPageChange,
   className,
 }: PaginationNavProps) {
-  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage, lastPage);
+  const items = pageItems ?? buildPageList(currentPage, hasPrevPage, hasNextPage, lastPage);
 
   return (
     <nav
@@ -37,12 +38,12 @@ export function PaginationNav({
       aria-label="صفحه‌بندی"
     >
       <div className="flex items-center gap-2">
-        {pageItems.map((item, index) =>
+        {items.map((item, index) =>
           item === "..." ? (
             <span key={`ellipsis-${index}`} className="px-2 text-lg font-bold text-[#1F1F1F]">
               ...
             </span>
-          ) : buildHref ? (
+          ) : pageHrefs ? (
             <Button
               key={`page-${item}`}
               size="sm"
@@ -56,7 +57,7 @@ export function PaginationNav({
               )}
             >
               <Link
-                href={buildHref(item)}
+                href={pageHrefs[item] ?? "#"}
                 aria-current={item === currentPage ? "page" : undefined}
               >
                 {item}
@@ -89,27 +90,4 @@ export function PaginationNav({
       </div>
     </nav>
   );
-}
-
-function buildPageList(
-  current: number,
-  hasPrevPage: boolean,
-  hasNextPage: boolean,
-  lastPage?: number,
-): PageItem[] {
-  const inferredLast = lastPage ?? (hasNextPage ? current + 1 : current);
-  const safeLast = Math.max(inferredLast, current);
-
-  if (safeLast <= 1) return [1];
-  if (safeLast <= 4) return Array.from({ length: safeLast }, (_, i) => i + 1);
-
-  if (current <= 2) {
-    return [1, 2, 3, "...", safeLast];
-  }
-
-  if (current >= safeLast - 1) {
-    return [1, "...", safeLast - 2, safeLast - 1, safeLast];
-  }
-
-  return [1, current, current + 1, "...", safeLast];
 }

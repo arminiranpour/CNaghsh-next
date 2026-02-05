@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { iransansBold } from "@/app/fonts";
 import { MovieHeroSaveButton } from "@/components/movies/MovieHeroSaveButton";
 import Header from "@/components/Header";
+import { getServerAuthSession } from "@/lib/auth/session";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 
@@ -53,6 +54,7 @@ export default async function MovieDetailsPage({
 }: {
   params: { movieId: string };
 }) {
+  const session = await getServerAuthSession();
   const movie = await prisma.movie.findUnique({
     where: { id: params.movieId },
     select: {
@@ -76,6 +78,19 @@ export default async function MovieDetailsPage({
   if (!movie) {
     notFound();
   }
+
+  const isSavedByMe = session?.user?.id
+    ? await prisma.savedItem.findUnique({
+        where: {
+          userId_type_entityId: {
+            userId: session.user.id,
+            type: "MOVIE",
+            entityId: movie.id,
+          },
+        },
+        select: { id: true },
+      })
+    : null;
 
   const posterUrl =
     movie.posterBigMediaAsset?.outputKey && movie.posterBigMediaAsset.visibility === "public"
@@ -137,7 +152,11 @@ export default async function MovieDetailsPage({
                 <span className="text-[35px] font-bold leading-[52px]">/</span>
                 <span className="text-[35px] font-bold leading-[52px]">{movie.titleFa}</span>
               </div>
-            <MovieHeroSaveButton className="shrink-0" />
+            <MovieHeroSaveButton
+              className="shrink-0"
+              movieId={movie.id}
+              initialSaved={Boolean(isSavedByMe)}
+            />
 
             </div>
 

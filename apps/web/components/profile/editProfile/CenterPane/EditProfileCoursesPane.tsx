@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { PaginationNav } from "@/components/ui/pagination-nav";
+import { buildPageList } from "@/lib/pagination";
 
 const PAGE_SIZE = 2;
 
@@ -35,6 +36,7 @@ export function EditProfileCoursesPane({ courses }: EditProfileCoursesPaneProps)
 
   const hasPrevPage = currentPage > 1;
   const hasNextPage = currentPage < totalPages;
+  const pageItems = buildPageList(currentPage, hasPrevPage, hasNextPage, totalPages);
 
   return (
     <section
@@ -69,6 +71,7 @@ export function EditProfileCoursesPane({ courses }: EditProfileCoursesPaneProps)
                   hasPrevPage={hasPrevPage}
                   hasNextPage={hasNextPage}
                   lastPage={totalPages}
+                  pageItems={pageItems}
                   onPageChange={setPage}
                 />
               </div>

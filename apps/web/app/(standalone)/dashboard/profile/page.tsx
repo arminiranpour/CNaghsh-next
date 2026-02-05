@@ -88,6 +88,8 @@ export default async function DashboardProfilePage() {
         age: null,
         bio: null,
         cityName: undefined,
+        likesCount: 0,
+        isSavedByMe: false,
         skills: [],
         languages: [],
         accents: [],
@@ -98,6 +100,49 @@ export default async function DashboardProfilePage() {
         videos: [],
         awards: [],
       };
+
+  const savedProfile = await prisma.savedItem.findUnique({
+    where: {
+      userId_type_entityId: {
+        userId,
+        type: "PROFILE",
+        entityId: profileData.id,
+      },
+    },
+    select: { id: true },
+  });
+
+  const savedSummaryRows = await prisma.savedItem.groupBy({
+    by: ["type"],
+    where: { userId },
+    _count: { _all: true },
+  });
+
+  const savedSummary = {
+    profiles: 0,
+    movies: 0,
+    books: 0,
+    monologues: 0,
+  };
+
+  for (const row of savedSummaryRows) {
+    switch (row.type) {
+      case "PROFILE":
+        savedSummary.profiles = row._count._all;
+        break;
+      case "MOVIE":
+        savedSummary.movies = row._count._all;
+        break;
+      case "BOOK":
+        savedSummary.books = row._count._all;
+        break;
+      case "MONOLOGUE":
+        savedSummary.monologues = row._count._all;
+        break;
+      default:
+        break;
+    }
+  }
 
   const portfolioExperience = normalizePortfolioExperience(profile?.experience ?? null);
 
@@ -138,6 +183,11 @@ export default async function DashboardProfilePage() {
   };
 
   const isOwner = session.user.id === profileData.userId;
+  const profileDataWithSaved = {
+    ...profileData,
+    likesCount: profile?.likesCount ?? 0,
+    isSavedByMe: Boolean(savedProfile),
+  };
   const enrolledCourses = [];
   const seenCourses = new Set<string>();
 
@@ -166,13 +216,14 @@ export default async function DashboardProfilePage() {
     <div className={iransans.className}>
       <ProfilePageLayout>
         <DashboardProfileClient
-          profile={profileData}
+          profile={profileDataWithSaved}
           isOwner={isOwner}
           initialValues={portfolioInitialValues}
           cities={cities}
           provinces={provinces}
           billingData={billingData}
           enrolledCourses={enrolledCourses}
+          savedSummary={savedSummary}
         />
       </ProfilePageLayout>
     </div>

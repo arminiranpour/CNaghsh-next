@@ -38,6 +38,20 @@ model User {
   applicationEvents       ApplicationEvent[]       @relation("ApplicationEventActor")
   applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
   enrollments             Enrollment[]
+  savedItems              SavedItem[]
+}
+
+model SavedItem {
+  id        String        @id @default(cuid())
+  userId    String
+  type      SavedItemType
+  entityId  String
+  createdAt DateTime      @default(now())
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, entityId])
+  @@index([userId, type, createdAt])
 }
 
 model Profile {
@@ -56,6 +70,7 @@ model Profile {
   avatarUrl         String?
   bio               String?
   introVideoMediaId String?
+  likesCount        Int               @default(0)
   gallery           Json?
   videos            Json?
   skills            Json?
@@ -86,6 +101,13 @@ model Profile {
   @@index([birthDate])
   @@index([gender])
   @@index([educationLevel])
+}
+
+enum SavedItemType {
+  MOVIE
+  PROFILE
+  BOOK
+  MONOLOGUE
 }
 
 enum Gender {
