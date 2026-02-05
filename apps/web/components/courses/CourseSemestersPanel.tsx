@@ -1,6 +1,5 @@
 import Link from "next/link";
-
-import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
 import { CourseIntroVideoPreview } from "@/components/courses/CourseIntroVideoPreview";
 import { formatIrr } from "@/lib/courses/format";
 import { computeSemesterPricing } from "@/lib/courses/pricing";
@@ -9,11 +8,6 @@ import { formatJalaliDate } from "@/lib/datetime/jalali";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { cn } from "@/lib/utils";
 import { iransansBold } from "@/app/fonts";
-
-const semesterStatusLabels = {
-  open: "باز",
-  closed: "بسته",
-} as const;
 
 const getTermName = (termNumber: number): string => {
   switch (termNumber) {
@@ -33,12 +27,117 @@ const getTermName = (termNumber: number): string => {
 const cardBaseClassName = "rounded-lg bg-[#FF7F19] text-card-foreground shadow-sm";
 
 type CourseDetail = NonNullable<Awaited<ReturnType<typeof fetchPublicCourseById>>>;
+type CourseSemester = CourseDetail["semesters"][number];
 
 type CourseSemestersPanelProps = {
   course: CourseDetail;
   className?: string;
   density?: "normal" | "compact";
 };
+
+type SemesterRowVariant = "comingSoon" | "available" | "enrolled";
+
+const getSemesterRowClasses = (variant: SemesterRowVariant) => {
+  switch (variant) {
+    case "comingSoon":
+      return {
+        container: "bg-[#D9D9D9]",
+        title: "text-black",
+        subtitle: "text-[#808080]",
+        price: "text-black",
+      };
+    case "enrolled":
+      return {
+        container: "bg-[#0A3F35]",
+        title: "text-white",
+        subtitle: "text-white",
+        price: "text-white",
+      };
+    case "available":
+    default:
+      return {
+        container: "bg-[#FF7F19]",
+        title: "text-black",
+        subtitle: "text-white",
+        price: "text-white",
+      };
+  }
+};
+
+const resolveEnrollmentState = (semester: CourseSemester) => {
+  const extendedSemester = semester as CourseSemester & {
+    isEnrolled?: boolean;
+    enrollmentId?: string | null;
+    enrollment?: { id?: string | null } | null;
+    currentEnrollment?: { id?: string | null } | null;
+    userEnrollment?: { id?: string | null } | null;
+    enrollments?: Array<{ id?: string | null; status?: string | null }> | null;
+  };
+
+  if (typeof extendedSemester.isEnrolled === "boolean") {
+    return extendedSemester.isEnrolled;
+  }
+
+  return Boolean(
+    extendedSemester.enrollmentId ||
+      extendedSemester.enrollment?.id ||
+      extendedSemester.currentEnrollment?.id ||
+      extendedSemester.userEnrollment?.id ||
+      (extendedSemester.enrollments && extendedSemester.enrollments.length > 0)
+  );
+};
+
+type SemesterRowProps = {
+  title: string;
+  subtitle: string;
+  priceLabel: string;
+  isAvailable: boolean;
+  isEnrolled: boolean;
+};
+
+function SemesterRow({ title, subtitle, priceLabel, isAvailable, isEnrolled }: SemesterRowProps) {
+  const variant: SemesterRowVariant = !isAvailable
+    ? "comingSoon"
+    : isEnrolled
+      ? "enrolled"
+      : "available";
+  const classes = getSemesterRowClasses(variant);
+
+  return (
+    <div
+      className={cn(
+        "w-full h-[52px] rounded-[12px] px-4",
+        "flex items-center justify-between",
+        "transition",
+        classes.container
+      )}
+    >
+      <div className="flex items-center gap-3">
+        {isAvailable ? (
+          isEnrolled ? (
+            <div
+              className="flex h-[23px] w-[23px] items-center justify-center rounded-full bg-white"
+              aria-hidden="true"
+            >
+              <Check className="h-[14px] w-[14px] text-[#0A3F35]" strokeWidth={3} />
+            </div>
+          ) : (
+            <div className="h-[23px] w-[23px] rounded-full border border-white" aria-hidden="true" />
+          )
+        ) : null}
+        <div className="text-right">
+          <p className={cn("text-[15px] font-bold leading-[23px]", classes.title)}>{title}</p>
+          <p className={cn("text-[8px] font-normal leading-[13px]", classes.subtitle)}>
+            {subtitle}
+          </p>
+        </div>
+      </div>
+      <div className={cn("shrink-0 text-left text-[19px] font-bold leading-[30px]", classes.price)}>
+        {priceLabel}
+      </div>
+    </div>
+  );
+}
 
 // Density-based style getters
 const getSpacingClasses = (density: "normal" | "compact") => {
@@ -193,8 +292,16 @@ export function CourseSemestersPanel({
               {sortedSemesters.map((semester, index) => {
                 const pricing = computeSemesterPricing(semester);
                 const termNumber = index + 1;
-                const isOpen = semester.status === "open";
-                const isClosed = semester.status === "closed";
+                const isAvailable = semester.status === "open";
+                const isEnrolled = resolveEnrollmentState(semester);
+                const priceLabel = isAvailable
+                  ? formatIrr(pricing.lumpSum.base).replace(" ریال", "")
+                  : "؟";
+                const subtitle = isAvailable
+                  ? `از ${formatJalaliDate(semester.startsAt)} تا ${formatJalaliDate(
+                      semester.endsAt
+                    )}`
+                  : "به زودی اعلام خواهد شد.";
 
                 return (
                   <Link
@@ -202,81 +309,13 @@ export function CourseSemestersPanel({
                     href={`/courses/${course.id}/semesters/${semester.id}`}
                     className="block"
                   >
-                    <div
-                      className={cn(
-                        "rounded-lg transition hover:shadow-md border",
-                        isOpen ? "border-primary" : "border-border cursor-pointer",
-                        "!bg-[#FF7F19]",
-                        "force-orange-bg"
-                      )}
-                      data-card
-                      style={{ backgroundColor: "#FF7F19" }}
-                    >
-                      <div className={cn(spacing.semesterItemPadding, "text-black")}>
-                        <div
-                          className={cn(
-                            "flex items-stretch justify-between",
-                            density === "compact" ? "gap-4" : "gap-6"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "flex-1 text-right",
-                              density === "compact" ? "space-y-1" : "space-y-2"
-                            )}
-                          >
-                            <h3 className={cn(typography.semesterTitle, "text-black")}>
-                              ثبت نام ترم {getTermName(termNumber)}
-                            </h3>
-
-                            {isOpen ? (
-                              <p className={cn(typography.semesterDate, "text-[10px] text-white")}>
-                                از {formatJalaliDate(semester.startsAt)} تا{" "}
-                                {formatJalaliDate(semester.endsAt)}
-                              </p>
-                            ) : (
-                              <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
-                                به زودی اعلام خواهد شد.
-                              </p>
-                            )}
-                          </div>
-
-                          <div
-                            className={cn(
-                              "shrink-0 flex flex-col items-center justify-center self-stretch",
-                              density === "compact" ? "min-w-[72px]" : "min-w-[96px]",
-                              density === "compact" ? "gap-1" : "gap-2"
-                            )}
-                          >
-                            {isOpen ? (
-                              <p
-                                className={cn(
-                                  typography.semesterPrice,
-                                  "text-white whitespace-nowrap"
-                                )}
-                              >
-                                {formatIrr(pricing.lumpSum.base).replace(" ریال", "")}
-                              </p>
-                            ) : (
-                              <span
-                                className={cn(
-                                  "text-muted-foreground",
-                                  density === "compact" ? "text-xl" : "text-2xl"
-                                )}
-                              >
-                                ؟
-                              </span>
-                            )}
-
-                            {isClosed && (
-                              <div className={density === "compact" ? "mt-1" : "mt-2"}>
-                                <Badge variant="secondary">{semesterStatusLabels.closed}</Badge>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <SemesterRow
+                      title={`ثبت نام ترم ${getTermName(termNumber)}`}
+                      subtitle={subtitle}
+                      priceLabel={priceLabel}
+                      isAvailable={isAvailable}
+                      isEnrolled={isEnrolled}
+                    />
                   </Link>
                 );
               })}
@@ -286,38 +325,14 @@ export function CourseSemestersPanel({
                   {Array.from({ length: 4 - sortedSemesters.length }, (_, i) => {
                     const placeholderTermNumber = sortedSemesters.length + i + 1;
                     return (
-                      <div
+                      <SemesterRow
                         key={`placeholder-${placeholderTermNumber}`}
-                        className={cn("rounded-lg transition", "!bg-[#D9D9D9]", "force-gray-bg")}
-                        data-card
-                        style={{ borderRadius: "0.75rem", backgroundColor: "#D9D9D9" }}
-                      >
-                        <div className={cn(spacing.semesterItemPadding, "text-black")}>
-                          <div className="flex items-stretch justify-between">
-                            <div
-                              className={cn(
-                                "flex-1 text-right",
-                                density === "compact" ? "space-y-1" : "space-y-2"
-                              )}
-                            >
-                              <h3 className={cn(typography.semesterTitle, "text-black")}>
-                                ثبت نام ترم {getTermName(placeholderTermNumber)}
-                              </h3>
-                              <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
-                                به زودی اعلام خواهد شد.
-                              </p>
-                            </div>
-                            <div
-                              className={cn(
-                                "shrink-0 flex items-center justify-center self-stretch text-muted-foreground",
-                                density === "compact" ? "min-w-[72px] text-xl" : "min-w-[96px] text-2xl"
-                              )}
-                            >
-                              ؟
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        title={`ثبت نام ترم ${getTermName(placeholderTermNumber)}`}
+                        subtitle="به زودی اعلام خواهد شد."
+                        priceLabel="؟"
+                        isAvailable={false}
+                        isEnrolled={false}
+                      />
                     );
                   })}
                 </>

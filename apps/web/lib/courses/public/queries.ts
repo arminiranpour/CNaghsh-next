@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 
-const semesterSelect = {
+const baseSemesterSelect = {
   id: true,
   courseId: true,
   title: true,
@@ -14,6 +14,26 @@ const semesterSelect = {
   installmentCount: true,
   status: true,
 } satisfies Prisma.SemesterSelect;
+
+const buildSemesterSelect = (userId?: string | null) => {
+  if (!userId) {
+    return baseSemesterSelect;
+  }
+
+  return {
+    ...baseSemesterSelect,
+    enrollments: {
+      where: {
+        userId,
+        status: { in: ["active", "pending_payment"] },
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    },
+  } satisfies Prisma.SemesterSelect;
+};
 
 const courseSelect = {
   id: true,
@@ -89,7 +109,7 @@ export async function fetchPublishedCourses({
   };
 }
 
-export async function fetchPublicCourseById(courseId: string) {
+export async function fetchPublicCourseById(courseId: string, userId?: string | null) {
   return prisma.course.findFirst({
     where: { id: courseId, status: "published" },
     select: {
@@ -97,7 +117,7 @@ export async function fetchPublicCourseById(courseId: string) {
       semesters: {
         where: { status: { in: ["open", "closed"] } },
         orderBy: { startsAt: "desc" },
-        select: semesterSelect,
+        select: buildSemesterSelect(userId),
       },
     },
   });
