@@ -1,7 +1,7 @@
 import { formatCourseDuration } from "@/lib/courses/format";
 import type { fetchPublicCourseById } from "@/lib/courses/public/queries";
 import { cn } from "@/lib/utils";
-import { iransans, iransansMedium, iransansBold } from "@/app/fonts";
+import { iransansMedium, iransansBold } from "@/app/fonts";
 
 const cardBaseClassName =
   "bg-card text-card-foreground shadow-sm";
@@ -15,16 +15,12 @@ type CourseInfoPanelProps = {
 
 export function CourseInfoPanel({ course }: CourseInfoPanelProps) {
   return (
-<div className={`${iransansBold.className} space-y-6`}>
-{/* Course Title */}
+    <div className={`${iransansBold.className} space-y-6`}>
+      {/* Course Title */}
       <div className="space-y-4">
         <div className="flex items-start gap-3">
-            <h1 className="text-4xl font-bold text-[#FF7F19]">
-              {course.title}
-            </h1>
+          <h1 className="text-4xl font-bold text-[#FF7F19]">{course.title}</h1>
         </div>
-
-
       </div>
 
       {/* Course Details */}

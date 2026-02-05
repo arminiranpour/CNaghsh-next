@@ -209,7 +209,6 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
 
         <ProfilesGrid
           profiles={data.items}
-          cityMap={cityMap}
           normalized={normalizedForLinks}
           currentPage={currentPage}
           hasNextPage={hasNextPage}

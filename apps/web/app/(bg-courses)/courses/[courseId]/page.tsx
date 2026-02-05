@@ -160,7 +160,10 @@ export default async function CourseDetailPage({
       return 0;
     });
 
-    paymentReportRows = combined.map(({ sortDate, ...row }) => row);
+    paymentReportRows = combined.map(({ sortDate, ...row }) => {
+      void sortDate;
+      return row;
+    });
   }
 
   return (

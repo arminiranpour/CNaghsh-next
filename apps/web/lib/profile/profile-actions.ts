@@ -355,7 +355,7 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       : undefined;
 
     const updateData: Prisma.ProfileUpdateInput = {};
-    const createData: Prisma.ProfileCreateInput = { userId };
+    const createData: Prisma.ProfileCreateInput = { user: { connect: { id: userId } } };
 
     if (provided.firstName && typeof data.firstName === "string") {
       updateData.firstName = data.firstName;
@@ -402,8 +402,12 @@ export async function upsertPersonalInfo(formData: FormData): Promise<PersonalIn
       createData.bio = bio;
     }
     if (provided.introVideoMediaId) {
-      updateData.introVideoMediaId = introVideoMediaId ?? null;
-      createData.introVideoMediaId = introVideoMediaId ?? null;
+      if (introVideoMediaId) {
+        updateData.introVideoMedia = { connect: { id: introVideoMediaId } };
+        createData.introVideoMedia = { connect: { id: introVideoMediaId } };
+      } else {
+        updateData.introVideoMedia = { disconnect: true };
+      }
     }
 
     const result = await prisma.profile.upsert({

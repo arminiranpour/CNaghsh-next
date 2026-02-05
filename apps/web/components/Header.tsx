@@ -116,6 +116,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
           pointerEvents: isHidden ? "none" : "auto",
           transition: "transform 0.2s ease, opacity 0.2s ease",
         }}
+        data-variant={variant}
       >
         <div
           style={{

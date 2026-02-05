@@ -166,11 +166,13 @@ export function MovieForm({
 
       const result = (await response.json().catch(() => null)) as CreateMovieResponse | null;
 
-      if (!response.ok || !result?.ok) {
-        setErrors(result?.fieldErrors ?? {});
+      const errorPayload = result && !result.ok ? result : null;
+
+      if (!response.ok || !result || !result.ok) {
+        setErrors(errorPayload?.fieldErrors ?? {});
         toast({
           variant: "destructive",
-          description: result?.error ?? "ذخیره فیلم ناموفق بود.",
+          description: errorPayload?.error ?? "ذخیره فیلم ناموفق بود.",
         });
         return;
       }

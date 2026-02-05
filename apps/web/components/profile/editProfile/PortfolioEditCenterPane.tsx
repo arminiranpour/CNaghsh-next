@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Image from "next/image";
@@ -300,7 +301,7 @@ const d2j = (jdn: number) => {
   const { gy } = d2g(jdn);
   let jy = gy - 621;
   const { march } = jalCal(jy);
-  let jdn1f = g2d(gy, 3, march);
+  const jdn1f = g2d(gy, 3, march);
   let k = jdn - jdn1f;
   let jm;
   let jd;
@@ -1770,7 +1771,7 @@ export function PortfolioEditCenterPane({
         setUploadingCount((prev) => Math.max(0, prev - 1));
       }
     },
-    [clearGallerySlot, deleteImage, isBusy, setGalleryError, setUploadingCount],
+    [clearGallerySlot, isBusy, setGalleryError, setUploadingCount],
   );
 
   const handleDeleteVoice = (voiceId: string) => {
@@ -1859,7 +1860,6 @@ export function PortfolioEditCenterPane({
       setProfileSide,
       setProfileThreeQuarter,
       setUploadingCount,
-      uploadImage,
     ],
   );
 
@@ -1964,7 +1964,7 @@ export function PortfolioEditCenterPane({
     const galleryFormData = new FormData();
     galleryFormData.set("gallery", JSON.stringify(buildGalleryPayload()));
     return updateGallery(galleryFormData);
-  }, [buildGalleryPayload, updateGallery]);
+  }, [buildGalleryPayload]);
 
   const handleGallerySave = () => {
     setGalleryError(null);

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
@@ -68,10 +69,12 @@ export function MoviePosterUploader({
       });
       const payload = (await response.json().catch(() => null)) as UploadResponse | null;
 
-      if (!response.ok || !payload?.ok) {
+      const errorPayload = payload && !payload.ok ? payload : null;
+
+      if (!response.ok || !payload || !payload.ok) {
         toast({
           variant: "destructive",
-          description: payload?.error ?? "بارگذاری تصویر ناموفق بود.",
+          description: errorPayload?.error ?? "بارگذاری تصویر ناموفق بود.",
         });
         return;
       }

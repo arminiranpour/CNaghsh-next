@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { MediaStatus, MediaType, MediaVisibility } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import type { SessionUser } from "next-auth";
 
 import { requireAdminSession } from "@/lib/auth/admin";
 import { NO_STORE_HEADERS } from "@/lib/http";
@@ -39,10 +40,15 @@ const success = (payload: IntroVideoResponse) =>
 const failure = (status: number, error: string) =>
   NextResponse.json({ ok: false, error }, { status, headers: NO_STORE_HEADERS });
 
-const ensureAdmin = async () => {
+type AdminSessionUser = SessionUser & { id: string };
+
+const ensureAdmin = async (): Promise<AdminSessionUser | null> => {
   try {
     const { user } = await requireAdminSession();
-    return user;
+    if (typeof user.id !== "string" || user.id.length === 0) {
+      return null;
+    }
+    return { ...user, id: user.id };
   } catch (error) {
     return null;
   }

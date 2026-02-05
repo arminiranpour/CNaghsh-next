@@ -104,8 +104,7 @@ export default async function DashboardEnrollmentDetailPage({
     notFound();
   }
 
-  const { enrollment, pricing, installments, installmentProgress, nextInstallment, allInstallmentsPaid, lumpSumPayment } =
-    detail;
+  const { enrollment, pricing, installments, installmentProgress, nextInstallment, lumpSumPayment } = detail;
   const lumpSumPayable = getLumpSumPayableAmount(pricing);
   const lumpSumDiscount = Math.max(0, pricing.lumpSum.base - lumpSumPayable);
 

@@ -9,34 +9,29 @@ type Props = {
 
 export default function FeaturedHeader({
   buttonImageSrc = "/cineflash/home/Bazigaran/AdvancedSearchButton.png",
-    arrowImageSrc = "/cineflash/home/Bazigaran/ArrowRight.png",
-   titleColor = "#F58A1F",
+  arrowImageSrc = "/cineflash/home/Bazigaran/ArrowRight.png",
+  titleColor = "#F58A1F",
   title = "بازیگران برتر سی‌نقش",
 }: Props) {
-   
-  const containerW   = 1526;
-  const headerH      = 50;  
-  const arrowW       = 29;
-  const arrowH       = 23;
-  const titleLeft    = 1080;
-  const buttonLeft   = 143;
-  const arrowLeft    = 143;
-  const arrowRight   = 1269;
-
+  const containerW = 1526;
+  const headerH = 50;
+  const arrowW = 29;
+  const arrowH = 23;
+  const titleLeft = 1080;
+  const buttonLeft = 143;
+  const arrowLeft = 143;
+  const arrowRight = 1269;
 
   const arrowsTop = 265;
 
   return (
-    <div
-      className="relative mx-auto"
-      style={{ width: 1526, height: 50 }}
-    >
+    <div className="relative mx-auto" style={{ width: containerW, height: headerH }}>
       <button
         type="button"
         aria-label="جستجو و جوی پیشرفته"
         className="absolute"
         style={{
-          left: 143,
+          left: buttonLeft,
           top: 0,
           width: 221,
           height: 40,
@@ -62,13 +57,13 @@ export default function FeaturedHeader({
       <div
         className="absolute  font-bold"
         style={{
-            fontFamily: "IRANSans",
-          left: 1080,
+          fontFamily: "IRANSans",
+          left: titleLeft,
           top: 0,
           lineHeight: "40px",
           height: 40,
-          fontSize: 25,            
-          color: "#F58A1F",       
+          fontSize: 25,
+          color: titleColor,
           letterSpacing: 0,
           whiteSpace: "nowrap",
         }}
@@ -77,7 +72,15 @@ export default function FeaturedHeader({
       </div>
 
       <div className="absolute" style={{ left: arrowLeft, top: arrowsTop, width: arrowW, height: arrowH }}>
-        <Image src={arrowImageSrc} alt="" fill unoptimized sizes="29px" style={{ objectFit: "contain", transform: "rotate(180deg)" }} priority />
+        <Image
+          src={arrowImageSrc}
+          alt=""
+          fill
+          unoptimized
+          sizes="29px"
+          style={{ objectFit: "contain", transform: "rotate(180deg)" }}
+          priority
+        />
       </div>
 
       <div className="absolute" style={{ left: arrowRight, top: arrowsTop, width: arrowW, height: arrowH }}>
@@ -86,4 +89,3 @@ export default function FeaturedHeader({
     </div>
   );
 }
-    

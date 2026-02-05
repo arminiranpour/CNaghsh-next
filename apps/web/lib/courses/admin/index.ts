@@ -172,10 +172,14 @@ export async function updateCourse(courseId: string, values: CourseInput) {
     status: values.status ?? "draft",
   };
   if (values.bannerMediaAssetId !== undefined) {
-    data.bannerMediaAssetId = values.bannerMediaAssetId ?? null;
+    data.bannerMediaAsset = values.bannerMediaAssetId
+      ? { connect: { id: values.bannerMediaAssetId } }
+      : { disconnect: true };
   }
   if (values.introVideoMediaAssetId !== undefined) {
-    data.introVideoMediaAssetId = values.introVideoMediaAssetId ?? null;
+    data.introVideoMediaAsset = values.introVideoMediaAssetId
+      ? { connect: { id: values.introVideoMediaAssetId } }
+      : { disconnect: true };
   }
   return prisma.course.update({
     where: { id: courseId },

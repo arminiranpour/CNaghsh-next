@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
@@ -178,25 +178,30 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
 
-  const clampAge = (value: number) =>
-    Math.min(Math.max(value, AGE_MIN_DEFAULT), AGE_MAX_DEFAULT);
+  const clampAge = useCallback(
+    (value: number) => Math.min(Math.max(value, AGE_MIN_DEFAULT), AGE_MAX_DEFAULT),
+    [],
+  );
 
-  const valueFromClientX = (clientX: number) => {
+  const valueFromClientX = useCallback((clientX: number) => {
     if (!trackRef.current) return 0;
     const rect = trackRef.current.getBoundingClientRect();
     const ratio = (clientX - rect.left) / rect.width;
     const clampedRatio = Math.min(Math.max(ratio, 0), 1);
     return Math.round(AGE_MIN_DEFAULT + clampedRatio * (AGE_MAX_DEFAULT - AGE_MIN_DEFAULT));
-  };
+  }, []);
 
-  const updateThumb = (target: "min" | "max", rawValue: number) => {
-    const nextValue = clampAge(rawValue);
-    if (target === "min") {
-      setAgeRange([Math.min(nextValue, sortedAgeRange[1]), sortedAgeRange[1]]);
-    } else {
-      setAgeRange([sortedAgeRange[0], Math.max(nextValue, sortedAgeRange[0])]);
-    }
-  };
+  const updateThumb = useCallback(
+    (target: "min" | "max", rawValue: number) => {
+      const nextValue = clampAge(rawValue);
+      if (target === "min") {
+        setAgeRange([Math.min(nextValue, sortedAgeRange[1]), sortedAgeRange[1]]);
+      } else {
+        setAgeRange([sortedAgeRange[0], Math.max(nextValue, sortedAgeRange[0])]);
+      }
+    },
+    [clampAge, sortedAgeRange],
+  );
 
   const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
@@ -231,7 +236,7 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [dragging, sortedAgeRange]);
+  }, [dragging, updateThumb, valueFromClientX]);
 
   return (
     <div

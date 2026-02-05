@@ -37,6 +37,7 @@ declare module "next-auth/adapters" {
 
 declare module "next-auth/react" {
   import type { Session } from "next-auth";
+  import type { ReactNode } from "react";
 
   export type SignInOptions = Record<string, unknown> & {
     callbackUrl?: string;
@@ -62,6 +63,15 @@ declare module "next-auth/react" {
     data: Session | null;
     status: "loading" | "authenticated" | "unauthenticated";
   };
+
+  export function SessionProvider(props: {
+    children?: ReactNode;
+    session?: Session | null;
+    refetchInterval?: number;
+    refetchOnWindowFocus?: boolean;
+    refetchWhenOffline?: boolean;
+    basePath?: string;
+  }): JSX.Element;
 }
 
 declare module "next-auth/providers/credentials" {

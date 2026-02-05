@@ -65,7 +65,6 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
                     key={course.id}
                     id={course.id}
                     title={course.title}
-                    ageRangeText={course.ageRangeText}
                     imageUrl={bannerUrl}
                   />
                 );

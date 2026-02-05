@@ -1,13 +1,13 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 
 type CourseCardProps = {
   id: string;
   title: string;
-  ageRangeText: string | null;
   imageUrl: string | null;
 };
 
-export default function CourseCard({ id, title, ageRangeText, imageUrl }: CourseCardProps) {
+export default function CourseCard({ id, title, imageUrl }: CourseCardProps) {
   return (
     <div
       className="overflow-hidden shadow-lg"

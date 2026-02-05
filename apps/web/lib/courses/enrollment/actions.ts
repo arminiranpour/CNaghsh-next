@@ -19,7 +19,7 @@ const appendSearchParams = (path: string, params: URLSearchParams) => {
   return `${path}${separator}${params.toString()}`;
 };
 
-const redirectWithError = (path: string, reason: string) => {
+const redirectWithError = (path: string, reason: string): never => {
   const params = new URLSearchParams({
     enrollment: "error",
     reason,
@@ -41,9 +41,11 @@ export async function startEnrollmentAction(
   }
 
   const parsed = paymentModeSchema.safeParse(formData.get("paymentMode"));
-  if (!parsed.success) {
+  const paymentMode = parsed.success ? parsed.data : null;
+  if (!paymentMode) {
     redirectWithError(semesterUrl, "INVALID_PAYMENT_MODE");
   }
+  const resolvedPaymentMode = paymentMode as z.infer<typeof paymentModeSchema>;
 
   const course = await prisma.course.findFirst({
     where: { id: courseId, status: "published" },
@@ -67,16 +69,18 @@ export async function startEnrollmentAction(
     redirectWithError(semesterUrl, "SEMESTER_NOT_FOUND");
   }
 
-  if (semester.status !== "open") {
-    const code = semester.status === "closed" ? "SEMESTER_CLOSED" : "SEMESTER_NOT_OPEN";
+  const resolvedSemester = semester as NonNullable<typeof semester>;
+
+  if (resolvedSemester.status !== "open") {
+    const code = resolvedSemester.status === "closed" ? "SEMESTER_CLOSED" : "SEMESTER_NOT_OPEN";
     redirectWithError(semesterUrl, code);
   }
 
   if (
-    parsed.data === "installments" &&
-    (!semester.installmentPlanEnabled ||
-      !semester.installmentCount ||
-      semester.installmentCount < 2)
+    resolvedPaymentMode === "installments" &&
+    (!resolvedSemester.installmentPlanEnabled ||
+      !resolvedSemester.installmentCount ||
+      resolvedSemester.installmentCount < 2)
   ) {
     redirectWithError(semesterUrl, "INSTALLMENTS_DISABLED");
   }
@@ -100,7 +104,7 @@ export async function startEnrollmentAction(
         where: { id: existingEnrollment.id },
         data: {
           status: "pending_payment",
-          chosenPaymentMode: parsed.data,
+          chosenPaymentMode: resolvedPaymentMode,
         },
         select: { id: true },
       })
@@ -109,7 +113,7 @@ export async function startEnrollmentAction(
           semesterId,
           userId,
           status: "pending_payment",
-          chosenPaymentMode: parsed.data,
+          chosenPaymentMode: resolvedPaymentMode,
         },
         select: { id: true },
       });
@@ -120,7 +124,7 @@ export async function startEnrollmentAction(
     const checkout = await createCourseCheckoutSession({
       enrollmentId: enrollment.id,
       userId,
-      paymentMode: parsed.data,
+      paymentMode: resolvedPaymentMode,
     });
     redirect(`/checkout/${checkout.sessionId}`);
   } catch (error) {

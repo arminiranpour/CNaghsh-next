@@ -12,7 +12,7 @@ export async function GET() {
       orderBy: { nameFa: "asc" },
     }),
     prisma.movie.findMany({
-      where: { country: { notIn: ["", null] } },
+      where: { country: { notIn: [""], not: null } },
       select: { country: true },
       distinct: ["country"],
     }),

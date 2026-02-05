@@ -12,8 +12,8 @@ type MovieMutationPayload = {
   director: string;
   yearReleased: number;
   durationMinutes: number;
-  stars?: string;
-  awards?: string;
+  stars?: string | null;
+  awards?: string | null;
   mediaType: MovieMediaType;
   ageRange: string;
   country?: string | null;

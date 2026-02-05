@@ -14,6 +14,7 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import type { SessionUser } from "next-auth";
 
 import { getServerAuthSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -158,13 +159,19 @@ const trimToUndefined = (value?: string | null): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-async function ensureAdmin() {
+type AdminSessionUser = SessionUser & { id: string; role: "ADMIN" };
+
+async function ensureAdmin(): Promise<AdminSessionUser> {
   const session = await getServerAuthSession();
   const user = session?.user;
   if (!user || user.role !== "ADMIN" || typeof user.id !== "string" || user.id.length === 0) {
     notFound();
   }
-  return user;
+  return {
+    ...user,
+    id: user.id,
+    role: "ADMIN",
+  };
 }
 
 function mapZodError<TFields extends string>(

@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
 import { iransans } from "@/app/fonts";
 
 

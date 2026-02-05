@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 
 type FeaturedCardProps = {
@@ -19,9 +21,6 @@ export default function Card({
   frameSrc = "/cineflash/home/Bazigaran/CardFrame.png",
   starSrc = "/cineflash/home/Bazigaran/Star.png",
 }: FeaturedCardProps) {
-  const STAR_W = 12;
-  const STAR_H = 11;
-
   const avatarSrc = avatarUrl && avatarUrl.trim()
     ? avatarUrl
     : "/cineflash/home/Header/user.png"; // fallback image

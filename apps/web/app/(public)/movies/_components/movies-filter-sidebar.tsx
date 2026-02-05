@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
@@ -93,24 +93,33 @@ export function MoviesFilterSidebar({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState<"min" | "max" | null>(null);
 
-  const clampYear = (value: number) => Math.min(Math.max(value, yearMin), yearMax);
+  const clampYear = useCallback(
+    (value: number) => Math.min(Math.max(value, yearMin), yearMax),
+    [yearMin, yearMax],
+  );
 
-  const valueFromClientX = (clientX: number) => {
-    if (!trackRef.current) return yearMin;
-    const rect = trackRef.current.getBoundingClientRect();
-    const ratio = (clientX - rect.left) / rect.width;
-    const clampedRatio = Math.min(Math.max(ratio, 0), 1);
-    return Math.round(yearMin + clampedRatio * (yearMax - yearMin));
-  };
+  const valueFromClientX = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current) return yearMin;
+      const rect = trackRef.current.getBoundingClientRect();
+      const ratio = (clientX - rect.left) / rect.width;
+      const clampedRatio = Math.min(Math.max(ratio, 0), 1);
+      return Math.round(yearMin + clampedRatio * (yearMax - yearMin));
+    },
+    [yearMin, yearMax],
+  );
 
-  const updateThumb = (target: "min" | "max", rawValue: number) => {
-    const nextValue = clampYear(rawValue);
-    if (target === "min") {
-      setYearRange([Math.min(nextValue, sortedYearRange[1]), sortedYearRange[1]]);
-    } else {
-      setYearRange([sortedYearRange[0], Math.max(nextValue, sortedYearRange[0])]);
-    }
-  };
+  const updateThumb = useCallback(
+    (target: "min" | "max", rawValue: number) => {
+      const nextValue = clampYear(rawValue);
+      if (target === "min") {
+        setYearRange([Math.min(nextValue, sortedYearRange[1]), sortedYearRange[1]]);
+      } else {
+        setYearRange([sortedYearRange[0], Math.max(nextValue, sortedYearRange[0])]);
+      }
+    },
+    [clampYear, sortedYearRange],
+  );
 
   const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!trackRef.current) return;
@@ -145,7 +154,7 @@ export function MoviesFilterSidebar({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [dragging, sortedYearRange]);
+  }, [dragging, updateThumb, valueFromClientX]);
 
   const handleApply = () => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");

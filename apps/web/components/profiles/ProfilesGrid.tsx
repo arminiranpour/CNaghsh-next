@@ -13,7 +13,6 @@ type ProfileListItem = Awaited<ReturnType<typeof fetchProfilesOrchestrated>>["it
 
 type ProfilesGridProps = {
   profiles: ProfileListItem[];
-  cityMap: Map<string, string>; // kept for compatibility
   normalized: NormalizedSearchParams;
   currentPage: number;
   lastPage?: number;
@@ -25,7 +24,6 @@ type ProfilesGridProps = {
 
 export function ProfilesGrid({
   profiles,
-  cityMap, // currently unused inside; safe to keep for future
   normalized,
   currentPage,
   lastPage,
