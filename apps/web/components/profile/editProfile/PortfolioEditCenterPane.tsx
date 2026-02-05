@@ -2702,7 +2702,7 @@ export function PortfolioEditCenterPane({
 
                       {/* Level */}
                       <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-[#7A7A7A]">میزان تسلط</span>
+                        <span className="text-[11px] w-[60px] text-[#7A7A7A]">میزان تسلط</span>
                         <LevelDots
                           value={entry.level}
                           onChange={(level) => updateLanguageEntry(entry.id, { level })}
