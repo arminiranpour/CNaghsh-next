@@ -215,7 +215,7 @@ export function CourseSemestersPanel({
                       <div className={cn(spacing.semesterItemPadding, "text-black")}>
                         <div
                           className={cn(
-                            "flex items-start justify-between",
+                            "flex items-stretch justify-between",
                             density === "compact" ? "gap-4" : "gap-6"
                           )}
                         >
@@ -230,33 +230,24 @@ export function CourseSemestersPanel({
                             </h3>
 
                             {isOpen ? (
-                              <p className={cn(typography.semesterDate, "text-[#808080]")}>
+                              <p className={cn(typography.semesterDate, "text-[10px] text-white")}>
                                 از {formatJalaliDate(semester.startsAt)} تا{" "}
                                 {formatJalaliDate(semester.endsAt)}
                               </p>
                             ) : (
-                              <div
-                                className={cn(
-                                  "flex items-center justify-end bg-[#D9D9D9]",
-                                  density === "compact" ? "gap-1.5" : "gap-2"
-                                )}
-                              >
-                                <span
-                                  className={cn(
-                                    "text-muted-foreground",
-                                    density === "compact" ? "text-xl" : "text-2xl"
-                                  )}
-                                >
-                                  ؟
-                                </span>
-                                <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
-                                  به زودی اعلام خواهد شد.
-                                </p>
-                              </div>
+                              <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
+                                به زودی اعلام خواهد شد.
+                              </p>
                             )}
                           </div>
 
-                          <div className="shrink-0 text-left">
+                          <div
+                            className={cn(
+                              "shrink-0 flex flex-col items-center justify-center self-stretch",
+                              density === "compact" ? "min-w-[72px]" : "min-w-[96px]",
+                              density === "compact" ? "gap-1" : "gap-2"
+                            )}
+                          >
                             {isOpen ? (
                               <p
                                 className={cn(
@@ -266,7 +257,16 @@ export function CourseSemestersPanel({
                               >
                                 {formatIrr(pricing.lumpSum.base).replace(" ریال", "")}
                               </p>
-                            ) : null}
+                            ) : (
+                              <span
+                                className={cn(
+                                  "text-muted-foreground",
+                                  density === "compact" ? "text-xl" : "text-2xl"
+                                )}
+                              >
+                                ؟
+                              </span>
+                            )}
 
                             {isClosed && (
                               <div className={density === "compact" ? "mt-1" : "mt-2"}>
@@ -293,7 +293,7 @@ export function CourseSemestersPanel({
                         style={{ borderRadius: "0.75rem", backgroundColor: "#D9D9D9" }}
                       >
                         <div className={cn(spacing.semesterItemPadding, "text-black")}>
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-stretch justify-between">
                             <div
                               className={cn(
                                 "flex-1 text-right",
@@ -303,21 +303,18 @@ export function CourseSemestersPanel({
                               <h3 className={cn(typography.semesterTitle, "text-black")}>
                                 ثبت نام ترم {getTermName(placeholderTermNumber)}
                               </h3>
-                              <div className="flex items-center justify-between">
-                                <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
-                                  به زودی اعلام خواهد شد.
-                                </p>
-                                <span
-                                  className={cn(
-                                    "shrink-0 text-left text-muted-foreground",
-                                    density === "compact" ? "text-xl" : "text-2xl"
-                                  )}
-                                >
-                                  ؟
-                                </span>
-                              </div>
+                              <p className={cn(typography.semesterPlaceholder, "text-muted-foreground")}>
+                                به زودی اعلام خواهد شد.
+                              </p>
                             </div>
-                            <div className="shrink-0 text-left" />
+                            <div
+                              className={cn(
+                                "shrink-0 flex items-center justify-center self-stretch text-muted-foreground",
+                                density === "compact" ? "min-w-[72px] text-xl" : "min-w-[96px] text-2xl"
+                              )}
+                            >
+                              ؟
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -55,7 +55,7 @@ export function SemesterPaymentPanel({
       {/* Total Amount */}
       <div className="mb-[7px]">
         <p className="text-left text-[22px] font-bold leading-[34px] text-[#FF7F19]">
-          {formatIrr(lumpSumPayable).replace(" ریال", "")}
+          {formatIrr(pricing.lumpSum.base).replace(" ریال", "")}
         </p>
       </div>
 
