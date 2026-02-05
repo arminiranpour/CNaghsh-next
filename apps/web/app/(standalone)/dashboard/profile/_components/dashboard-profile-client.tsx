@@ -7,6 +7,7 @@ import { CenterPane } from "@/components/profile/CenterPane/CenterPane";
 import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
 import { RightPane } from "@/components/profile/RightPane/RightPane";
 import { SubscriptionPane } from "@/components/profile/editProfile/CenterPane/SubscriptionPane";
+import { EditProfileCoursesPane } from "@/components/profile/editProfile/CenterPane/EditProfileCoursesPane";
 import {
   EditProfileLeftRail,
   type EditProfileTabId,
@@ -30,6 +31,11 @@ type DashboardProfileClientProps = {
   cities: City[];
   provinces: ProvinceOption[];
   billingData: BillingDashboardData;
+  enrolledCourses: Array<{
+    id: string;
+    title: string;
+    imageUrl: string | null;
+  }>;
 };
 
 const paymentStatusLabels: Record<string, string> = {
@@ -47,6 +53,7 @@ export function DashboardProfileClient({
   cities,
   provinces,
   billingData,
+  enrolledCourses,
 }: DashboardProfileClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
   const [isEditingPortfolio, setIsEditingPortfolio] = useState(false);
@@ -90,6 +97,8 @@ export function DashboardProfileClient({
             daysLeft={subscriptionSummary.daysLeft}
             payments={subscriptionSummary.payments}
           />
+        ) : activeEditTab === "courses" ? (
+          <EditProfileCoursesPane courses={enrolledCourses} />
         ) : (
           <PortfolioEditCenterPane
             initialValues={initialValues}

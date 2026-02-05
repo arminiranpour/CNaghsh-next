@@ -5,7 +5,9 @@ import { ProfilePageLayout } from "@/components/profile/ProfilePageLayout";
 import { iransans } from "@/app/fonts";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { getBillingDashboardData } from "@/lib/billing/dashboard";
+import { listUserEnrollments } from "@/lib/courses/enrollments/queries";
 import { getCities, getProvinces } from "@/lib/location/cities";
+import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { canPublishProfile } from "@/lib/profile/entitlement";
 import { enforceUserProfileVisibility } from "@/lib/profile/enforcement";
@@ -33,7 +35,7 @@ export default async function DashboardProfilePage() {
 
   const userId = session.user.id;
 
-  const [initialProfile, cities, entitlementActive, billingData] = await Promise.all([
+  const [initialProfile, cities, entitlementActive, billingData, enrollments] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
       include: {
@@ -48,6 +50,7 @@ export default async function DashboardProfilePage() {
     getCities(),
     canPublishProfile(userId),
     getBillingDashboardData(userId),
+    listUserEnrollments(userId),
   ]);
 
   const provinces = getProvinces().map((province) => ({
@@ -135,6 +138,29 @@ export default async function DashboardProfilePage() {
   };
 
   const isOwner = session.user.id === profileData.userId;
+  const enrolledCourses = [];
+  const seenCourses = new Set<string>();
+
+  for (const enrollment of enrollments) {
+    const courseId = enrollment.semester.course.id;
+    if (seenCourses.has(courseId)) {
+      continue;
+    }
+
+    seenCourses.add(courseId);
+
+    const banner = enrollment.semester.course.bannerMediaAsset;
+    const imageUrl =
+      banner?.outputKey && banner.visibility === "public"
+        ? getPublicMediaUrlFromKey(banner.outputKey)
+        : null;
+
+    enrolledCourses.push({
+      id: courseId,
+      title: enrollment.semester.course.title,
+      imageUrl,
+    });
+  }
 
   return (
     <div className={iransans.className}>
@@ -146,6 +172,7 @@ export default async function DashboardProfilePage() {
           cities={cities}
           provinces={provinces}
           billingData={billingData}
+          enrolledCourses={enrolledCourses}
         />
       </ProfilePageLayout>
     </div>

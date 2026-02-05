@@ -56,6 +56,7 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
         border: "1px solid rgba(0,0,0,0.05)",
         boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
         paddingTop: 18,
+        paddingBottom: 18,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

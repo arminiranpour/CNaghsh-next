@@ -3,6 +3,8 @@ import "server-only";
 import type {
   CourseInstallmentStatus,
   EnrollmentStatus,
+  MediaStatus,
+  MediaVisibility,
   PaymentMode,
   PaymentStatus,
 } from "@prisma/client";
@@ -145,6 +147,13 @@ export type UserEnrollmentListItem = {
     course: {
       id: string;
       title: string;
+      bannerMediaAsset: {
+        id: string;
+        outputKey: string | null;
+        posterKey: string | null;
+        visibility: MediaVisibility;
+        status: MediaStatus;
+      } | null;
     };
     installmentPlanEnabled: boolean;
     installmentCount: number | null;
@@ -181,6 +190,15 @@ export async function listUserEnrollments(userId: string): Promise<UserEnrollmen
             select: {
               id: true,
               title: true,
+              bannerMediaAsset: {
+                select: {
+                  id: true,
+                  outputKey: true,
+                  posterKey: true,
+                  visibility: true,
+                  status: true,
+                },
+              },
             },
           },
         },

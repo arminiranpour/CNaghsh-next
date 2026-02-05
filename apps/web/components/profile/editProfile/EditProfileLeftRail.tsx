@@ -3,6 +3,7 @@
 import Image from "next/image";
 
 import challengesIcon from "./challenges-gray.png";
+import coursesIcon from "./courses-white.png";
 import messageIcon from "./message-gray.png";
 import portfolioIcon from "./portfolio-white.png";
 import savedIcon from "./saved-gray.png";
@@ -13,6 +14,7 @@ export type EditProfileTabId =
   | "messages"
   | "saved"
   | "challenges"
+  | "courses"
   | "subscription";
 
 const NAV_ITEMS: {
@@ -46,6 +48,12 @@ const NAV_ITEMS: {
     isEnabled: false,
   },
   {
+    id: "courses",
+    label: "کلاس و آموزش",
+    iconSrc: coursesIcon,
+    isEnabled: true,
+  },
+  {
     id: "subscription",
     label: "اشتراک",
     iconSrc: subscriptionIcon,
@@ -73,10 +81,11 @@ export function EditProfileLeftRail({ activeTab, onTabChange }: EditProfileLeftR
         border: "1px solid rgba(0,0,0,0.05)",
         boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
         paddingTop: 18,
+        paddingBottom: 18,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 30,
+        gap: 20,
       }}
     >
       {NAV_ITEMS.map((item) => {
