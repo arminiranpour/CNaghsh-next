@@ -19,6 +19,14 @@ export type SemesterPricing = {
   } | null;
 };
 
+export function getLumpSumPayableAmount(pricing: SemesterPricing): number {
+  const discount = Math.trunc(pricing.lumpSum.discount);
+  if (Number.isFinite(discount) && discount > 0) {
+    return discount;
+  }
+  return pricing.lumpSum.total;
+}
+
 export function computeSemesterPricing(semester: SemesterPricingInput): SemesterPricing {
   const base = Math.max(0, Math.trunc(semester.tuitionAmountIrr));
   const discount = Math.min(

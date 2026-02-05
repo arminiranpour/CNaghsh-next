@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { CourseIntroVideoPreview } from "@/components/courses/CourseIntroVideoPreview";
 import { formatIrr } from "@/lib/courses/format";
-import type { SemesterPricing } from "@/lib/courses/pricing";
+import { getLumpSumPayableAmount, type SemesterPricing } from "@/lib/courses/pricing";
 import { cn } from "@/lib/utils";
 import { iransansMedium, iransansBold } from "@/app/fonts";
 
@@ -34,6 +34,8 @@ export function SemesterPaymentPanel({
   const introVideoPosterUrl = introVideo?.posterUrl ?? null;
 
   const hasIntroVideo = Boolean(introVideoUrl || introVideoPosterUrl);
+  const lumpSumPayable = getLumpSumPayableAmount(pricing);
+  const hasLumpSumDiscount = lumpSumPayable < pricing.lumpSum.base;
 
   return (
     <form action={enrollAction}>
@@ -53,7 +55,7 @@ export function SemesterPaymentPanel({
       {/* Total Amount */}
       <div className="mb-[7px]">
         <p className="text-left text-[22px] font-bold leading-[34px] text-[#FF7F19]">
-          {formatIrr(pricing.lumpSum.base).replace(" ریال", "")}
+          {formatIrr(lumpSumPayable).replace(" ریال", "")}
         </p>
       </div>
 
@@ -91,7 +93,7 @@ export function SemesterPaymentPanel({
 
               {/* Left side - Prices */}
               <div className="flex flex-col items-start">
-                {pricing.lumpSum.discount > 0 ? (
+                {hasLumpSumDiscount ? (
                   <div className="space-y-1">
                     <p className={`${iransansBold.className} text-left text-[19px] font-normal leading-[30px] text-[#7A7A7A] line-through`}>
                       {formatIrr(pricing.lumpSum.base).replace(" ریال", "")}
@@ -102,7 +104,7 @@ export function SemesterPaymentPanel({
                         selectedPaymentMode === "lumpsum" ? "text-[#FF7F19]" : "text-black"
                       )}
                     >
-                      {formatIrr(pricing.lumpSum.total).replace(" ریال", "")}
+                      {formatIrr(lumpSumPayable).replace(" ریال", "")}
                     </p>
                   </div>
                 ) : (
@@ -112,7 +114,7 @@ export function SemesterPaymentPanel({
                       selectedPaymentMode === "lumpsum" ? "text-[#FF7F19]" : "text-black"
                     )}
                   >
-                    {formatIrr(pricing.lumpSum.total).replace(" ریال", "")}
+                    {formatIrr(lumpSumPayable).replace(" ریال", "")}
                   </p>
                 )}
               </div>

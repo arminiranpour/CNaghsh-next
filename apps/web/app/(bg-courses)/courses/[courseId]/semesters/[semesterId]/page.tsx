@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 
 import { SemesterPaymentPanel } from "@/components/courses/SemesterPaymentPanel";
 import { SemesterSchedulePanel } from "@/components/courses/SemesterSchedulePanel";
@@ -9,6 +10,9 @@ import { computeSemesterPricing } from "@/lib/courses/pricing";
 import { fetchPublicSemesterById } from "@/lib/courses/public/queries";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function SemesterDetailPage({
   params,
   searchParams,
@@ -16,6 +20,7 @@ export default async function SemesterDetailPage({
   params: { courseId: string; semesterId: string };
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
+  noStore();
   const semester = await fetchPublicSemesterById(params.courseId, params.semesterId);
 
   if (!semester) {

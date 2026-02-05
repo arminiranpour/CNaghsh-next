@@ -7,7 +7,7 @@ import type {
   PaymentStatus,
 } from "@prisma/client";
 
-import { computeSemesterPricing } from "@/lib/courses/pricing";
+import { computeSemesterPricing, getLumpSumPayableAmount } from "@/lib/courses/pricing";
 import { prisma } from "@/lib/db";
 
 type InstallmentSnapshot = {
@@ -209,6 +209,7 @@ export async function listUserEnrollments(userId: string): Promise<UserEnrollmen
     });
 
     if (enrollment.chosenPaymentMode === "lumpsum") {
+      const lumpSumPayable = getLumpSumPayableAmount(pricing);
       return {
         id: enrollment.id,
         status: enrollment.status,
@@ -218,7 +219,7 @@ export async function listUserEnrollments(userId: string): Promise<UserEnrollmen
         payment: {
           mode: "lumpsum",
           paid: enrollment.status === "active" || enrollment.status === "refunded",
-          totalIrr: pricing.lumpSum.total,
+          totalIrr: lumpSumPayable,
         },
       };
     }

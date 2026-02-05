@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import type { ProviderName } from "@/lib/billing/provider.types";
 import { providers } from "@/lib/billing/providerAdapters";
-import { computeSemesterPricing } from "@/lib/courses/pricing";
+import { computeSemesterPricing, getLumpSumPayableAmount } from "@/lib/courses/pricing";
 import { prisma } from "@/lib/db";
 import { CheckoutStatus, Provider, PaymentStatus } from "@/lib/prismaEnums";
 import { sanitizeReturnUrl } from "@/lib/url";
@@ -180,7 +180,7 @@ export async function createCourseCheckoutSession({
 
   if (paymentMode === "lumpsum") {
     const pricing = computeSemesterPricing(enrollment.semester);
-    amountIrr = pricing.lumpSum.total;
+    amountIrr = getLumpSumPayableAmount(pricing);
   } else {
     if (
       !enrollment.semester.installmentPlanEnabled ||

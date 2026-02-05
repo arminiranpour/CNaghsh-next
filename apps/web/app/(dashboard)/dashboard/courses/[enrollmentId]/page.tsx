@@ -9,6 +9,7 @@ import { getServerAuthSession } from "@/lib/auth/session";
 import { startEnrollmentCheckoutAction } from "@/lib/courses/enrollments/actions";
 import { getUserEnrollmentDetail } from "@/lib/courses/enrollments/queries";
 import { formatDayOfWeek, formatIrr, formatMinutesToTime } from "@/lib/courses/format";
+import { getLumpSumPayableAmount } from "@/lib/courses/pricing";
 import { formatJalaliDate, formatJalaliDateTime } from "@/lib/datetime/jalali";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +106,8 @@ export default async function DashboardEnrollmentDetailPage({
 
   const { enrollment, pricing, installments, installmentProgress, nextInstallment, allInstallmentsPaid, lumpSumPayment } =
     detail;
+  const lumpSumPayable = getLumpSumPayableAmount(pricing);
+  const lumpSumDiscount = Math.max(0, pricing.lumpSum.base - lumpSumPayable);
 
   const scheduleDays = [...enrollment.semester.scheduleDays]
     .map((day) => ({
@@ -189,8 +192,8 @@ export default async function DashboardEnrollmentDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>شهریه پایه: {formatIrr(pricing.lumpSum.base)}</p>
-            <p>تخفیف پرداخت یکجا: {formatIrr(pricing.lumpSum.discount)}</p>
-            <p>مبلغ نهایی: {formatIrr(pricing.lumpSum.total)}</p>
+            <p>تخفیف پرداخت یکجا: {formatIrr(lumpSumDiscount)}</p>
+            <p>مبلغ نهایی: {formatIrr(lumpSumPayable)}</p>
           </CardContent>
         </Card>
       </section>
@@ -240,7 +243,7 @@ export default async function DashboardEnrollmentDetailPage({
               <CardTitle>پرداخت یکجا</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <p>مبلغ کل: {formatIrr(pricing.lumpSum.total)}</p>
+              <p>مبلغ کل: {formatIrr(lumpSumPayable)}</p>
               <p>
                 وضعیت پرداخت:{" "}
                 {enrollment.status === "active" || enrollment.status === "refunded"
@@ -325,7 +328,7 @@ export default async function DashboardEnrollmentDetailPage({
             {enrollment.status === "pending_payment" ? (
               enrollment.chosenPaymentMode === "lumpsum" ? (
                 <form action={checkoutAction} className="space-y-2">
-                  <p>مبلغ: {formatIrr(pricing.lumpSum.total)}</p>
+                  <p>مبلغ: {formatIrr(lumpSumPayable)}</p>
                   <input type="hidden" name="paymentMode" value="lumpsum" />
                   <Button type="submit">پرداخت</Button>
                 </form>
