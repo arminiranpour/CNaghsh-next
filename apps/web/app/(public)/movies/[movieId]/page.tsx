@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { iransansBold } from "@/app/fonts";
+import { iransans, iransansBold } from "@/app/fonts";
 import { MovieHeroSaveButton } from "@/components/movies/MovieHeroSaveButton";
 import Header from "@/components/Header";
 import { getServerAuthSession } from "@/lib/auth/session";
@@ -47,6 +47,24 @@ const formatStars = (value?: string | null) => {
     return null;
   }
   return items.join(" , ");
+};
+
+const getTitleFontSize = (titleLength: number, maxWidth: number) => {
+  const baseSize = 40;
+  const minSize = 12;
+  const shrinkStart = 34;
+  const shrinkRate = 0.35;
+
+  const reduced = titleLength <= shrinkStart
+    ? baseSize
+    : Math.round(baseSize - (titleLength - shrinkStart) * shrinkRate);
+
+  const approximateWidth = (size: number) => titleLength * size * 0.58;
+  let size = Math.max(minSize, reduced);
+  while (size > minSize && approximateWidth(size) > maxWidth) {
+    size -= 1;
+  }
+  return size;
 };
 
 export default async function MovieDetailsPage({
@@ -103,11 +121,14 @@ export default async function MovieDetailsPage({
     .join(" | ");
 
   const durationText = formatDuration(movie.durationMinutes);
-  const detailLine = durationText
-    ? `${toFaNumber(movie.yearReleased)} | کارگردان: ${movie.director} | مدت زمان: ${durationText}`
-    : `${toFaNumber(movie.yearReleased)} | کارگردان: ${movie.director}`;
+  const yearText = toFaNumber(movie.yearReleased);
   const stars = formatStars(movie.stars);
   const awards = movie.awards?.trim();
+  const titleText = `${movie.titleEn} / ${movie.titleFa}`;
+  const titleLength = titleText.replace(/\s+/g, "").length;
+  const titleMaxWidth = 564 - 190;
+  const titleFontSize = getTitleFontSize(titleLength, titleMaxWidth);
+  const titleLineHeight = Math.round(titleFontSize * 1.73);
 
   return (
     <div className="w-full bg-black" dir="rtl">
@@ -141,34 +162,67 @@ export default async function MovieDetailsPage({
               <div className="text-[20px] font-bold leading-[32px]">{genreText}</div>
             ) : null}
 
-            <div className="flex w-full items-center justify-between gap-[180px]" dir="rtl">
-              <div className="flex items-baseline gap-[10px] text-white">
+            <div className="flex w-full items-center justify-between gap-[12px]" dir="rtl">
+              <div
+                className="flex min-w-0 flex-1 items-baseline gap-[5px] whitespace-nowrap text-white"
+                style={{ maxWidth: `${titleMaxWidth}px`, overflow: "hidden" }}
+              >
                 <span
-                  className="text-[40px] font-bold leading-[52px]"
-                  style={{ fontFamily: "Palanquin Dark, IRANSans, sans-serif" }}
+                  className="font-bold"
+                  style={{
+                    fontSize: `${titleFontSize}px`,
+                    lineHeight: `${titleLineHeight}px`,
+                    fontFamily: "Palanquin Dark, IRANSans, sans-serif",
+                  }}
                 >
                   {movie.titleEn}
                 </span>
-                <span className="text-[35px] font-bold leading-[52px]">/</span>
-                <span className="text-[35px] font-bold leading-[52px]">{movie.titleFa}</span>
+                <span
+                  className="font-bold"
+                  style={{ fontSize: `${Math.max(16, titleFontSize - 5)}px`, lineHeight: `${titleLineHeight}px` }}
+                >
+                  /
+                </span>
+                <span
+                  className="font-bold"
+                  style={{ fontSize: `${titleFontSize}px`, lineHeight: `${titleLineHeight}px` }}
+                >
+                  {movie.titleFa}
+                </span>
               </div>
-            <MovieHeroSaveButton
-              className="shrink-0"
-              movieId={movie.id}
-              initialSaved={Boolean(isSavedByMe)}
-            />
+              <MovieHeroSaveButton
+                className="shrink-0"
+                movieId={movie.id}
+                initialSaved={Boolean(isSavedByMe)}
+              />
 
             </div>
 
-            <div className="text-[20px] font-bold leading-[32px]">{detailLine}</div>
+            <div className="text-[20px] leading-[32px]">
+              <span className="font-bold">{yearText}</span>
+              <span className={`${iransans.className} font-normal`}> | </span>
+              <span className="font-bold">کارگردان: </span>
+              <span className={`${iransans.className} font-normal`}>{movie.director}</span>
+              {durationText ? (
+                <>
+                  <span className={`${iransans.className} font-normal`}> | </span>
+                  <span className="font-bold">مدت زمان: </span>
+                  <span className={`${iransans.className} font-normal`}>{durationText}</span>
+                </>
+              ) : null}
+            </div>
 
             {stars ? (
-              <div className="text-[20px] font-bold leading-[32px]">ستارگان: {stars}</div>
+              <div className="text-[20px] leading-[32px]">
+                <span className="font-bold">ستارگان: </span>
+                <span className={`${iransans.className} font-normal`}>{stars}</span>
+              </div>
             ) : null}
 
             {awards ? (
-              <div className="text-[20px] font-bold leading-[32px]">
-                افتخارات فیلم: {awards}
+              <div className="text-[20px] leading-[32px]">
+                <span className="font-bold">افتخارات فیلم: </span>
+                <span className={`${iransans.className} font-normal`}>{awards}</span>
               </div>
             ) : null}
           </div>
