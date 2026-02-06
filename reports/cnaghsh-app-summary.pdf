@@ -1,0 +1,245 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 3252 >>
+stream
+BT
+/F2 16 Tf
+54 738 Td
+(CNaghsh Web App Summary) Tj
+ET
+BT
+/F1 10 Tf
+54 724 Td
+() Tj
+ET
+BT
+/F2 12 Tf
+54 712 Td
+(What it is) Tj
+ET
+BT
+/F1 10 Tf
+54 698 Td
+(Next.js web application in the monorepo under apps/web that delivers public listings) Tj
+ET
+BT
+/F1 10 Tf
+54 686 Td
+(\(jobs, profiles, movies\) and internal admin tooling for billing and moderation. It uses) Tj
+ET
+BT
+/F1 10 Tf
+54 674 Td
+(Prisma with PostgreSQL and NextAuth-backed sessions for server-side access control.) Tj
+ET
+BT
+/F1 10 Tf
+54 662 Td
+() Tj
+ET
+BT
+/F2 12 Tf
+54 650 Td
+(Who it is for) Tj
+ET
+BT
+/F1 10 Tf
+54 636 Td
+(Primary persona: internal admin/operator who moderates jobs and manages billing in the web) Tj
+ET
+BT
+/F1 10 Tf
+54 624 Td
+(app.) Tj
+ET
+BT
+/F1 10 Tf
+54 612 Td
+() Tj
+ET
+BT
+/F2 12 Tf
+54 600 Td
+(What it does) Tj
+ET
+BT
+/F1 10 Tf
+54 586 Td
+(- Public jobs listing with filters plus SEO sitemaps and JSON-LD metadata.) Tj
+ET
+BT
+/F1 10 Tf
+54 574 Td
+(- Admin jobs moderation workflow \(approve, reject, suspend, feature, close\) with audit) Tj
+ET
+BT
+/F1 10 Tf
+54 562 Td
+(  events and rate limits.) Tj
+ET
+BT
+/F1 10 Tf
+54 550 Td
+(- Billing sandbox for products, plans, prices, checkout sessions, invoices, and) Tj
+ET
+BT
+/F1 10 Tf
+54 538 Td
+(  entitlements.) Tj
+ET
+BT
+/F1 10 Tf
+54 526 Td
+(- Payment webhooks with idempotent processing and provider normalization.) Tj
+ET
+BT
+/F1 10 Tf
+54 514 Td
+(- Notification fan-out with dedupe and optional email channel.) Tj
+ET
+BT
+/F1 10 Tf
+54 502 Td
+(- Movies catalog pages and admin management endpoints.) Tj
+ET
+BT
+/F1 10 Tf
+54 490 Td
+() Tj
+ET
+BT
+/F2 12 Tf
+54 478 Td
+(How it works) Tj
+ET
+BT
+/F1 10 Tf
+54 464 Td
+(- UI and routing: Next.js App Router in apps/web/app with server components for public and) Tj
+ET
+BT
+/F1 10 Tf
+54 452 Td
+(  admin pages; API route handlers live under app/api for billing, webhooks, auth, and data) Tj
+ET
+BT
+/F1 10 Tf
+54 440 Td
+(  endpoints.) Tj
+ET
+BT
+/F1 10 Tf
+54 428 Td
+(- Data layer: Prisma client \(apps/web/lib/prisma.ts, lib/db\) backed by PostgreSQL;) Tj
+ET
+BT
+/F1 10 Tf
+54 416 Td
+(  migrations and seed scripts in apps/web/prisma.) Tj
+ET
+BT
+/F1 10 Tf
+54 404 Td
+(- Auth and access: NextAuth configured in app/api/auth/[...nextauth]/route.ts with) Tj
+ET
+BT
+/F1 10 Tf
+54 392 Td
+(  getServerAuthSession guards on admin routes.) Tj
+ET
+BT
+/F1 10 Tf
+54 380 Td
+(- Domain services: lib modules for jobs, billing, entitlements, notifications, search;) Tj
+ET
+BT
+/F1 10 Tf
+54 368 Td
+(  critical transitions run in Prisma transactions.) Tj
+ET
+BT
+/F1 10 Tf
+54 356 Td
+(- Caching and revalidation: unstable_cache for public job queries and) Tj
+ET
+BT
+/F1 10 Tf
+54 344 Td
+(  revalidateTag/revalidatePath after moderation updates.) Tj
+ET
+BT
+/F1 10 Tf
+54 332 Td
+(- Background sync: subscription entitlement reconciliation via) Tj
+ET
+BT
+/F1 10 Tf
+54 320 Td
+(  /api/internal/cron/subscriptions and scripts/check-subscriptions.ts.) Tj
+ET
+BT
+/F1 10 Tf
+54 308 Td
+() Tj
+ET
+BT
+/F2 12 Tf
+54 296 Td
+(How to run) Tj
+ET
+BT
+/F1 10 Tf
+54 282 Td
+(- pnpm install) Tj
+ET
+BT
+/F1 10 Tf
+54 270 Td
+(- cp apps/web/.env.example apps/web/.env.local) Tj
+ET
+BT
+/F1 10 Tf
+54 258 Td
+(- pnpm --filter @app/web prisma migrate dev) Tj
+ET
+BT
+/F1 10 Tf
+54 246 Td
+(- pnpm --filter @app/web db:seed) Tj
+ET
+BT
+/F1 10 Tf
+54 234 Td
+(- pnpm --filter @app/web dev) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000003555 00000 n 
+0000003625 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3700
+%%EOF

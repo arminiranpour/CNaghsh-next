@@ -2,13 +2,6 @@
 
 import Image from "next/image";
 
-import challengesIcon from "./challenges-gray.png";
-import coursesIcon from "./courses-white.png";
-import messageIcon from "./message-gray.png";
-import portfolioIcon from "./portfolio-white.png";
-import savedIcon from "./saved-gray.png";
-import subscriptionIcon from "./subscription-gray.png";
-
 export type EditProfileTabId =
   | "portfolio"
   | "messages"
@@ -17,46 +10,55 @@ export type EditProfileTabId =
   | "courses"
   | "subscription";
 
+const LEFT_PANE_ICON_BASE = "/cineflash/profile/editProfile/leftPane";
+
 const NAV_ITEMS: {
   id: EditProfileTabId;
   label: string;
-  iconSrc: typeof portfolioIcon;
+  iconSrcActive: string;
+  iconSrcInactive: string;
   isEnabled: boolean;
 }[] = [
   {
     id: "portfolio",
     label: "پورتفولیو",
-    iconSrc: portfolioIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/portfolio-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/portfolio-gray.png`,
     isEnabled: true,
   },
   {
     id: "messages",
     label: "صندوق پیام",
-    iconSrc: messageIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/message-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/message-gray.png`,
     isEnabled: false,
   },
   {
     id: "saved",
     label: "آرشیو",
-    iconSrc: savedIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/saved-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/saved-gray.png`,
     isEnabled: true,
   },
   {
     id: "challenges",
     label: "چالش و رویداد",
-    iconSrc: challengesIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/challenges-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/challenges-gray.png`,
     isEnabled: false,
   },
   {
     id: "courses",
     label: "کلاس و آموزش",
-    iconSrc: coursesIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/courses-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/courses-gray.png`,
     isEnabled: true,
   },
   {
     id: "subscription",
     label: "اشتراک",
-    iconSrc: subscriptionIcon,
+    iconSrcActive: `${LEFT_PANE_ICON_BASE}/subscription-white.png`,
+    iconSrcInactive: `${LEFT_PANE_ICON_BASE}/subscription-gray.png`,
     isEnabled: true,
   },
 ];
@@ -91,6 +93,7 @@ export function EditProfileLeftRail({ activeTab, onTabChange }: EditProfileLeftR
       {NAV_ITEMS.map((item) => {
         const isActive = item.id === activeTab;
         const isEnabled = item.isEnabled;
+        const iconSrc = isActive ? item.iconSrcActive : item.iconSrcInactive;
 
         return (
           <button
@@ -121,7 +124,7 @@ export function EditProfileLeftRail({ activeTab, onTabChange }: EditProfileLeftR
           >
             <div style={{ width: 35, height: 35, position: "relative" }}>
               <Image
-                src={item.iconSrc}
+                src={iconSrc}
                 alt={item.label}
                 fill
                 style={{ objectFit: "contain" }}
