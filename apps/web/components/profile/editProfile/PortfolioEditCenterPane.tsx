@@ -56,6 +56,17 @@ type AudioAttachment = {
   duration?: number | null;
 };
 
+type AudioRowEntry = {
+  title: string;
+  audio: AudioAttachment;
+};
+
+type AudioRowItem = AudioRowEntry & {
+  key: string;
+  source: "voice" | "language" | "accent";
+  sourceId: string;
+};
+
 type VideoAttachment = {
   mediaId: string;
   url?: string | null;
@@ -787,7 +798,7 @@ function AudioRow({
   onDelete,
   onPlayStateChange,
 }: {
-  entry: VoiceEntryState & { audio: AudioAttachment };
+  entry: AudioRowEntry;
   isActive: boolean;
   onDelete: () => void;
   onPlayStateChange: (isPlaying: boolean) => void;
@@ -1700,6 +1711,71 @@ export function PortfolioEditCenterPane({
     );
   };
 
+  const audioRowItems = useMemo(() => {
+    const items: AudioRowItem[] = [];
+    const seen = new Set<string>();
+
+    const pushItem = (item: AudioRowItem) => {
+      if (!item.audio.mediaId || !item.audio.url) {
+        return;
+      }
+      if (seen.has(item.audio.mediaId)) {
+        return;
+      }
+      seen.add(item.audio.mediaId);
+      items.push(item);
+    };
+
+    voices.forEach((entry) => {
+      const audio = entry.audio;
+      if (!audio || !audio.mediaId || !audio.url) {
+        return;
+      }
+      pushItem({
+        key: `voice-${entry.id}`,
+        title: entry.title,
+        audio,
+        source: "voice",
+        sourceId: entry.id,
+      });
+    });
+
+    languages.forEach((entry) => {
+      const audio = entry.audio;
+      if (!audio || !audio.mediaId || !audio.url) {
+        return;
+      }
+      pushItem({
+        key: `language-${entry.id}`,
+        title: entry.label,
+        audio,
+        source: "language",
+        sourceId: entry.id,
+      });
+    });
+
+    accents.forEach((entry) => {
+      const audio = entry.audio;
+      if (!audio || !audio.mediaId || !audio.url) {
+        return;
+      }
+      pushItem({
+        key: `accent-${entry.id}`,
+        title: entry.title,
+        audio,
+        source: "accent",
+        sourceId: entry.id,
+      });
+    });
+
+    return items;
+  }, [accents, languages, voices]);
+
+  const voiceUploadEntries = useMemo(
+    () => voices.filter((entry) => !entry.audio?.mediaId || !entry.audio?.url),
+    [voices],
+  );
+
   const updateVideoEntry = (id: string, patch: Partial<VideoEntryState>) => {
     setVideos((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
@@ -1780,7 +1856,23 @@ export function PortfolioEditCenterPane({
       return;
     }
     setVoices((prev) => prev.filter((entry) => entry.id !== voiceId));
-    setActiveAudioId((prev) => (prev === voiceId ? null : prev));
+    setActiveAudioId((prev) => (prev === `voice-${voiceId}` ? null : prev));
+  };
+
+  const handleDeleteAudioRow = (item: AudioRowItem) => {
+    if (isBusy) {
+      return;
+    }
+    if (item.source === "voice") {
+      handleDeleteVoice(item.sourceId);
+      return;
+    }
+    if (item.source === "language") {
+      updateLanguageEntry(item.sourceId, { audio: null });
+    } else if (item.source === "accent") {
+      updateAccentEntry(item.sourceId, { audio: null });
+    }
+    setActiveAudioId((prev) => (prev === item.key ? null : prev));
   };
 
   const handleDeleteVideo = (videoId: string) => {
@@ -2330,9 +2422,7 @@ export function PortfolioEditCenterPane({
     "h-[34px] w-full rounded-full bg-[#EFEFEF] px-4 text-[12px] text-[#6B6B6B] placeholder:text-[#B5B5B5] focus:outline-none";
   const selectClass = `${inputClass} appearance-none`;
   const sectionTitleClass = "text-[14px] font-semibold text-[#000000]";
-  const hasUploadedVoices = voices.some(
-    (entry) => entry.audio?.mediaId && entry.audio?.url,
-  );
+  const hasAudioRows = audioRowItems.length > 0;
   const canAddVoice = !isBusy;
 
   return (
@@ -3048,41 +3138,40 @@ export function PortfolioEditCenterPane({
         {activeTab === "audio" ? (
           <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
             <div className="mx-auto w-[568px] space-y-4">
-              {!hasUploadedVoices && voices.length === 0 ? (
+              {!hasAudioRows && voiceUploadEntries.length === 0 ? (
                 <AddAudioBar onClick={handleAddVoice} disabled={!canAddVoice} />
               ) : (
                 <>
-                  {voices.map((entry) =>
-                    entry.audio?.mediaId && entry.audio?.url ? (
-                      <AudioRow
-                        key={entry.id}
-                        entry={entry as VoiceEntryState & { audio: AudioAttachment }}
-                        isActive={activeAudioId === entry.id}
-                        onDelete={() => handleDeleteVoice(entry.id)}
-                        onPlayStateChange={(isPlaying) =>
-                          setActiveAudioId((prev) =>
-                            isPlaying ? entry.id : prev === entry.id ? null : prev,
-                          )
-                        }
-                      />
-                    ) : (
-                      <AudioUploadCard
-                        key={entry.id}
-                        entry={entry}
-                        inputClass={inputClass}
-                        sectionTitleClass={sectionTitleClass}
-                        onChangeTitle={(title) => updateVoiceEntry(entry.id, { title })}
-                        onChangeAudio={(audio) => updateVoiceEntry(entry.id, { audio })}
-                        onCancel={() => handleDeleteVoice(entry.id)}
-                        onUploadStart={() => setUploadingCount((prev) => prev + 1)}
-                        onUploadEnd={() =>
-                          setUploadingCount((prev) => (prev > 0 ? prev - 1 : 0))
-                        }
-                        onError={(message) => setFormError(message)}
-                        disabled={isBusy}
-                      />
-                    ),
-                  )}
+                  {audioRowItems.map((item) => (
+                    <AudioRow
+                      key={item.key}
+                      entry={{ title: item.title, audio: item.audio }}
+                      isActive={activeAudioId === item.key}
+                      onDelete={() => handleDeleteAudioRow(item)}
+                      onPlayStateChange={(isPlaying) =>
+                        setActiveAudioId((prev) =>
+                          isPlaying ? item.key : prev === item.key ? null : prev,
+                        )
+                      }
+                    />
+                  ))}
+                  {voiceUploadEntries.map((entry) => (
+                    <AudioUploadCard
+                      key={entry.id}
+                      entry={entry}
+                      inputClass={inputClass}
+                      sectionTitleClass={sectionTitleClass}
+                      onChangeTitle={(title) => updateVoiceEntry(entry.id, { title })}
+                      onChangeAudio={(audio) => updateVoiceEntry(entry.id, { audio })}
+                      onCancel={() => handleDeleteVoice(entry.id)}
+                      onUploadStart={() => setUploadingCount((prev) => prev + 1)}
+                      onUploadEnd={() =>
+                        setUploadingCount((prev) => (prev > 0 ? prev - 1 : 0))
+                      }
+                      onError={(message) => setFormError(message)}
+                      disabled={isBusy}
+                    />
+                  ))}
                   {canAddVoice ? (
                     <AddAudioBar onClick={handleAddVoice} disabled={!canAddVoice} />
                   ) : null}
