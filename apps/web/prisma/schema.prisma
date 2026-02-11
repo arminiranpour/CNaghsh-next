@@ -39,6 +39,7 @@ model User {
   applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
   enrollments             Enrollment[]
   savedItems              SavedItem[]
+  profileLikes            ProfileLike[]
 }
 
 model SavedItem {
@@ -52,6 +53,19 @@ model SavedItem {
 
   @@unique([userId, type, entityId])
   @@index([userId, type, createdAt])
+}
+
+model ProfileLike {
+  id        String   @id @default(cuid())
+  userId    String
+  profileId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@index([profileId, createdAt])
 }
 
 model Profile {
@@ -93,6 +107,7 @@ model Profile {
   introVideoMedia   MediaAsset?       @relation("ProfileIntroVideo", fields: [introVideoMediaId], references: [id], onDelete: SetNull)
   moderator         User?             @relation("ProfileModerators", fields: [moderatedBy], references: [id])
   user              User              @relation(fields: [userId], references: [id])
+  likes             ProfileLike[]
 
   @@index([visibility])
   @@index([moderationStatus])

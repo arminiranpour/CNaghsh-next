@@ -14,6 +14,7 @@ import {
   type EducationFilterValue,
   type GenderFilterValue,
 } from "@/lib/profile/filter-options";
+import { toPersianDigits } from "@/lib/format/persianNumbers";
 import type { NormalizedSearchParams } from "@/lib/url/normalizeSearchParams";
 import { cn } from "@/lib/utils";
 
@@ -281,10 +282,10 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
 
           <div className="flex items-center justify-between text-[10px] text-[#C7C7C7]">
           <span className="rounded-full border border-[#C7C7C7] px-3 py-1">
-              حداکثر: {sortedAgeRange[1]}
+              حداکثر: {toPersianDigits(sortedAgeRange[1])}
             </span>
             <span className="rounded-full border border-[#C7C7C7] px-3 py-1">
-              حداقل: {sortedAgeRange[0]}
+              حداقل: {toPersianDigits(sortedAgeRange[0])}
             </span>
 
           </div>
@@ -325,8 +326,8 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
           </div>
 
           <div className="flex items-center justify-between text-[12px] text-[#808080]">
-            <span>99</span>
-            <span>0</span>
+            <span>{toPersianDigits(AGE_MAX_DEFAULT)}</span>
+            <span>{toPersianDigits(AGE_MIN_DEFAULT)}</span>
 
           </div>
         </section>

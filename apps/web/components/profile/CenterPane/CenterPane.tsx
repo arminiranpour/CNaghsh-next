@@ -17,6 +17,7 @@ type CenterPaneProps = {
   children?: ReactNode;
   canEdit?: boolean;
   onEditClick?: () => void;
+  isOwner?: boolean;
 };
 
 export function CenterPane({
@@ -25,6 +26,7 @@ export function CenterPane({
   children,
   canEdit,
   onEditClick,
+  isOwner,
 }: CenterPaneProps) {
   return (
     <section
@@ -48,7 +50,9 @@ export function CenterPane({
         onEditClick={onEditClick}
         profileId={profile.id}
         initialSaved={profile.isSavedByMe}
+        initialLiked={profile.isLikedByMe}
         initialLikesCount={profile.likesCount}
+        isOwner={isOwner}
       />
       {children}
       {activeTab === "personal" ? (
@@ -57,7 +61,9 @@ export function CenterPane({
       {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
       {activeTab === "videos" ? <VideosSlide videos={profile.videos} /> : null}
       {activeTab === "awards" ? <AwardsSlide awards={profile.awards ?? []} /> : null}
-      {activeTab === "audio" ? <AudioSlide voices={profile.voices ?? []} /> : null}
+      {activeTab === "audio" ? (
+        <AudioSlide voices={profile.audioSamples ?? profile.voices ?? []} />
+      ) : null}
 
     </section>
   );

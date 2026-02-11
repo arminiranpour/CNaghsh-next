@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 
+import { toPersianDigits } from "@/lib/format/persianNumbers";
+
 type FeaturedCardProps = {
   name: string;
   age?: number | null;
@@ -27,8 +29,9 @@ export default function Card({
 
   const ageLabel =
     typeof age === "number"
-      ? `سن: ${age} سال`
+      ? `سن: ${toPersianDigits(age)} سال`
       : "سن ثبت نشده";
+  const ratingLabel = toPersianDigits(rating);
 
   return (
     <div
@@ -114,7 +117,7 @@ export default function Card({
                 color: "#FF7F19",
               }}
             >
-              {rating}
+              {ratingLabel}
             </div>
           </div>
 

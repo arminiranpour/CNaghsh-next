@@ -53,14 +53,7 @@ export async function POST(request: Request) {
 
     if (existing) {
       await tx.savedItem.delete({ where: { id: existing.id } });
-      const nextCount = Math.max(0, profile.likesCount - 1);
-      const updated = await tx.profile.update({
-        where: { id: profileId },
-        data: { likesCount: nextCount },
-        select: { likesCount: true },
-      });
-
-      return { saved: false, likesCount: updated.likesCount };
+      return { saved: false, likesCount: profile.likesCount };
     }
 
     await tx.savedItem.create({
@@ -71,13 +64,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const updated = await tx.profile.update({
-      where: { id: profileId },
-      data: { likesCount: { increment: 1 } },
-      select: { likesCount: true },
-    });
-
-    return { saved: true, likesCount: updated.likesCount };
+    return { saved: true, likesCount: profile.likesCount };
   });
 
   if (!result) {

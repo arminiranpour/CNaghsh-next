@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { buildPageList, type PageItem } from "@/lib/pagination";
+import { toPersianDigits } from "@/lib/format/persianNumbers";
 import { cn } from "@/lib/utils";
 
 type PaginationNavProps = {
@@ -60,7 +61,7 @@ export function PaginationNav({
                 href={pageHrefs[item] ?? "#"}
                 aria-current={item === currentPage ? "page" : undefined}
               >
-                {item}
+                {toPersianDigits(item)}
               </Link>
             </Button>
           ) : (
@@ -83,7 +84,7 @@ export function PaginationNav({
                   : "border-border text-[#1F1F1F]",
               )}
             >
-              {item}
+              {toPersianDigits(item)}
             </Button>
           ),
         )}

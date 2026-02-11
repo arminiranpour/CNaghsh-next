@@ -79,6 +79,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
         select: { id: true },
       })
     : null;
+  const isLikedByMe = session?.user?.id
+    ? await prisma.profileLike.findUnique({
+        where: { userId_profileId: { userId: session.user.id, profileId: profile.id } },
+        select: { id: true },
+      })
+    : null;
 
   const isOwner = session?.user?.id === profile.userId;
 
@@ -90,6 +96,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             ...profileData,
             likesCount: profile.likesCount ?? 0,
             isSavedByMe: Boolean(isSavedByMe),
+            isLikedByMe: Boolean(isLikedByMe),
           }}
           isOwner={isOwner}
         />

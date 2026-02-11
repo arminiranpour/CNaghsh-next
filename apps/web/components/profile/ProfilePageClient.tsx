@@ -28,6 +28,7 @@ export type PublicProfileData = {
   cityName?: string | null;
   likesCount: number;
   isSavedByMe?: boolean;
+  isLikedByMe?: boolean;
   skills: string[];
   languages: LanguageSkill[];
   accents?: string[];
@@ -35,6 +36,7 @@ export type PublicProfileData = {
   degrees?: { degreeLevel: string; major: string }[];
   experience?: Prisma.JsonValue | null;
   voices?: { mediaId: string; url: string; title?: string | null; duration?: number | null }[];
+  audioSamples?: { mediaId: string; url: string; title?: string | null; duration?: number | null }[];
   videos?: ProfileVideoData[];
   awards?: {
     id?: string;
@@ -57,7 +59,7 @@ export function ProfilePageClient({ profile, isOwner }: ProfilePageClientProps) 
   return (
     <>
       <LeftRail activeTab={activeTab} onTabChange={setActiveTab} />
-      <CenterPane activeTab={activeTab} profile={profile} />
+      <CenterPane activeTab={activeTab} profile={profile} isOwner={isOwner} />
       <RightPane profile={profile} isOwner={isOwner} />
     </>
   );

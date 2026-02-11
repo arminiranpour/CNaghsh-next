@@ -90,6 +90,7 @@ export default async function DashboardProfilePage() {
         cityName: undefined,
         likesCount: 0,
         isSavedByMe: false,
+        isLikedByMe: false,
         skills: [],
         languages: [],
         accents: [],
@@ -97,6 +98,7 @@ export default async function DashboardProfilePage() {
         gallery: [],
         experience: null,
         voices: [],
+        audioSamples: [],
         videos: [],
         awards: [],
       };
@@ -195,6 +197,7 @@ export default async function DashboardProfilePage() {
     ...profileData,
     likesCount: profile?.likesCount ?? 0,
     isSavedByMe: Boolean(savedProfile),
+    isLikedByMe: false,
   };
   const enrolledCourses = [];
   const seenCourses = new Set<string>();

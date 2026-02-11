@@ -5,6 +5,7 @@ import type { City } from "@/lib/location/cities";
 import { getPlaybackInfoForMedia } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
 import { normalizeLanguageSkills } from "@/lib/profile/languages";
+import { normalizeAccentEntries } from "@/lib/profile/portfolio-edit";
 import { SKILLS, type SkillKey } from "@/lib/profile/skills";
 
 type ProfileWithRelations = Prisma.ProfileGetPayload<{
@@ -310,6 +311,74 @@ export function normalizeVoices(
   return result;
 }
 
+type AudioSampleEntry = {
+  mediaId: string;
+  url: string;
+  title?: string | null;
+  duration?: number | null;
+};
+
+export function collectProfileAudioSamples({
+  voices,
+  languages,
+  accents,
+}: {
+  voices: Prisma.JsonValue | null | undefined;
+  languages: Prisma.JsonValue | null | undefined;
+  accents: Prisma.JsonValue | null | undefined;
+}): AudioSampleEntry[] {
+  const result: AudioSampleEntry[] = [];
+  const seen = new Set<string>();
+
+  const pushSample = (entry: AudioSampleEntry) => {
+    const mediaId = entry.mediaId.trim();
+    const url = entry.url.trim();
+    if (!mediaId || !url) {
+      return;
+    }
+    if (seen.has(mediaId)) {
+      return;
+    }
+    seen.add(mediaId);
+    result.push({
+      mediaId,
+      url,
+      title: entry.title?.trim() || null,
+      duration: typeof entry.duration === "number" ? entry.duration : null,
+    });
+  };
+
+  normalizeVoices(voices).forEach((voice) => {
+    pushSample(voice);
+  });
+
+  normalizeLanguageSkills(languages).forEach((language) => {
+    if (!language.mediaId || !language.url) {
+      return;
+    }
+    pushSample({
+      mediaId: language.mediaId,
+      url: language.url,
+      title: language.label,
+      duration: language.duration ?? null,
+    });
+  });
+
+  normalizeAccentEntries(accents).forEach((accent) => {
+    if (!accent.mediaId || !accent.url) {
+      return;
+    }
+    pushSample({
+      mediaId: accent.mediaId,
+      url: accent.url,
+      title: accent.title,
+      duration: accent.duration ?? null,
+    });
+  });
+
+  return result;
+}
+
 export function normalizeAwards(
   raw: ProfileWithRelations["awards"] | null | undefined,
 ): PublicProfileData["awards"] {
@@ -353,6 +422,11 @@ export async function buildProfilePageData(
 
   const videos = normalizeVideos(profile.videos, mediaById);
   const voices = normalizeVoices(profile.voices);
+  const audioSamples = collectProfileAudioSamples({
+    voices: profile.voices,
+    languages: profile.languages,
+    accents: profile.accents,
+  });
   const awards = normalizeAwards(profile.awards);
   const derivedAge = calculateAge(profile.birthDate) ?? profile.age ?? null;
 
@@ -366,6 +440,7 @@ export async function buildProfilePageData(
     cityName: profile.cityId ? cityMap.get(profile.cityId) ?? undefined : undefined,
     likesCount: profile.likesCount ?? 0,
     isSavedByMe: false,
+    isLikedByMe: false,
     skills: normalizeSkills(profile.skills),
     languages: normalizeLanguages(profile.languages),
     accents: normalizeAccents(profile.accents),
@@ -373,6 +448,7 @@ export async function buildProfilePageData(
     gallery: normalizeGallery(profile.gallery),
     experience: profile.experience ?? null,
     voices,
+    audioSamples,
     videos,
     awards,
   };

@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useMemo } from "react";
 
+import { toPersianDigits } from "@/lib/format/persianNumbers";
+
 const ORANGE = "#FF7F19";
 const GRAY = "#7C7C7C";
 
@@ -29,10 +31,9 @@ function formatAwardDate(value: string | null | undefined): string {
 
 function buildSubtitle(award: AwardEntry) {
   const parts = [];
-  if (award.workTitle?.trim()) parts.push(award.workTitle.trim());
-  if (award.place?.trim()) parts.push(award.place.trim());
+  if (award.place?.trim()) parts.push(toPersianDigits(award.place.trim()));
   const formatted = formatAwardDate(award.awardDate);
-  if (formatted) parts.push(formatted);
+  if (formatted) parts.push(toPersianDigits(formatted));
   return parts.join(" / ");
 }
 
@@ -97,6 +98,9 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
         >
           {normalized.map((award, index) => {
             const subtitle = buildSubtitle(award);
+            const title = toPersianDigits(award.title.trim());
+            const workTitle = award.workTitle?.trim();
+            const workTitleLabel = workTitle ? toPersianDigits(workTitle) : "";
 
             return (
               <div key={index} style={{ width: "100%" }}>
@@ -122,7 +126,21 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
                       color: ORANGE,
                     }}
                   >
-                    {award.title}
+                    {title}
+                    {workTitleLabel ? (
+                      <span
+                        style={{
+                          fontSize: 16,
+                          color: GRAY,
+                          marginTop: 10,
+                          fontWeight: 500,
+                          marginRight: 5,
+                          display: "inline-block",
+                        }}
+                      >
+                        {`_  ${workTitleLabel}`}
+                      </span>
+                    ) : null}
                   </span>
                 </div>
 

@@ -8,6 +8,7 @@ import { ConsentGate } from "@/components/analytics/ConsentGate";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/toaster";
+import { PersianNumbersProvider } from "@/components/ui/PersianNumbersProvider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -67,14 +68,16 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased">
         <SessionProvider>
           <ThemeProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <ConsentGate />
-              {!isAuthRoute && !isOverlayHeaderRoute ? <Header variant="static" /> : null}
-              <main className="flex-1">{children}</main>
-              <JsonLd data={organizationJsonLd} />
-              {!isAuthRoute ? <Footer /> : null}
-            </div>
-            <Toaster />
+            <PersianNumbersProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <ConsentGate />
+                {!isAuthRoute && !isOverlayHeaderRoute ? <Header variant="static" /> : null}
+                <main className="flex-1">{children}</main>
+                <JsonLd data={organizationJsonLd} />
+                {!isAuthRoute ? <Footer /> : null}
+              </div>
+              <Toaster />
+            </PersianNumbersProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

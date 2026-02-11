@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
 import type { ProfileVideoData } from "@/components/profile/ProfilePageClient";
+import { toPersianDigits } from "@/lib/format/persianNumbers";
 
 const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), { ssr: false });
 
@@ -97,8 +98,8 @@ export function VideosSlide({ videos }: VideosSlideProps) {
         }}
       >
         {slots.map((video, index) => {
-          const title = video?.title?.trim() || "ویدئو";
-          const badge = video ? `#${startIndex + index + 1}` : "جای خالی";
+          const title = toPersianDigits(video?.title?.trim() || "ویدئو");
+          const badge = video ? `#${toPersianDigits(startIndex + index + 1)}` : "جای خالی";
           const placeholderText = showEmptyState ? "ویدیویی برای نمایش وجود ندارد" : "ویدئو اضافه کنید";
           return (
             <div

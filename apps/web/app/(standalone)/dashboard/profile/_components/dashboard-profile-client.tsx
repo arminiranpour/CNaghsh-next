@@ -133,6 +133,7 @@ export function DashboardProfileClient({
         activeTab={activeTab}
         profile={profile}
         canEdit={canEdit}
+        isOwner={isOwner}
         onEditClick={() => {
           setActiveEditTab("portfolio");
           setIsEditingPortfolio(true);
