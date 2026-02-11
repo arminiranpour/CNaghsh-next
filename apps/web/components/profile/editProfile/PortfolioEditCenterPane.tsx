@@ -39,6 +39,7 @@ import {
   updateExperience,
   updateLanguages,
   updateSkills,
+  updateAwards,
   updateVideos,
   updateVoices,
   uploadImage,
@@ -103,6 +104,15 @@ type VoiceEntryState = {
   id: string;
   title: string;
   audio?: AudioAttachment | null;
+};
+
+type AwardEntryState = {
+  id: string;
+  awardId: string | null;
+  title: string;
+  workTitle: string;
+  festivalTitle: string;
+  awardYear: string;
 };
 
 type ResumeEntryState = ResumeEntry & { id: string };
@@ -970,6 +980,26 @@ function AddAudioBar({
   );
 }
 
+function AddAwardBar({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="flex h-[36px] w-full items-center justify-center rounded-[15px] text-[16px] text-[#B5B5B5]"
+      style={buildDashedBorderStyle(15)}
+    >
+      +
+    </button>
+  );
+}
+
 function VideoUploadCard({
   value,
   monthOptions,
@@ -1439,6 +1469,22 @@ export function PortfolioEditCenterPane({
         },
       }));
   });
+  const [awards, setAwards] = useState<AwardEntryState[]>(() => {
+    const initialAwards = initialValues.awards;
+
+    if (!Array.isArray(initialAwards) || initialAwards.length === 0) {
+      return [];
+    }
+
+    return initialAwards.map((entry) => ({
+      id: createId(),
+      awardId: entry.id ?? null,
+      title: entry.title ?? "",
+      workTitle: entry.workTitle ?? "",
+      festivalTitle: entry.place ?? "",
+      awardYear: entry.awardDate ? entry.awardDate.trim().slice(0, 4) : "",
+    }));
+  });
   const [videoUploadPhase, setVideoUploadPhase] = useState<"idle" | "uploading" | "processing">(
     "idle",
   );
@@ -1656,6 +1702,23 @@ export function PortfolioEditCenterPane({
     setVoices((prev) => [...prev, { id: createId(), title: "", audio: null }]);
   };
 
+  const handleAddAward = () => {
+    if (isBusy) {
+      return;
+    }
+    setAwards((prev) => [
+      ...prev,
+      {
+        id: createId(),
+        awardId: null,
+        title: "",
+        workTitle: "",
+        festivalTitle: "",
+        awardYear: "",
+      },
+    ]);
+  };
+
   const handleAddVideo = () => {
     if (isBusy) {
       return;
@@ -1707,6 +1770,12 @@ export function PortfolioEditCenterPane({
 
   const updateVoiceEntry = (id: string, patch: Partial<VoiceEntryState>) => {
     setVoices((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
+    );
+  };
+
+  const updateAwardEntry = (id: string, patch: Partial<AwardEntryState>) => {
+    setAwards((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
     );
   };
@@ -1857,6 +1926,13 @@ export function PortfolioEditCenterPane({
     }
     setVoices((prev) => prev.filter((entry) => entry.id !== voiceId));
     setActiveAudioId((prev) => (prev === `voice-${voiceId}` ? null : prev));
+  };
+
+  const handleDeleteAward = (awardId: string) => {
+    if (isBusy) {
+      return;
+    }
+    setAwards((prev) => prev.filter((entry) => entry.id !== awardId));
   };
 
   const handleDeleteAudioRow = (item: AudioRowItem) => {
@@ -2117,6 +2193,18 @@ export function PortfolioEditCenterPane({
       }));
   }, [voices]);
 
+  const buildAwardsPayload = useCallback(() => {
+    return awards
+      .map((entry) => ({
+        id: entry.awardId ?? null,
+        title: entry.title.trim(),
+        workTitle: entry.workTitle.trim(),
+        place: entry.festivalTitle.trim(),
+        date: entry.awardYear.trim(),
+      }))
+      .filter((entry) => entry.title || entry.workTitle || entry.place || entry.date);
+  }, [awards]);
+
   const handleVideosSave = () => {
     setFormError(null);
     const payload = buildVideosPayload();
@@ -2173,6 +2261,36 @@ export function PortfolioEditCenterPane({
     });
   };
 
+  const handleAwardsSave = () => {
+    setFormError(null);
+    const payload = buildAwardsPayload();
+    if (payload.some((entry) => !entry.title)) {
+      setFormError("عنوان جایزه الزامی است.");
+      return;
+    }
+    const formData = new FormData();
+    formData.set("awards", JSON.stringify(payload));
+
+    startTransition(() => {
+      (async () => {
+        const awardsResult = await updateAwards(formData);
+        if (!awardsResult.ok) {
+          setFormError(awardsResult.error ?? "ذخیره افتخارات ناموفق بود.");
+          return;
+        }
+
+        toast({
+          title: "اطلاعات ذخیره شد.",
+          description: "افتخارات با موفقیت به‌روزرسانی شد.",
+        });
+        onSaved();
+        router.refresh();
+      })().catch(() => {
+        setFormError("خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+      });
+    });
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
@@ -2187,6 +2305,10 @@ export function PortfolioEditCenterPane({
     }
     if (activeTab === "audio") {
       handleVoicesSave();
+      return;
+    }
+    if (activeTab === "awards") {
+      handleAwardsSave();
       return;
     }
 
@@ -2423,6 +2545,7 @@ export function PortfolioEditCenterPane({
   const selectClass = `${inputClass} appearance-none`;
   const sectionTitleClass = "text-[14px] font-semibold text-[#000000]";
   const hasAudioRows = audioRowItems.length > 0;
+  const hasAwards = awards.length > 0;
   const canAddVoice = !isBusy;
 
   return (
@@ -3199,6 +3322,99 @@ export function PortfolioEditCenterPane({
                   className="h-4 w-4"
                   loading="lazy"
                 />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "awards" ? (
+          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
+            <div className="mx-auto w-[568px] space-y-4">
+              {!hasAwards ? (
+                <AddAwardBar onClick={handleAddAward} disabled={isBusy} />
+              ) : (
+                <>
+                  {awards.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-4"
+                    >
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAward(entry.id)}
+                          disabled={isBusy}
+                          className="text-[12px] text-[#D56732]"
+                        >
+                          حذف
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-4">
+                        <input
+                          className={inputClass}
+                          placeholder="عنوان جایزه"
+                          value={entry.title}
+                          onChange={(event) =>
+                            updateAwardEntry(entry.id, { title: event.target.value })
+                          }
+                          disabled={isBusy}
+                          maxLength={200}
+                        />
+                        <input
+                          className={inputClass}
+                          placeholder="عنوان اثر"
+                          value={entry.workTitle}
+                          onChange={(event) =>
+                            updateAwardEntry(entry.id, { workTitle: event.target.value })
+                          }
+                          disabled={isBusy}
+                          maxLength={200}
+                        />
+                        <input
+                          className={inputClass}
+                          placeholder="عنوان جشنواره، مسابقه یا ..."
+                          value={entry.festivalTitle}
+                          onChange={(event) =>
+                            updateAwardEntry(entry.id, {
+                              festivalTitle: event.target.value,
+                            })
+                          }
+                          disabled={isBusy}
+                          maxLength={200}
+                        />
+                        <input
+                          className={inputClass}
+                          placeholder="سال اخذ جایزه"
+                          value={entry.awardYear}
+                          onChange={(event) =>
+                            updateAwardEntry(entry.id, { awardYear: event.target.value })
+                          }
+                          disabled={isBusy}
+                          inputMode="numeric"
+                          maxLength={4}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <AddAwardBar onClick={handleAddAward} disabled={isBusy} />
+                </>
+              )}
+            </div>
+
+            {formError ? (
+              <div className="mt-6 rounded-[7px] bg-[#FFE6E6] px-4 py-2 text-[12px] text-[#D12424]">
+                {formError}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={handleAwardsSave}
+                disabled={isBusy}
+                className="flex h-[44px] w-[200px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+              >
+                <span>ذخیره نهایی اطلاعات</span>
               </button>
             </div>
           </div>

@@ -141,7 +141,7 @@ export const degreesSchema = z.array(degreeEntrySchema).optional().nullable();
 const awardDateSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "تاریخ باید به صورت YYYY-MM باشد.")
+  .regex(/^\d{4}(-(?:0[1-9]|1[0-2]))?$/, "تاریخ باید به صورت YYYY یا YYYY-MM باشد.")
   .optional()
   .nullable()
   .or(z.literal(""));
@@ -149,6 +149,7 @@ const awardDateSchema = z
 export const awardEntrySchema = z.object({
   id: z.string().trim().cuid().optional().nullable(),
   title: z.string().trim().min(1, "لطفاً عنوان جایزه را وارد کنید.").max(200),
+  workTitle: z.string().trim().max(200).optional().nullable().or(z.literal("")),
   place: z.string().trim().max(200).optional().nullable().or(z.literal("")),
   date: awardDateSchema,
 });

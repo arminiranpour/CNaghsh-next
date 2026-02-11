@@ -321,6 +321,7 @@ export function normalizeAwards(
     .map((award) => ({
       id: award.id,
       title: (award.title ?? "").trim(),
+      workTitle: award.workTitle?.trim() || null,
       place: award.place?.trim() || null,
       awardDate: award.awardDate?.trim() || null,
     }))

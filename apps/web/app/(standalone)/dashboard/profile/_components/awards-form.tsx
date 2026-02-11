@@ -14,6 +14,7 @@ import { updateAwards } from "@/lib/profile/profile-actions";
 export type AwardEntry = {
   id?: string;
   title: string;
+  workTitle?: string | null;
   place?: string | null;
   date?: string | null;
 };
@@ -44,6 +45,7 @@ export function AwardsForm({ initialAwards }: AwardsFormProps) {
       ...prev,
       {
         title: "",
+        workTitle: "",
         place: "",
         date: "",
       },
@@ -62,10 +64,11 @@ export function AwardsForm({ initialAwards }: AwardsFormProps) {
       .map((award) => ({
         id: award.id ?? null,
         title: (award.title ?? "").trim(),
+        workTitle: (award.workTitle ?? "").toString().trim(),
         place: (award.place ?? "").toString().trim(),
         date: (award.date ?? "").toString().trim(),
       }))
-      .filter((award) => award.title || award.place || award.date);
+      .filter((award) => award.title || award.workTitle || award.place || award.date);
 
     if (payload.some((award) => !award.title)) {
       setFormError("عنوان جایزه الزامی است.");
@@ -103,13 +106,14 @@ export function AwardsForm({ initialAwards }: AwardsFormProps) {
         ) : (
           awards.map((award, index) => {
             const titleId = `award-title-${award.id ?? "new"}-${index}`;
+            const workTitleId = `award-work-${award.id ?? "new"}-${index}`;
             const placeId = `award-place-${award.id ?? "new"}-${index}`;
             const dateId = `award-date-${award.id ?? "new"}-${index}`;
 
             return (
               <div
                 key={`${award.id ?? "new"}-${index}`}
-                className="grid gap-4 rounded-md border border-border p-4 shadow-sm lg:grid-cols-[1fr,1fr,200px,auto]"
+                className="grid gap-4 rounded-md border border-border p-4 shadow-sm lg:grid-cols-[1fr,1fr,1fr,200px,auto]"
               >
                 <div className="space-y-2">
                   <Label htmlFor={titleId}>عنوان جایزه</Label>
@@ -118,6 +122,17 @@ export function AwardsForm({ initialAwards }: AwardsFormProps) {
                     value={award.title ?? ""}
                     onChange={handleChange(index, "title")}
                     placeholder="مثلاً بهترین بازیگر نقش اول"
+                    disabled={isPending}
+                    maxLength={200}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={workTitleId}>عنوان اثر</Label>
+                  <Input
+                    id={workTitleId}
+                    value={award.workTitle ?? ""}
+                    onChange={handleChange(index, "workTitle")}
+                    placeholder="مثلاً نمایش هملت"
                     disabled={isPending}
                     maxLength={200}
                   />

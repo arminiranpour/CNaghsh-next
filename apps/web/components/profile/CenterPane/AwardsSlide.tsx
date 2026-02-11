@@ -8,6 +8,7 @@ const GRAY = "#7C7C7C";
 
 type AwardEntry = {
   title: string;
+  workTitle?: string | null;
   place?: string | null;
   awardDate?: string | null;
 };
@@ -19,15 +20,16 @@ type AwardsSlideProps = {
 function formatAwardDate(value: string | null | undefined): string {
   if (!value) return "";
   const trimmed = value.trim();
-  const match = trimmed.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const match = trimmed.match(/^(\d{4})(?:-(0[1-9]|1[0-2]))?$/);
   if (!match) return trimmed;
 
   const [, year, month] = match;
-  return `${year}/${month}`;
+  return month ? `${year}/${month}` : year;
 }
 
 function buildSubtitle(award: AwardEntry) {
   const parts = [];
+  if (award.workTitle?.trim()) parts.push(award.workTitle.trim());
   if (award.place?.trim()) parts.push(award.place.trim());
   const formatted = formatAwardDate(award.awardDate);
   if (formatted) parts.push(formatted);
@@ -40,6 +42,7 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
       (awards ?? [])
         .map((a) => ({
           title: a.title.trim(),
+          workTitle: a.workTitle?.trim() || "",
           place: a.place?.trim() || "",
           awardDate: a.awardDate?.trim() || "",
         }))

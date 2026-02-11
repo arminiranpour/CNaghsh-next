@@ -931,6 +931,7 @@ export async function updateAwards(formData: FormData): Promise<AwardsActionResu
       validated.data?.map((entry) => ({
         id: entry.id?.trim() || undefined,
         title: entry.title.trim(),
+        workTitle: entry.workTitle?.trim() || null,
         place: entry.place?.trim() || null,
         awardDate: entry.date?.trim() || null,
       })) ?? [];
@@ -956,6 +957,7 @@ export async function updateAwards(formData: FormData): Promise<AwardsActionResu
                 profileId: profile.id,
                 ...(award.id ? { id: award.id } : {}),
                 title: award.title,
+                workTitle: award.workTitle,
                 place: award.place,
                 awardDate: award.awardDate,
               })),

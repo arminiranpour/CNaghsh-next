@@ -129,6 +129,7 @@ model ProfileAward {
   id        String   @id @default(cuid())
   profileId String
   title     String
+  workTitle String?
   place     String?
   awardDate String?
   createdAt DateTime @default(now())

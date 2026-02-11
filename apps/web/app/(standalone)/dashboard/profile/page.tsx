@@ -156,6 +156,14 @@ export default async function DashboardProfilePage() {
     languages: normalizeLanguageEntries(profile?.languages ?? null),
     accents: normalizeAccentEntries(profile?.accents ?? null),
     voices: profileData.voices ?? [],
+    awards:
+      profileData.awards?.map((award) => ({
+        id: award.id,
+        title: award.title,
+        workTitle: award.workTitle ?? null,
+        place: award.place ?? null,
+        awardDate: award.awardDate ?? null,
+      })) ?? [],
     degrees: normalizeDegreeEntries(profile?.degrees ?? null),
     resume: portfolioExperience.resume,
     courses: portfolioExperience.courses,

@@ -38,6 +38,7 @@ export const MODERATION_PROFILE_SELECT = {
     select: {
       id: true,
       title: true,
+      workTitle: true,
       place: true,
       awardDate: true,
     },

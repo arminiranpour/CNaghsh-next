@@ -78,6 +78,13 @@ export type PortfolioEditInitialValues = {
   languages: LanguageSkill[];
   accents: AccentEntry[];
   voices?: VoiceEntry[];
+  awards?: Array<{
+    id?: string;
+    title: string;
+    workTitle?: string | null;
+    place?: string | null;
+    awardDate?: string | null;
+  }>;
   videos?: PortfolioVideoEntry[];
   degrees: DegreeEntry[];
   resume: ResumeEntry[];
