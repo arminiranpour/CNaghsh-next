@@ -20,6 +20,35 @@ type LoginFormProps = {
 
 type AuthMode = "register" | "login";
 
+const PHONE_REGEX = /^09\d{9}$/;
+const PHONE_ERROR = "شماره تلفن باید با 09 شروع شود و 11 رقم باشد.";
+
+const DIGIT_MAP: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+const normalizeDigits = (value: string) =>
+  value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
+
 export function LoginForm({
   callbackUrl,
   onPasswordPhaseChange,
@@ -57,6 +86,12 @@ export function LoginForm({
         setError("لطفاً تمام فیلدها را تکمیل کنید.");
         return;
       }
+
+      const normalizedPhone = normalizeDigits(formData.phone).trim();
+      if (!PHONE_REGEX.test(normalizedPhone)) {
+        setError(PHONE_ERROR);
+        return;
+      }
     }
 
     setShowPasswordStep(true);
@@ -74,6 +109,13 @@ export function LoginForm({
 
     // Password step submission
     if (mode === "register") {
+      const normalizedPhone = normalizeDigits(formData.phone).trim();
+
+      if (!PHONE_REGEX.test(normalizedPhone)) {
+        setError(PHONE_ERROR);
+        return;
+      }
+
       if (!formData.password || !formData.confirmPassword) {
         setError("لطفاً رمز عبور و تکرار آن را وارد کنید.");
         return;
@@ -101,6 +143,7 @@ export function LoginForm({
             name: formData.username || undefined,
             email: formData.email.toLowerCase().trim(),
             password: formData.password,
+            phone: normalizedPhone,
           }),
         });
 
@@ -314,6 +357,8 @@ export function LoginForm({
               onChange={(e) => handleInputChange("phone", e.target.value)}
               className="pr-5 bg-white/50 border-muted rounded-lg text-black placeholder:text-gray-400"
               dir="rtl"
+              inputMode="numeric"
+              autoComplete="tel"
               required={mode === "register"}
             />
           </div>

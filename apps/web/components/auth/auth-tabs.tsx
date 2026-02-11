@@ -40,6 +40,35 @@ const tabIds: Record<AuthTab, string> = {
   signup: "auth-signup-tab",
 };
 
+const PHONE_REGEX = /^09\d{9}$/;
+const PHONE_ERROR = "شماره تلفن باید با 09 شروع شود و 11 رقم باشد.";
+
+const DIGIT_MAP: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+const normalizeDigits = (value: string) =>
+  value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
+
 // TODO: add debounced client-side validation + rate-limit hook once the supporting services are available.
 
 export function AuthTabs({
@@ -328,12 +357,19 @@ function SignUpPanel({
     const name = (formData.get("name") as string | null)?.trim() ?? "";
     const email =
       (formData.get("email") as string | null)?.trim().toLowerCase() ?? "";
+    const phoneRaw = (formData.get("phone") as string | null) ?? "";
+    const phone = normalizeDigits(phoneRaw).trim();
     const password = (formData.get("password") as string | null) ?? "";
     const confirmPassword =
       (formData.get("confirmPassword") as string | null) ?? "";
 
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !phone) {
       setError("تمام فیلدهای ضروری را تکمیل کنید.");
+      return;
+    }
+
+    if (!PHONE_REGEX.test(phone)) {
+      setError(PHONE_ERROR);
       return;
     }
 
@@ -368,6 +404,7 @@ function SignUpPanel({
           name: name || undefined,
           email,
           password,
+          phone,
         }),
       });
 
@@ -454,6 +491,21 @@ function SignUpPanel({
             autoComplete="email"
             required
             placeholder="you@example.com"
+            onFocus={() => onPasswordPhaseChange?.(true)}
+            onBlur={handlePasswordBlur}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="signup-phone">شماره تلفن</Label>
+          <Input
+            id="signup-phone"
+            name="phone"
+            dir="ltr"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            required
+            placeholder="09XXXXXXXXX"
             onFocus={() => onPasswordPhaseChange?.(true)}
             onBlur={handlePasswordBlur}
           />

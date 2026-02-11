@@ -6,6 +6,35 @@ import { z } from "zod";
 import { createInMemoryRateLimiter } from "@/lib/auth/rate-limit";
 import { prisma } from "@/lib/prisma";
 
+const PHONE_REGEX = /^09\d{9}$/;
+const PHONE_ERROR = "شماره تلفن باید با 09 شروع شود و 11 رقم باشد.";
+
+const DIGIT_MAP: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+const normalizeDigits = (value: string) =>
+  value.replace(/[۰-۹٠-٩]/g, (char) => DIGIT_MAP[char] ?? char);
+
 const signupSchema = z.object({
   name: z
     .string()
@@ -21,6 +50,12 @@ const signupSchema = z.object({
   password: z
     .string({ required_error: "رمز عبور الزامی است." })
     .min(8, "رمز عبور باید حداقل ۸ کاراکتر باشد."),
+  phone: z.preprocess(
+    (value) => (typeof value === "string" ? normalizeDigits(value).trim() : value),
+    z
+      .string({ required_error: "شماره تلفن الزامی است." })
+      .regex(PHONE_REGEX, PHONE_ERROR),
+  ),
 });
 
 const signupLimiter = createInMemoryRateLimiter({
@@ -49,7 +84,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message }, { status: 400 });
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, phone } = parsed.data;
 
   const allowed = signupLimiter.hit(email);
 
@@ -69,6 +104,11 @@ export async function POST(request: Request) {
         name,
         passwordHash,
         role: "USER",
+        profile: {
+          create: {
+            phone,
+          },
+        },
       },
       select: {
         id: true,

@@ -1436,6 +1436,7 @@ export function PortfolioEditCenterPane({
 
   const [firstName, setFirstName] = useState(initialValues.firstName);
   const [lastName, setLastName] = useState(initialValues.lastName);
+  const [phone] = useState(initialValues.phone ?? "");
   const [bio, setBio] = useState(initialValues.bio);
 
   const [birthDate, setBirthDate] = useState(() => {
@@ -2380,7 +2381,7 @@ export function PortfolioEditCenterPane({
 
         {activeTab === "personal" ? (
         <div className="space-y-8 px-[82px] pb-8 pt-6 text-[12px] text-[#5C5A5A]">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8">
             <div className="space-y-2">
               <label className={sectionTitleClass}>نام و نام خانوادگی</label>
               <div className="grid grid-cols-2 gap-4">
@@ -2400,6 +2401,75 @@ export function PortfolioEditCenterPane({
                   disabled={isBusy}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={sectionTitleClass}>شماره تماس</label>
+              <input
+                className={inputClass}
+                placeholder="شماره تماس"
+                value={phone}
+                readOnly
+                aria-readonly="true"
+                dir="ltr"
+                inputMode="numeric"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className={sectionTitleClass}>محل سکونت</label>
+              <div className="grid grid-cols-2 justify-items-start gap-4">
+                <div className="relative w-full">
+                  <img
+                    src="/images/flash-down.png"
+                    alt=""
+                    className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                  />
+                  <select
+                    className={`${selectClass} pl-8 w-full`}
+                    value={selectedProvinceId}
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setSelectedProvinceId(nextValue);
+                      if (!nextValue) return;
+
+                      const isCityInProvince = cities.some(
+                        (city) => city.id === cityId && city.provinceId === nextValue,
+                      );
+                      if (!isCityInProvince) setCityId("");
+                    }}
+                    disabled={isBusy}
+                  >
+                    <option value="">استان</option>
+                    {provinces.map((province) => (
+                      <option key={province.id} value={province.id}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative w-full">
+                  <img
+                    src="/images/flash-down.png"
+                    alt=""
+                    className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                  />
+                  <select
+                    className={`${selectClass} pl-8 w-full`}
+                    value={cityId}
+                    onChange={(event) => setCityId(event.target.value)}
+                    disabled={isBusy}
+                  >
+                    <option value="">شهر</option>
+                    {filteredCities.map((city) => (
+                      <option key={city.id} value={city.id}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -2480,81 +2550,36 @@ export function PortfolioEditCenterPane({
               </div>
             </div>
 
-          </div>
-
-          <div className="space-y-2">
-<label className={sectionTitleClass}>محل سکونت</label>
-
-<div className="grid grid-cols-[180px_180px] justify-items-start gap-4">
-  {/* Province */}
-  <div className="relative w-[180px]">
-    <img
-      src="/images/flash-down.png"
-      alt=""
-      className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-    />
-    <select
-      className={`${selectClass} pl-8 w-full`}
-      value={selectedProvinceId}
-      onChange={(event) => {
-        const nextValue = event.target.value;
-        setSelectedProvinceId(nextValue);
-        if (!nextValue) return;
-
-        const isCityInProvince = cities.some(
-          (city) => city.id === cityId && city.provinceId === nextValue,
-        );
-        if (!isCityInProvince) setCityId("");
-      }}
-      disabled={isBusy}
-    >
-      <option value="">استان</option>
-      {provinces.map((province) => (
-        <option key={province.id} value={province.id}>
-          {province.name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  {/* City */}
-  <div className="relative w-[180px]">
-    <img
-      src="/images/flash-down.png"
-      alt=""
-      className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-    />
-    <select
-      className={`${selectClass} pl-8 w-full`}
-      value={cityId}
-      onChange={(event) => setCityId(event.target.value)}
-      disabled={isBusy}
-    >
-      <option value="">شهر</option>
-      {filteredCities.map((city) => (
-        <option key={city.id} value={city.id}>
-          {city.name}
-        </option>
-      ))}
-    </select>
-  </div>
-</div>
-          </div>
-
-
-          <div className="space-y-3">
-            <label className={sectionTitleClass}>رشته تحصیلی / مدرک تحصیلی</label>
             <div className="space-y-3">
-              {degreeEntries.map((entry) => {
-                const options = entry.degreeLevel &&
-                  !DEGREE_LEVEL_OPTIONS.includes(entry.degreeLevel)
-                  ? [entry.degreeLevel, ...DEGREE_LEVEL_OPTIONS]
-                  : DEGREE_LEVEL_OPTIONS;
+              <label className={sectionTitleClass}>رشته تحصیلی</label>
+              <div className="space-y-3">
+                {degreeEntries.map((entry) => (
+                  <input
+                    key={entry.id}
+                    className={inputClass}
+                    placeholder="رشته تحصیلی"
+                    value={entry.major}
+                    onChange={(event) =>
+                      updateDegreeEntry(entry.id, { major: event.target.value })
+                    }
+                    disabled={isBusy}
+                    maxLength={100}
+                  />
+                ))}
+              </div>
+            </div>
 
-                return (
-                  <div key={entry.id} className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <label className={sectionTitleClass}>مدرک تحصیلی مرتبط</label>
+            <div className="space-y-3">
+              <label className={sectionTitleClass}>مدرک تحصیلی مرتبط</label>
+              <div className="space-y-3">
+                {degreeEntries.map((entry) => {
+                  const options = entry.degreeLevel &&
+                    !DEGREE_LEVEL_OPTIONS.includes(entry.degreeLevel)
+                    ? [entry.degreeLevel, ...DEGREE_LEVEL_OPTIONS]
+                    : DEGREE_LEVEL_OPTIONS;
+
+                  return (
+                    <div key={entry.id} className="space-y-2">
                       <div className="relative">
                         <img
                           src="/images/flash-down.png"
@@ -2577,93 +2602,38 @@ export function PortfolioEditCenterPane({
                           ))}
                         </select>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className={sectionTitleClass}>رشته تحصیلی</label>
-                      <input
-                        className={inputClass}
-                        placeholder="رشته تحصیلی"
-                        value={entry.major}
-                        onChange={(event) =>
-                          updateDegreeEntry(entry.id, { major: event.target.value })
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDegreeEntries((prev) =>
+                            prev.filter((item) => item.id !== entry.id),
+                          )
                         }
+                        className="text-right text-[12px] text-[#D56732]"
                         disabled={isBusy}
-                        maxLength={100}
-                      />
+                      >
+                        حذف ردیف
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDegreeEntries((prev) =>
-                          prev.filter((item) => item.id !== entry.id),
-                        )
-                      }
-                      className="col-span-2 text-right text-[12px] text-[#D56732]"
-                      disabled={isBusy}
-                    >
-                      حذف ردیف
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="col-span-2 -mt-[28px]">
               <button
                 type="button"
                 onClick={handleAddDegree}
                 disabled={isBusy}
-                className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
+                className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[22px] text-[#B5B5B5]"
               >
                 +
               </button>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <label className={sectionTitleClass}>مهارت‌ها</label>
-            {skills.length === 0 ? (
-              <button
-                type="button"
-                onClick={handleAddSkill}
-                disabled={isBusy}
-                className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
-              >
-                +
-              </button>
-            ) : (
-              <div className="space-y-3">
-                {skills.map((entry) => (
-                  <div key={entry.id} className="flex items-center gap-3">
-                    <div className="relative flex-1">
-                      <img
-                        src="/images/flash-down.png"
-                        alt=""
-                        className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
-                      />
-                      <select
-                        className={`${selectClass} w-full pl-8`}
-                        value={entry.value}
-                        onChange={(event) =>
-                          updateSkillEntry(entry.id, event.target.value as SkillKey | "")
-                        }
-                        disabled={isBusy}
-                      >
-                        <option value="">عنوان</option>
-                        {SKILLS.map((skill) => (
-                          <option key={skill.key} value={skill.key}>
-                            {skill.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSkill(entry.id)}
-                      disabled={isBusy}
-                      className="text-[12px] text-[#D56732]"
-                    >
-                      حذف
-                    </button>
-                  </div>
-                ))}
+            <div className="space-y-3">
+              <label className={sectionTitleClass}>مهارت‌ها</label>
+              {skills.length === 0 ? (
                 <button
                   type="button"
                   onClick={handleAddSkill}
@@ -2672,8 +2642,55 @@ export function PortfolioEditCenterPane({
                 >
                   +
                 </button>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-3">
+                  {skills.map((entry) => (
+                    <div key={entry.id} className="flex items-center gap-3">
+                      <div className="relative flex-1">
+                        <img
+                          src="/images/flash-down.png"
+                          alt=""
+                          className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2"
+                        />
+                        <select
+                          className={`${selectClass} w-full pl-8`}
+                          value={entry.value}
+                          onChange={(event) =>
+                            updateSkillEntry(entry.id, event.target.value as SkillKey | "")
+                          }
+                          disabled={isBusy}
+                        >
+                          <option value="">عنوان</option>
+                          {SKILLS.map((skill) => (
+                            <option key={skill.key} value={skill.key}>
+                              {skill.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(entry.id)}
+                        disabled={isBusy}
+                        className="text-[12px] text-[#D56732]"
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddSkill}
+                    disabled={isBusy}
+                    className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div aria-hidden="true" />
           </div>
 
 
