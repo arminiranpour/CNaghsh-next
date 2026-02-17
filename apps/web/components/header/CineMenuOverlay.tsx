@@ -5,10 +5,13 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { iransans } from "@/app/fonts";
 
-
 type CineMenuOverlayProps = {
   open: boolean;
   onClose: () => void;
+};
+type CineMenuOverlayContentProps = {
+  mode?: "overlay" | "mobile";
+  onNavigate?: () => void;
 };
 type MenuItem = {
   label: string;
@@ -31,23 +34,85 @@ const leftItems: MenuItem[] = [
   { label: "مونولوگ", href: "/monologue", iconSrc: "/cineflash/home/Hamberger Menu/psychologist_1084208.png" ,iconHoverSrc: "/cineflash/home/Hamberger Menu/psychologist_1084207.png"},
 ];
 
+export function CineMenuOverlayContent({
+  mode = "overlay",
+  onNavigate,
+}: CineMenuOverlayContentProps) {
+  const renderItem = (item: MenuItem, textSizeClass: string) => (
+    <Link key={item.href} href={item.href} onClick={onNavigate}>
+      <div
+        className={`group flex items-center gap-3 border-b border-white/20 py-3 ${textSizeClass} cursor-pointer`}
+      >
+        {/* ICON WRAPPER — keeps both icons in the same spot */}
+        <div className="relative w-[19px] h-[19px]">
+          {/* Default Icon (white) */}
+          <Image
+            src={item.iconSrc}
+            alt=""
+            fill
+            className="object-contain group-hover:opacity-0 transition-opacity duration-150"
+            unoptimized
+          />
+
+          {/* Hover Icon (black) */}
+          <Image
+            src={item.iconHoverSrc}
+            alt=""
+            fill
+            className="object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+            unoptimized
+          />
+        </div>
+        {/* TEXT */}
+        <span className="font-semibold transition-colors duration-200 group-hover:text-[#FF7F19]">
+          {item.label}
+        </span>
+      </div>
+    </Link>
+  );
+
+  if (mode === "mobile") {
+    const allItems = [...leftItems, ...rightItems];
+    return (
+      <div className={`${iransans.className} flex flex-col gap-4`}>
+        {allItems.map((item) => renderItem(item, "text-base"))}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${iransans.className} grid grid-cols-1 gap-y-10 px-28 py-14 md:grid-cols-2 md:gap-x-28`}
+    >
+      {/* LEFT column */}
+      <div className="flex flex-col gap-6">
+        {leftItems.map((item) => renderItem(item, "text-lg"))}
+      </div>
+
+      {/* RIGHT column */}
+      <div className="flex flex-col gap-6">
+        {rightItems.map((item) => renderItem(item, "text-lg"))}
+      </div>
+    </div>
+  );
+}
+
 export function CineMenuOverlay({ open, onClose }: CineMenuOverlayProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-useEffect(() => {
-  if (!open) return;
+  useEffect(() => {
+    if (!open) return;
 
-  const handleClickOutside = (event: MouseEvent) => {
-    if (!menuRef.current) return;
-    if (!menuRef.current.contains(event.target as Node)) {
-      onClose();
-    }
-  };
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
 
-  document.addEventListener("click", handleClickOutside);
-  return () => document.removeEventListener("click", handleClickOutside);
-}, [open, onClose]);
-
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -63,84 +128,15 @@ useEffect(() => {
         -translate-x-1/2
         z-[70]
       "
-     style={{
-     backgroundImage:"url('/cineflash/home/Hamberger Menu/Hamburger Menu BG.png')",
-
-  }}
+      style={{
+        backgroundImage: "url('/cineflash/home/Hamberger Menu/Hamburger Menu BG.png')",
+      }}
     >
       <div 
         ref={menuRef}
         className="mx-auto w-[1150px] max-w-[95vw] h-[530px] rounded-[40px] bg-[#2F3439]/95 text-white shadow-[0_18px_60px_rgba(0,0,0,0.55)]">
         {/* Menu content */}
-<div className={`${iransans.className} grid grid-cols-1 gap-y-10 px-28 py-14 md:grid-cols-2 md:gap-x-28`}>
-  {/* LEFT column */}
-  <div className="flex flex-col gap-6">
-    {leftItems.map((item) => (
-      <Link key={item.href} href={item.href} onClick={onClose}>
-        <div className="group flex items-center gap-3 border-b border-white/20 py-3 text-lg cursor-pointer">
-            {/* ICON WRAPPER — keeps both icons in the same spot */}
-            <div className="relative w-[19px] h-[19px]">
-            {/* Default Icon (white) */}
-            <Image
-                src={item.iconSrc}
-                alt=""
-                fill
-                className="object-contain group-hover:opacity-0 transition-opacity duration-150"
-                unoptimized
-            />
-
-            {/* Hover Icon (black) */}
-            <Image
-                src={item.iconHoverSrc}
-                alt=""
-                fill
-                className="object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-                unoptimized
-            />
-            </div>
-            {/* TEXT */}
-              <span className="font-semibold transition-colors duration-200 group-hover:text-[#FF7F19]">
-                {item.label}
-              </span>
-        </div>
-      </Link>
-    ))}
-  </div>
-
-  {/* RIGHT column */}
-  <div className="flex flex-col gap-6">
-    {rightItems.map((item) => (
-      <Link key={item.href} href={item.href} onClick={onClose}>
-        <div className="group flex items-center gap-3 border-b border-white/20 py-3 text-lg cursor-pointer">
-            {/* ICON WRAPPER — keeps both icons in the same spot */}
-            <div className="relative w-[19px] h-[19px]">
-            {/* Default Icon (white) */}
-            <Image
-                src={item.iconSrc}
-                alt=""
-                fill
-                className="object-contain group-hover:opacity-0 transition-opacity duration-150"
-                unoptimized
-            />
-
-            {/* Hover Icon (black) */}
-            <Image
-                src={item.iconHoverSrc}
-                alt=""
-                fill
-                className="object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-150"
-                unoptimized
-            />
-            </div>
-            {/* TEXT */}
-              <span className="font-semibold transition-colors duration-200 group-hover:text-[#FF7F19]">
-                {item.label}
-              </span>
-        </div>
-      </Link>
-    ))}
-  </div>
-</div>
+        <CineMenuOverlayContent mode="overlay" onNavigate={onClose} />
 
       </div>
     </div>

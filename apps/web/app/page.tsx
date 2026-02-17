@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import Banner from "@/components/Home/Banner";
 import IntroHeading from "@/components/Home/IntroHeading";
 import FeaturedHeader from "@/components/Home/FeaturedHeader";
@@ -21,8 +20,6 @@ export default function HomePage() {
           position: "relative", // خیلی مهم برای اینکه absolute هدر درست عمل کنه
         }}
       >
-        <Header />
-
         <Banner />
 
         <section style={{ marginTop: 120 }}>
