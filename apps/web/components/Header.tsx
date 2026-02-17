@@ -434,8 +434,8 @@ export default function Header({ variant = "static" }: HeaderProps) {
             dir="rtl"
             role="dialog"
             aria-modal="true"
-            className={`absolute top-0 right-0 h-full w-full bg-[#2F3439] text-white transition-transform duration-300 ease-out ${
-              isMenuOpen ? "translate-x-0" : "translate-x-full"
+            className={`absolute top-0 right-0 h-full w-full bg-[#2F3439] text-white transform transition-transform duration-300 ease-out ${
+              isMenuOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
             }`}
             style={{ fontFamily: "IRANSans" }}
           >

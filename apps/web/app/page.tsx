@@ -7,19 +7,16 @@ import CommunityBanner from "@/components/Home/CommunityBanner";
 
 export default function HomePage() {
   return (
-    <main dir="rtl" className="relative w-full flex justify-center">
+    <main
+      dir="rtl"
+      className="relative w-full flex justify-center max-md:h-[100svh] max-md:overflow-hidden"
+    >
       <div
         className="fixed inset-0 -z-10 bg-[url('/cineflash/home/background.jpg')] bg-cover bg-top bg-repeat-y"
         aria-hidden="true"
       />
-      <div
-        className="mx-auto"
-        style={{
-          width: "1526px",
-          minHeight: "100vh",
-          position: "relative", // خیلی مهم برای اینکه absolute هدر درست عمل کنه
-        }}
-      >
+      {/* خیلی مهم برای اینکه absolute هدر درست عمل کنه */}
+      <div className="mx-auto relative w-[1526px] min-h-[100vh] max-md:min-h-0 max-md:h-[100svh] max-md:overflow-hidden">
         <Banner />
 
         <section style={{ marginTop: 120 }}>

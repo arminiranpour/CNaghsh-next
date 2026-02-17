@@ -15,66 +15,25 @@ export default function HeroSection() {
           style={{ objectFit: "cover", objectPosition: "top", transform: "translateY(-75px)", zIndex: 0 }}
         />
 
-        {/* ▬ نوار پایین روی GIF */}
-        <div
-          className="absolute"
-          style={{
-            left: 0,
-            top: 915,
-            width: 1526,
-            height: 2000,
-            backgroundColor: "#000000ff",
-            zIndex: 5,
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* ▮ نوار عمودی سمت چپ */}
-        <div
-          className="absolute"
-          style={{
-            left: 0,
-            top: 0,
-            width: 50,
-            height: "100%",
-            backgroundColor: "#000000ff",
-            zIndex: 5,
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* ▮ نوار عمودی سمت راست */}
-        <div
-          className="absolute"
-          style={{
-            right: 0,
-            top: 0,
-            width: 50,
-            height: "100%",
-            backgroundColor: "#000000ff",
-            zIndex: 5,
-            pointerEvents: "none",
-          }}
-        />
 
         {/* 📏 فریم سفید */}
-        <Image
-  src="/cineflash/home/banner/MainFrame.png"
-  alt="نوار سفید بنر"
-  fill
-  className="absolute"
-  style={{
-    left: 0,
-    top: "15px",
-    transform: "scaleX(1.15) scaleY(1.05)", // ← افقی ۱۵٪ و عمودی ۵٪ کشیده‌تر
-    transformOrigin: "center top", // ← از بالا ثابت بماند و پایین کشیده شود
-    opacity: 0.5,
-    zIndex: 10,
-    objectFit: "contain",
-  }}
-  unoptimized
-  priority
-/>
+          <Image
+          src="/cineflash/home/banner/MainFrame.png"
+          alt="نوار سفید بنر"
+          fill
+          className="absolute"
+          style={{
+            left: 0,
+            top: "15px",
+            transform: "scaleX(1.15) scaleY(1.05)", // ← افقی ۱۵٪ و عمودی ۵٪ کشیده‌تر
+            transformOrigin: "center top", // ← از بالا ثابت بماند و پایین کشیده شود
+            opacity: 0.5,
+            zIndex: 10,
+            objectFit: "contain",
+          }}
+          unoptimized
+          priority
+        />
 
 
         {/* 🟠 لوگو */}
