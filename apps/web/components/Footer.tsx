@@ -23,31 +23,10 @@ export default function Footer() {
         }}
         className="relative pt-8 pb-12"
       >
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-5">
-          {/* Column 1: Logo */}
-          <div className="flex flex-col">
-            <div
-              style={{
-                position: "relative",
-                width: 140,
-                height: 43,
-                marginBottom: 16,
-              }}
-            >
-              <Image
-                src="/cineflash/home/header/cnaghsh-logo.png"
-                alt="CNAGHSH ART GROUP"
-                fill
-                sizes="140px"
-                style={{ objectFit: "contain" }}
-                unoptimized
-                priority
-              />
-            </div>
-          </div>
+        <div className="mx-8 grid gap-8 justify-items-start grid-cols-[repeat(auto-fit,minmax(220px,1fr))]" dir="rtl"> 
 
           {/* Column 2: Si Naghsh Links */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex min-w-0 flex-col space-y-3">
             <h3 className="font-semibold text-black">سی نقش</h3>
             <Link
               href="/"
@@ -64,7 +43,7 @@ export default function Footer() {
           </div>
 
           {/* Column 3: Profile Links */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex min-w-0 flex-col space-y-3">
             <h3 className="font-semibold text-black">پروفایل</h3>
             <Link
               href="/dashboard/profile"
@@ -87,9 +66,9 @@ export default function Footer() {
           </div>
 
           {/* Column 4: Contact */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex min-w-0 flex-col space-y-3">
             <h3 className="font-semibold text-black">ارتباط با ما</h3>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <a
                 href="https://instagram.com"
                 target="_blank"
@@ -156,12 +135,12 @@ export default function Footer() {
           </div>
 
           {/* Column 5: Newsletter */}
-          <div className="flex flex-col space-y-3">
+          <div className="flex min-w-0 flex-col space-y-3">
             <h3 className="text-right text-semibold font-bold leading-[31px] text-black">
               به خبرنامه سی نقش بپیوندید
             </h3>
-            <form className="w-full max-w-[262px]">
-              <div className="flex h-[33px] w-full items-center rounded-full bg-[#D9D9D9]/65 ">
+            <form className="w-full md:max-w-[262px]">
+              <div className="flex h-[33px] min-h-[33px] w-full flex-nowrap overflow-hidden items-justify-center rounded-full bg-[#D9D9D9]/65" dir="ltr">
                 <button
                   type="submit"
                   className="flex-none h-[33px] w-[55px] rounded-full bg-[#979797] text-[13px] font-bold leading-[20px] text-white"
@@ -171,7 +150,7 @@ export default function Footer() {
                 <input
                   type="email"
                   placeholder="آدرس ایمیل"
-                  className="h-full flex-1 bg-transparent pr-6 text-right text-[13px] leading-[20px] text-black placeholder:text-black/70 focus:outline-none"
+                  className="h-full flex-1 bg-transparent pr-2 text-right text-[13px] leading-[20px] text-black placeholder:text-black/70 focus:outline-none"
                   dir="rtl"
                 />
               </div>
