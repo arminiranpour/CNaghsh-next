@@ -19,10 +19,6 @@ export default function HomePage() {
       <div className="mx-auto relative w-[1526px] min-h-[100vh] max-md:min-h-0 max-md:h-[100svh] max-md:overflow-hidden">
         <Banner />
 
-        <section style={{ marginTop: 120 }}>
-          <IntroHeading />
-        </section>
-
         <section className="flex justify-center mt-[150px]">
           <div className="relative w-[1407px] mx-auto">
             <FeaturedHeader />

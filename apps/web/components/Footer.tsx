@@ -23,8 +23,7 @@ export default function Footer() {
         }}
         className="relative pt-8 pb-12"
       >
-        <div className="mx-8 grid gap-8 justify-items-start grid-cols-[repeat(auto-fit,minmax(220px,1fr))]" dir="rtl"> 
-
+        <div className="mx-10 grid gap-8 justify-items-start grid-cols-[repeat(auto-fit,minmax(164px,1fr))]" dir="rtl"> 
           {/* Column 2: Si Naghsh Links */}
           <div className="flex min-w-0 flex-col space-y-3">
             <h3 className="font-semibold text-black">سی نقش</h3>
