@@ -7,20 +7,17 @@ import CommunityBanner from "@/components/Home/CommunityBanner";
 
 export default function HomePage() {
   return (
-    <main
-      dir="rtl"
-      className="relative w-full flex justify-center max-md:h-[100svh] max-md:overflow-hidden"
-    >
+    <main dir="rtl" className="relative w-full min-h-[100svh] overflow-x-hidden">
       <div
-        className="fixed inset-0 -z-10 bg-[url('/cineflash/home/background.jpg')] bg-cover bg-top bg-repeat-y"
+        className="fixed inset-0 -z-10 bg-[url('/cineflash/home/background.jpg')] bg-cover bg-top bg-no-repeat"
         aria-hidden="true"
       />
-      {/* خیلی مهم برای اینکه absolute هدر درست عمل کنه */}
-      <div className="mx-auto relative w-[1526px] min-h-[100vh] max-md:min-h-0 max-md:h-[100svh] max-md:overflow-hidden">
-        <Banner />
 
-        <section className="flex justify-center mt-[150px]">
-          <div className="relative w-[1407px] mx-auto">
+      {/* Page content container (keeps desktop centered, mobile padded) */}
+      <div className="relative mx-auto w-full max-w-[1526px] px-0 sm:px-0 lg:px-0">
+        <Banner />
+        <section className="flex justify-center mt-20 sm:mt-24 lg:mt-[150px]">
+          <div className="relative w-full max-w-[1407px]">
             <FeaturedHeader />
             <div className="mt-8" />
             <FeaturedCard />

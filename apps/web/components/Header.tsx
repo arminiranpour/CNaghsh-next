@@ -173,12 +173,12 @@ export default function Header({ variant = "static" }: HeaderProps) {
         }
         data-variant={variant}
       >
-        <div className="hidden lg:block">
+        <div className="hidden lg:flex justify-center">
           <div
             style={{
               maxWidth: FRAME_WIDTH,
-              width: "100%",
-              margin: "0 auto",
+              width: FRAME_WIDTH,
+              margin: "0 260px",
               paddingRight: RIGHT_PADDING,
               paddingLeft: RIGHT_PADDING,
               display: "flex",
@@ -187,9 +187,9 @@ export default function Header({ variant = "static" }: HeaderProps) {
             }}
           >
             {/* راست: آیکن‌ها + متن‌ها */}
-            <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS }}>
+            <div style={{ display: "flex", alignItems: "center", gap: GAP_GROUPS, flexShrink: 0 }}>
               {/* آیکن‌ها */}
-              <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS }}>
+              <div style={{ display: "flex", alignItems: "center", gap: GAP_ICONS, flexShrink: 0 }}>
                 {/* Menu */}
                 <button
                   type="button"
@@ -208,6 +208,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                     border: 0,
                     background: "transparent",
                     cursor: "pointer",
+                    flexShrink: 0,
                   }}
                 >
                   <Image
@@ -227,6 +228,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                       transition: "filter .2s ease, transform .15s ease",
                       filter: hovered === "menu" ? orangeFilter : "none",
                       transform: hovered === "menu" ? "translateY(-1px)" : "none",
+                      flexShrink: 0,
                     }}
                   />
                 </button>
@@ -246,6 +248,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                     background: "transparent",
                     cursor: "pointer",
                     textDecoration: "none",
+                    flexShrink: 0,
                   }}
                 >
                   <Image
@@ -264,6 +267,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                       transition: "filter .2s ease, transform .15s ease",
                       filter: hovered === "user" ? orangeFilter : "none",
                       transform: hovered === "user" ? "translateY(-1px)" : "none",
+                      flexShrink: 0,
                     }}
                   />
                 </Link>
@@ -279,6 +283,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                 fontWeight: 500,
                 lineHeight: 1,
                 whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               <Link
@@ -290,6 +295,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                   color: hovered === "register" ? "#F58A1F" : "inherit",
                   transition: "color .2s ease",
                   cursor: "pointer",
+                  flexShrink: 0,
                 }}
               >
                 ثبت نام
@@ -304,6 +310,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
                   color: hovered === "search" ? "#F58A1F" : "inherit",
                   transition: "color .2s ease",
                   cursor: "pointer",
+                  flexShrink: 0,
                 }}
               >
                 جست‌ و جوی هنرمندان
@@ -321,6 +328,7 @@ export default function Header({ variant = "static" }: HeaderProps) {
               marginLeft: GAP_LOGO,
               display: "block",
               textDecoration: "none",
+              flexShrink: 0,
             }}
           >
             <Image
