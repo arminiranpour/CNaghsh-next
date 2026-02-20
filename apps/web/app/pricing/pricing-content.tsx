@@ -253,24 +253,6 @@ export function PricingContent({
 
   return (
     <div className="space-y-10">
-      {viewer.subscription && (
-        <div className="mx-auto w-full max-w-3xl rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
-          <p className="font-medium">
-            اشتراک فعال شما: {subscriptionGroup?.name ?? "پلن فعلی"}
-          </p>
-          <p className="mt-1 text-primary/80">
-            دوره پرداخت: {subscriptionCadenceLabel ?? "نامشخص"}
-          </p>
-          {viewer.subscription.endsAt && (
-            <p className="mt-1 text-primary/80">
-              تاریخ پایان دوره کنونی: {" "}
-              {new Date(viewer.subscription.endsAt).toLocaleDateString(
-                "fa-IR",
-              )}
-            </p>
-          )}
-        </div>
-      )}
 
       {cadenceOptions.length > 1 && (
         <div className="flex justify-center">
@@ -298,8 +280,7 @@ export function PricingContent({
           <h2 className="text-4xl font-bold text-black mb-4">خرید اشتراک</h2>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Free Plan */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:grid-cols-3 justify-items-center">          {/* Free Plan */}
           <SubscriptionPlanCard
             title="رایگان"
             features={[

@@ -46,7 +46,7 @@ export function SubscriptionPlanCard({
     );
 
   return (
-    <div className="flex flex-col rounded-2xl bg-white p-6 shadow-lg">
+    <div className="flex flex-col rounded-2xl bg-white p-6 shadow-lg max-w-[400px] min-w-[284px] w-full">
       {/* Title */}
       <div className="mb-6 text-center">
         <h3 className="text-xl font-bold text-black">{title}</h3>
@@ -68,7 +68,7 @@ export function SubscriptionPlanCard({
       {/* Features */}
       <div className="flex-1 space-y-4">
         {features.map((feature, index) => (
-          <div key={index} className="flex items-start gap-3 text-sm">
+          <div key={index} className="flex items-start gap-3 lg:text-sm text-xs">
             <div className="mt-0.5 h-5 w-5 flex-shrink-0">
               {feature.enabled ? (
                 <Image

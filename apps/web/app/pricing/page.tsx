@@ -683,34 +683,23 @@ export default async function PricingPage({
   };
 
   return (
-    <main
-      className={`${iranSans.className} relative min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat`}
-      style={{ backgroundImage: "url('/images/auth-bg.jpg')" }}
-    >
-      <div className="w-full h-full px-4 py-12 mt-[120px]">
-        <div className="relative flex items-center justify-center min-h-screen">
-          <div
-            className="
-              absolute
-              top-1/2 left-1/2
-              -translate-x-1/2 -translate-y-1/2
-              w-full h-full
-              max-w-[1600px] max-h-[800px]
-              border-[3px] border-white rounded-[34px]
-            "
-          >
-            <div
-              className="flex items-center justify-center w-full h-full gap-12 md:flex-row"
-              dir="ltr"
-            >
-              <div className="w-full h-full p-12" dir="rtl">
-                <PricingContent
-                  plans={planGroups}
-                  cadenceLabels={CADENCE_LABELS}
-                  initialCadence={defaultCadence}
-                  viewer={viewer}
-                />
-              </div>
+    <main className={`${iranSans.className} relative min-h-[840px] h-full w-full`}>
+      <div
+        className="fixed inset-0 -z-10 bg-[url('/images/auth-bg.jpg')] bg-cover bg-center bg-no-repeat"
+        aria-hidden="true"
+      />
+      <div className="mx-auto w-full max-w-[1600px] px-4 pt-[120px] pb-12">
+        <div
+          className="w-full rounded-none border-0 lg:rounded-[34px] lg:border-[3px] lg:border-white"
+        >
+          <div className="flex w-full gap-12 md:flex-row" dir="ltr">
+            <div className="w-full p-0 lg:p-12" dir="rtl">
+              <PricingContent
+                plans={planGroups}
+                cadenceLabels={CADENCE_LABELS}
+                initialCadence={defaultCadence}
+                viewer={viewer}
+              />
             </div>
           </div>
         </div>
