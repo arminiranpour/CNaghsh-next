@@ -26,45 +26,22 @@ export function GallerySlide({ images }: GallerySlideProps) {
 
   return (
     <div
+      className="relative w-full max-w-full min-w-0 md:h-full"
       style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
         direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
       }}
     >
       {/* Title */}
       <h1
-        style={{
-          position: "absolute",
-          left: 655,
-          top: 35,
-          height: 47,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: 0,
-          fontSize: 32,
-          fontWeight: 900,
-          color: "#000000",
-          whiteSpace: "nowrap",
-        }}
+        className="m-0 mt-2 flex w-full items-center justify-center text-center text-[clamp(22px,6vw,32px)] font-black text-black md:absolute md:left-[655px] md:top-[35px] md:mt-0 md:h-[47px] md:w-auto md:text-[32px] md:whitespace-nowrap"
       >
         تصاویر
       </h1>
 
       {/* Gallery Container */}
       <div
-        style={{
-          position: "absolute",
-          left: 55,
-          top: 120,
-          width: 682,
-          height: 587,
-          borderRadius: 24,
-          backgroundColor: "#FFFFFF",
-        }}
+        className="mt-4 grid w-full min-w-0 grid-cols-2 gap-3 rounded-[24px] bg-white p-3 sm:grid-cols-3 sm:gap-4 sm:p-4 md:absolute md:left-[55px] md:top-[120px] md:mt-0 md:h-[587px] md:w-[682px] md:block md:gap-0 md:p-0"
       >
         {SLOTS.map((slot, index) => {
           const image = normalizedImages[index];
@@ -75,16 +52,15 @@ export function GallerySlide({ images }: GallerySlideProps) {
               onClick={
                 image ? () => setActiveIndex(index) : undefined
               }
+              className="relative w-full overflow-hidden rounded-[12px] md:absolute md:left-[var(--slot-left)] md:top-[var(--slot-top)] md:w-[var(--slot-w)] md:h-[var(--slot-h)]"
               style={{
-                position: "absolute",
-                left: slot.left,
-                top: slot.top,
-                width: slot.width,
-                height: slot.height,
-                borderRadius: 12,
+                aspectRatio: `${slot.width} / ${slot.height}`,
                 backgroundColor: slot.color,
-                overflow: "hidden",
                 cursor: image ? "pointer" : "default",
+                ["--slot-left" as any]: `${slot.left}px`,
+                ["--slot-top" as any]: `${slot.top}px`,
+                ["--slot-w" as any]: `${slot.width}px`,
+                ["--slot-h" as any]: `${slot.height}px`,
               }}
             >
               {image && (
@@ -106,24 +82,7 @@ export function GallerySlide({ images }: GallerySlideProps) {
 
       {/* Next Page Button */}
       <div
-        style={{
-          position: "absolute",
-          left: (797 / 2) - (141 / 2),
-          top: 1038 - 290,
-          width: 141,
-          height: 44,
-          borderRadius: 38,
-          backgroundColor: "transparent",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          cursor: "pointer",
-          fontFamily: "IRANSans, sans-serif",
-          color: "#FF7F19",
-          fontSize: 15,
-          fontWeight: 700,
-        }}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-[38px] text-[15px] font-bold text-[#FF7F19] cursor-pointer md:absolute md:left-[328px] md:top-[748px] md:mt-0 md:h-[44px] md:w-[141px]"
       >
         <span>صفحه بعد</span>
         <span style={{ fontSize: 20, marginBottom: 2 }}>←</span>

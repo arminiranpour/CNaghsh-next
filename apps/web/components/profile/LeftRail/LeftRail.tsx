@@ -4,36 +4,15 @@ import Image from "next/image";
 import type { ProfileTabId } from "@/components/profile/ProfilePageClient";
 
 const NAV_ITEMS: { id: ProfileTabId; label: string; iconSrc: string }[] = [
-  {
-    id: "personal",
-    label: "اطلاعات شخصی",
-    iconSrc: "/cineflash/profile/personal.png",
-  },
-  {
-    id: "gallery",
-    label: "گالری تصاویر",
-    iconSrc: "/cineflash/profile/gallery.png",
-  },
-  {
-    id: "videos",
-    label: "ویدئوها",
-    iconSrc: "/cineflash/profile/videos.png",
-  },
-  {
-    id: "audio",
-    label: "فایل‌های صوتی",
-    iconSrc: "/cineflash/profile/audio.png",
-  },
-  {
-    id: "awards",
-    label: "افتخارات",
-    iconSrc: "/cineflash/profile/awards.png",
-  },
+  { id: "personal", label: "اطلاعات شخصی", iconSrc: "/cineflash/profile/personal.png" },
+  { id: "gallery", label: "گالری تصاویر", iconSrc: "/cineflash/profile/gallery.png" },
+  { id: "videos", label: "ویدئوها", iconSrc: "/cineflash/profile/videos.png" },
+  { id: "audio", label: "فایل‌های صوتی", iconSrc: "/cineflash/profile/audio.png" },
+  { id: "awards", label: "افتخارات", iconSrc: "/cineflash/profile/awards.png" },
 ];
 
 const grayFilter =
   "brightness(0) saturate(100%) invert(39%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%)";
-
 const whiteFilter = "brightness(0) invert(1)";
 
 type LeftRailProps = {
@@ -77,7 +56,7 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
                   width: 87.15,
                   height: 87.15,
                   borderRadius: 22,
-                  backgroundColor: isActive ? "#F58A1F" : "#DFDFDF", // نارنجی فیگما
+                  backgroundColor: isActive ? "#F58A1F" : "#DFDFDF",
                   border: "none",
                   padding: 0,
                   cursor: "pointer",
@@ -89,7 +68,6 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
                   transition: "background-color 0.15s ease",
                 }}
               >
-                {/* آیکن */}
                 <div
                   style={{
                     width: 35,
@@ -98,15 +76,9 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
                     filter: isActive ? whiteFilter : grayFilter,
                   }}
                 >
-                  <Image
-                    src={item.iconSrc}
-                    alt={item.label}
-                    fill
-                    style={{ objectFit: "contain" }}
-                  />
+                  <Image src={item.iconSrc} alt={item.label} fill style={{ objectFit: "contain" }} />
                 </div>
 
-                {/* متن زیر آیکن */}
                 <span
                   style={{
                     fontFamily: "IRANSans, sans-serif",
@@ -125,10 +97,31 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
         </aside>
       </div>
 
+      {/* Mobile bottom nav */}
       <nav
         aria-label="profile tabs"
-        className="fixed bottom-0 left-0 right-0 z-50 w-full h-[100px] bg-white border-t border-black/10 pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 w-full h-[100px] bg-white pb-[env(safe-area-inset-bottom)] flex flex-col justify-end overflow-hidden"
       >
+        {/* Curved top edge (fills white + draws a curved border line) */}
+        <svg
+          className="pointer-events-none absolute left-0 top-0 h-8 w-full"
+          viewBox="0 0 100 30"
+          preserveAspectRatio="none"
+        >
+          {/* white fill */}
+          <path
+            d="M0,30 L0,8 Q50,0 100,8 L100,30 Z"
+            fill="#FFFFFF"
+          />
+          {/* curved border stroke */}
+          <path
+            d="M0,8 Q50,0 100,8"
+            fill="none"
+            stroke="rgba(0,0,0,0.10)"
+            strokeWidth="2"
+          />
+        </svg>
+
         <div className="flex w-full px-4 py-[9px]">
           {NAV_ITEMS.map((item) => {
             const isActive = item.id === activeTab;
@@ -140,10 +133,8 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
                 aria-label={item.label}
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => onTabChange(item.id)}
-                className="grow basis-0 w-full w-max-16 flex flex-col justify-between items-center gap-0 h-14 cursor-pointer rounded-[70px] transition-colors"
-                style={{
-                  backgroundColor: isActive ? "#FF7F19" : "transparent",
-                }}
+                className="grow basis-0 w-full flex flex-col items-center justify-between h-14 cursor-pointer rounded-[70px] transition-colors"
+                style={{ backgroundColor: isActive ? "#FF7F19" : "transparent" }}
               >
                 <div
                   style={{
@@ -153,12 +144,7 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
                     filter: isActive ? whiteFilter : grayFilter,
                   }}
                 >
-                  <Image
-                    src={item.iconSrc}
-                    alt={item.label}
-                    fill
-                    style={{ objectFit: "contain" }}
-                  />
+                  <Image src={item.iconSrc} alt={item.label} fill style={{ objectFit: "contain" }} />
                 </div>
 
                 <span
@@ -179,7 +165,7 @@ export function LeftRail({ activeTab, onTabChange }: LeftRailProps) {
         </div>
       </nav>
 
-      <div className="h-[70px] md:hidden" aria-hidden="true" />
+      <div className="h-[100px] md:hidden" aria-hidden="true" />
     </>
   );
 }

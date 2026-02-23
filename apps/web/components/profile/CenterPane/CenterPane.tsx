@@ -53,7 +53,7 @@ export function CenterPane({
         initialSaved={profile.isSavedByMe}
         initialLikesCount={profile.likesCount}
       />
-      <div className="w-full min-w-0 px-3 pb-6 pt-2 sm:px-4 md:px-0 md:pb-0 md:pt-0 md:h-full">
+      <div className="w-full min-w-0 px-3 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))] sm:px-4 md:px-0 md:pt-0 md:pb-0 md:h-full">
         {children}
         {activeTab === "personal" ? (
           <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />

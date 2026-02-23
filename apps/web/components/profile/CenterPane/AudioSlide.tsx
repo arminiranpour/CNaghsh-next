@@ -47,8 +47,8 @@ function AudioRow({ voice }: { voice: AudioEntry }) {
 
   return (
     <div
+      className="w-full min-w-0"
       style={{
-        width: "100%",
         borderRadius: 14,
         backgroundColor: "#FFFFFF",
         padding: "14px 18px",
@@ -62,11 +62,13 @@ function AudioRow({ voice }: { voice: AudioEntry }) {
           justifyContent: "flex-end",
           gap: 12,
           marginBottom: 10,
+          flexWrap: "wrap",
+          minWidth: 0,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
             <span
               style={{
                 fontWeight: 700,
@@ -146,10 +148,8 @@ export function AudioSlide({ voices }: AudioSlideProps) {
 
   return (
     <div
+      className="relative w-full max-w-full min-w-0 md:h-full"
       style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
         direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
       }}
@@ -158,32 +158,14 @@ export function AudioSlide({ voices }: AudioSlideProps) {
 
       {normalized.length === 0 ? (
         <p
-          style={{
-            position: "absolute",
-            top: 110,
-            left: 55,
-            margin: 0,
-            fontSize: 14,
-            color: "#666666",
-          }}
+          className="mt-3 text-[14px] text-[#666666] md:absolute md:left-[55px] md:top-[110px] md:mt-0"
         >
           فایل صوتی ثبت نشده است.
         </p>
       ) : (
         <div
           data-header-scroll
-          style={{
-            position: "absolute",
-            top: 120,
-            left: 55,
-            width: 680,
-            height: 620,
-            display: "flex",
-            flexDirection: "column",
-            gap: 18,
-            overflowY: "auto",
-            paddingRight: 4,
-          }}
+          className="mt-4 flex w-full min-w-0 flex-col gap-4 md:absolute md:left-[55px] md:top-[120px] md:mt-0 md:h-[620px] md:w-[680px] md:gap-[18px] md:overflow-y-auto md:pr-1"
         >
           {normalized.map((voice, index) => (
             <AudioRow key={`${voice.mediaId}-${index}`} voice={voice} />
@@ -192,25 +174,8 @@ export function AudioSlide({ voices }: AudioSlideProps) {
       )}
 
       <div
-        style={{
-          position: "absolute",
-          left: 797 / 2 - 141 / 2,
-          top: 1038 - 290,
-          width: 141,
-          height: 44,
-          borderRadius: 38,
-          backgroundColor: "transparent",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          cursor: normalized.length > 1 ? "pointer" : "default",
-          fontFamily: "IRANSans, sans-serif",
-          color: "#FF7F19",
-          fontSize: 15,
-          fontWeight: 700,
-          opacity: normalized.length > 1 ? 1 : 0.5,
-        }}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-[38px] text-[15px] font-bold text-[#FF7F19] md:absolute md:left-[328px] md:top-[748px] md:mt-0 md:h-[44px] md:w-[141px]"
+        style={{ cursor: normalized.length > 1 ? "pointer" : "default", opacity: normalized.length > 1 ? 1 : 0.5 }}
       >
         <span>صفحه بعد</span>
         <span style={{ fontSize: 20, marginBottom: 2 }}>←</span>

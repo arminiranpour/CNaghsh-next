@@ -52,23 +52,15 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
 
   return (
     <div
+      className="relative w-full max-w-full min-w-0 px-3 sm:px-4 md:px-[55px]"
       style={{
         fontFamily: "IRANSans, sans-serif",
         direction: "rtl",
-        position: "relative",
-        padding: "0 55px",
       }}
     >
       {/* Title */}
       <h1
-        style={{
-          margin: 0,
-          marginTop: 35,
-          fontSize: 32,
-          fontWeight: 900,
-          textAlign: "center",
-          color: "#000",
-        }}
+        className="m-0 mt-2 text-center text-[clamp(22px,6vw,32px)] font-black text-black md:mt-[35px] md:text-[32px]"
       >
         جوایز و افتخارات
       </h1>
@@ -76,24 +68,13 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
       {/* No awards */}
       {normalized.length === 0 ? (
         <p
-          style={{
-            marginTop: 120,
-            fontSize: 14,
-            color: GRAY,
-            textAlign: "center",
-          }}
+          className="mt-6 text-center text-[14px] text-[#7C7C7C] md:mt-[120px]"
         >
           جایزه‌ای ثبت نشده است.
         </p>
       ) : (
         <div
-          style={{
-            marginTop: 140,
-            display: "flex",
-            flexDirection: "column",
-            gap: 40,
-            width: 680,
-          }}
+          className="mt-8 flex w-full min-w-0 flex-col gap-8 md:mt-[140px] md:w-[680px] md:gap-[40px]"
         >
           {normalized.map((award, index) => {
             const subtitle = buildSubtitle(award);
@@ -128,11 +109,7 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
 
                 {/* Subtitle */}
                 <div
-                  style={{
-                    fontSize: 16,
-                    color: GRAY,
-                    marginTop: 10,
-                  }}
+                  className="mt-2 text-[16px] text-[#7C7C7C]"
                 >
                   {subtitle}
                 </div>
@@ -140,13 +117,7 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
                 {/* Divider – except after the last item */}
                 {index < normalized.length - 1 && (
                   <div
-                    style={{
-                      width: 544,
-                      height: 0,
-                      border: "1px solid #000",
-                      opacity: 0.3,
-                      marginTop: 25,
-                    }}
+                    className="mt-[25px] h-0 w-full border border-black/30 md:w-[544px]"
                   />
                 )}
               </div>
