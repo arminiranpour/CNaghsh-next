@@ -29,16 +29,19 @@ export function CenterPane({
   return (
     <section
       aria-label="محتوای اصلی پروفایل"
+      className="
+        fixed inset-0 z-40
+        w-screen h-[100dvh]
+        bg-white
+        overflow-x-hidden overflow-y-auto
+        md:absolute md:z-auto
+        md:left-[273px] md:top-[315px]
+        md:w-[797px] md:h-[804px]
+        md:overflow-hidden
+        md:rounded-[20px]
+        shadow-[0_10px_30px_rgba(0,0,0,0.10)]
+      "
       style={{
-        position: "absolute",
-        left: 273, 
-        top: 315,  
-        width: 797, 
-        height: 804, 
-        borderRadius: 20,
-        backgroundColor: "#FFFFFF",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
-        overflow: "hidden",
         direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
       }}
@@ -50,15 +53,16 @@ export function CenterPane({
         initialSaved={profile.isSavedByMe}
         initialLikesCount={profile.likesCount}
       />
-      {children}
-      {activeTab === "personal" ? (
-        <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />
-      ) : null}
-      {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
-      {activeTab === "videos" ? <VideosSlide videos={profile.videos} /> : null}
-      {activeTab === "awards" ? <AwardsSlide awards={profile.awards ?? []} /> : null}
-      {activeTab === "audio" ? <AudioSlide voices={profile.voices ?? []} /> : null}
-
+      <div className="w-full min-w-0 px-3 pb-6 pt-2 sm:px-4 md:px-0 md:pb-0 md:pt-0 md:h-full">
+        {children}
+        {activeTab === "personal" ? (
+          <PersonalInfoSlide bio={profile.bio} experience={profile.experience} />
+        ) : null}
+        {activeTab === "gallery" ? <GallerySlide images={profile.gallery} /> : null}
+        {activeTab === "videos" ? <VideosSlide videos={profile.videos} /> : null}
+        {activeTab === "awards" ? <AwardsSlide awards={profile.awards ?? []} /> : null}
+        {activeTab === "audio" ? <AudioSlide voices={profile.voices ?? []} /> : null}
+      </div>
     </section>
   );
 }
