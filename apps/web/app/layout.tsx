@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import "./globals.css";
 import { headers } from "next/headers";
 
@@ -67,10 +67,15 @@ export default function RootLayout({
       <body className="min-h-screen font-sans antialiased">
         <SessionProvider>
           <ThemeProvider>
-            <div className="relative flex min-h-screen flex-col">
+            <div
+              className="relative flex min-h-[100dvh] flex-col"
+              style={{ "--mobile-header-h": "72px" } as CSSProperties}
+            >
               <ConsentGate />
               {!isAuthRoute && !isOverlayHeaderRoute ? <Header variant="static" /> : null}
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 pt-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] md:pt-0">
+                {children}
+              </main>
               <JsonLd data={organizationJsonLd} />
               {!isAuthRoute ? <Footer /> : null}
             </div>

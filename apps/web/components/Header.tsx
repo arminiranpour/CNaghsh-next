@@ -30,6 +30,7 @@ type HeaderProps = {
 };
 type HeaderStyle = CSSProperties & {
   "--header-padding": string;
+  "--mobile-header-h": string;
 };
 
 function getHeaderConfig(pathname: string) {
@@ -157,10 +158,11 @@ export default function Header({ variant = "static" }: HeaderProps) {
   return (
     <>
       <header
-        className="sticky top-0 z-[100] bg-transparent lg:absolute lg:top-0 lg:left-0 lg:right-0 pt-4 pb-4 lg:pt-[var(--header-padding)] lg:pb-[var(--header-padding)]"
+        className="fixed top-0 left-0 right-0 z-[100] bg-transparent md:sticky md:left-auto md:right-auto lg:absolute lg:top-0 lg:left-0 lg:right-0 h-[var(--mobile-header-h,72px)] md:h-auto py-0 md:pt-4 md:pb-4 lg:pt-[var(--header-padding)] lg:pb-[var(--header-padding)]"
         style={
           {
             "--header-padding": `${topPadding}px`,
+            "--mobile-header-h": "72px",
             width: "100%",
             direction: "rtl",
             fontFamily: "IRANSans",
@@ -348,8 +350,9 @@ export default function Header({ variant = "static" }: HeaderProps) {
           </div>
         </div>
 
-        <div className="lg:hidden">
+        <div className="lg:hidden h-full">
           <div
+            className="h-full"
             style={{
               maxWidth: FRAME_WIDTH,
               width: "100%",

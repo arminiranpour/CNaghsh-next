@@ -15,6 +15,7 @@ export function EditProfileRightRail({ avatarUrl, displayName }: EditProfileRigh
   return (
     <section
       aria-label="راهنمای ویرایش پروفایل"
+      className="hidden md:block"
       style={{
         position: "absolute",
         left: 1095,

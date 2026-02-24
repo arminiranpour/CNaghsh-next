@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { PaginationNav } from "@/components/ui/pagination-nav";
 import { buildPageList } from "@/lib/pagination";
+import { EDIT_PROFILE_MOBILE_BOTTOM_NAV_H } from "@/components/profile/editProfile/constants";
 
 const PAGE_SIZE = 2;
 
@@ -42,10 +43,11 @@ export function EditProfileCoursesPane({ courses }: EditProfileCoursesPaneProps)
   return (
     <section
       aria-label="کلاس‌ها"
-      className="absolute left-[273px] top-[315px] h-[595px] w-[748px] rounded-[20px] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)]"
+      className="fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40 w-screen overflow-x-hidden overflow-y-auto bg-white pb-[calc(var(--edit-profile-bottom-nav-h)+env(safe-area-inset-bottom))] shadow-[0_10px_30px_rgba(0,0,0,0.10)] md:absolute md:left-[273px] md:top-[315px] md:h-[595px] md:w-[748px] md:overflow-hidden md:rounded-[20px] md:pb-0"
+      style={{ ["--edit-profile-bottom-nav-h" as any]: `${EDIT_PROFILE_MOBILE_BOTTOM_NAV_H}px` }}
       dir="rtl"
     >
-      <div className="flex h-full flex-col px-[44px] pt-[28px]">
+      <div className="flex min-w-0 flex-col px-4 pt-4 md:h-full md:px-[44px] md:pt-[28px]">
         <h2 className="text-right text-[30px] font-bold text-black">کلاس‌های من</h2>
 
         {courses.length === 0 ? (
@@ -53,8 +55,8 @@ export function EditProfileCoursesPane({ courses }: EditProfileCoursesPaneProps)
             هنوز در هیچ کلاسی ثبت‌نام نکرده‌اید.
           </p>
         ) : (
-          <div className="mt-10 flex flex-1 flex-col">
-            <div className="grid flex-1 grid-cols-2 place-items-top gap-6">
+          <div className="mt-6 flex flex-1 flex-col md:mt-10">
+            <div className="grid flex-1 grid-cols-1 gap-6 place-items-top sm:grid-cols-2 md:grid-cols-2">
               {visibleCourses.map((course) => (
                 <CourseCard
                   key={course.id}
@@ -96,7 +98,7 @@ function CourseCard({
   return (
     <Link
       href={`/courses/${courseId}`}
-      className="relative block h-[312px] w-[312px] overflow-hidden rounded-[28px] bg-[#1a1a1a] shadow-[0_18px_30px_rgba(0,0,0,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="relative block w-full aspect-square overflow-hidden rounded-[28px] bg-[#1a1a1a] shadow-[0_18px_30px_rgba(0,0,0,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:h-[312px] md:w-[312px]"
     >
       {imageUrl ? (
         <img src={imageUrl} alt={title} className="h-full w-full object-cover" loading="lazy" />

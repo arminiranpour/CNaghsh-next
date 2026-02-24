@@ -30,8 +30,8 @@ export function CenterPane({
     <section
       aria-label="محتوای اصلی پروفایل"
       className="
-        fixed inset-0 z-40
-        w-screen h-[100dvh]
+        fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40
+        w-screen
         bg-white
         overflow-x-hidden overflow-y-auto
         md:absolute md:z-auto

@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 
 import type { ProfileTabId } from "@/components/profile/ProfilePageClient";
 import { AudioWaveform } from "@/components/profile/CenterPane/AudioSlide";
+import { EDIT_PROFILE_MOBILE_BOTTOM_NAV_H } from "@/components/profile/editProfile/constants";
 import type { WaveformAudioPlayerHandle } from "@/components/ui/WaveformAudioPlayer";
 import { useToast } from "@/components/ui/use-toast";
 import type { City } from "@/lib/location/cities";
@@ -1182,9 +1183,9 @@ function EditProfileTabs({
 }) {
   return (
 <div className="mt-4 w-full bg-white pt-4" dir="rtl">
-  <div className="relative flex items-center justify-between px-[112px] pb-3 text-[14px] font-semibold">
+  <div className="relative flex flex-wrap items-center justify-center gap-4 px-4 pb-3 text-[12px] font-semibold md:justify-between md:px-[112px] md:text-[14px]">
     {/* Gray base line (constant) */}
-    <div className="absolute inset-x-[112px] bottom-[13px] h-px bg-[#B4B4B4]" />
+    <div className="absolute inset-x-4 bottom-[13px] h-px bg-[#B4B4B4] md:inset-x-[112px]" />
 
     {EDIT_TABS.map((tab) => {
       const isActive = tab.id === activeTab;
@@ -1238,7 +1239,7 @@ function GalleryImageSlot({
         onClick={onPick}
         disabled={disabled}
         aria-label={title ?? "انتخاب تصویر"}
-        className={`relative flex h-[181px] w-[165px] items-center justify-center rounded-[13px] ${
+        className={`relative flex w-full aspect-[165/181] items-center justify-center rounded-[13px] md:h-[181px] md:w-[165px] ${
           hasValue ? "overflow-hidden" : "border-[1px] border-dashed border-[#808080]"
         } ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
       >
@@ -1319,9 +1320,9 @@ function EditProfileGalleryPane({
   error?: string | null;
 }) {
   return (
-    <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
+    <div className="px-4 pb-10 pt-4 text-[12px] text-[#5C5A5A] md:px-[82px] md:pt-6">
       <div className="space-y-6">
-        <div className="grid grid-cols-3 justify-items-start gap-6">
+        <div className="grid grid-cols-1 gap-4 justify-items-stretch sm:grid-cols-2 md:grid-cols-3 md:gap-6 md:justify-items-start">
           <GalleryImageSlot
             title="تصویر تمام‌رخ"
             value={headshotFront}
@@ -1358,7 +1359,7 @@ function EditProfileGalleryPane({
         <div className="space-y-3">
           <div className="text-[15px] font-normal text-black">تصاویر دیگر</div>
 
-          <div className="grid grid-cols-3 justify-items-start gap-6">
+          <div className="grid grid-cols-1 gap-4 justify-items-stretch sm:grid-cols-2 md:grid-cols-3 md:gap-6 md:justify-items-start">
             {otherImages.map((image, index) => (
               <GalleryImageSlot
                 key={`other-${index}`}
@@ -1386,7 +1387,7 @@ function EditProfileGalleryPane({
           type="button"
           onClick={onSave}
           disabled={isBusy}
-          className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+          className="flex h-[44px] w-full max-w-[220px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white md:w-[177px]"
         >
           <span>ذخیره و صفحه بعد</span>
           <img
@@ -2551,26 +2552,27 @@ export function PortfolioEditCenterPane({
   return (
     <section
       aria-label="فرم ویرایش پورتفولیو"
-      className={`absolute left-[273px] top-[315px] h-[804px] ${
-        activeTab === "gallery" ? "w-[797px]" : "w-[797px]"
-      } overflow-hidden rounded-[20px] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)]`}
+      className={`fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40 w-screen overflow-x-hidden overflow-y-auto bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)] md:absolute md:left-[273px] md:top-[315px] md:h-[804px] ${
+        activeTab === "gallery" ? "md:w-[797px]" : "md:w-[797px]"
+      } md:overflow-hidden md:rounded-[20px]`}
+      style={{ ["--edit-profile-bottom-nav-h" as any]: `${EDIT_PROFILE_MOBILE_BOTTOM_NAV_H}px` }}
       dir="rtl"
     >
       <form
-        className="h-full w-full overflow-y-auto pb-10"
+        className="w-full min-w-0 pb-[calc(var(--edit-profile-bottom-nav-h)+env(safe-area-inset-bottom))] md:h-full md:overflow-y-auto md:pb-10"
         data-header-scroll
         onSubmit={handleSubmit}
       >
-        <div className="px-[32px] pt-[22px]">
+        <div className="px-4 pt-4 md:px-[32px] md:pt-[22px]">
           <div className="flex items-center justify-between">
-            <div className="text-[28px] font-black text-black">اطلاعات من</div>
+            <div className="text-[24px] font-black text-black md:text-[28px]">اطلاعات من</div>
           </div>
         </div>
 
         <EditProfileTabs activeTab={activeTab} onChange={setActiveTab} />
 
-        <div className="px-[32px]">
-          <div className="mt-4 mx-auto w-[568px] rounded-[7px] bg-[#FF7F19]/20 px-4 py-3 text-right text-[12px] leading-6 text-[#FF7F19]">
+        <div className="px-4 md:px-[32px]">
+          <div className="mt-4 mx-auto w-full max-w-[568px] rounded-[7px] bg-[#FF7F19]/20 px-4 py-3 text-right text-[12px] leading-6 text-[#FF7F19] md:w-[568px]">
             {NOTE_TEXT}
           </div>
         </div>
@@ -2593,11 +2595,11 @@ export function PortfolioEditCenterPane({
         />
 
         {activeTab === "personal" ? (
-        <div className="space-y-8 px-[82px] pb-8 pt-6 text-[12px] text-[#5C5A5A]">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-8">
+        <div className="space-y-8 px-4 pb-8 pt-4 text-[12px] text-[#5C5A5A] md:px-[82px] md:pt-6">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 md:grid-cols-2">
             <div className="space-y-2">
               <label className={sectionTitleClass}>نام و نام خانوادگی</label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <input
                   className={inputClass}
                   placeholder="نام"
@@ -2632,7 +2634,7 @@ export function PortfolioEditCenterPane({
 
             <div className="space-y-2">
               <label className={sectionTitleClass}>محل سکونت</label>
-              <div className="grid grid-cols-2 justify-items-start gap-4">
+              <div className="grid grid-cols-1 justify-items-start gap-4 sm:grid-cols-2">
                 <div className="relative w-full">
                   <img
                     src="/images/flash-down.png"
@@ -2688,7 +2690,7 @@ export function PortfolioEditCenterPane({
 
             <div className="space-y-2">
               <label className={sectionTitleClass}>تاریخ تولد</label>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="relative">
                   <img
                     src="/images/flash-down.png"
@@ -2833,7 +2835,7 @@ export function PortfolioEditCenterPane({
               </div>
             </div>
 
-            <div className="col-span-2 -mt-[28px]">
+            <div className="md:col-span-2 md:-mt-[28px]">
               <button
                 type="button"
                 onClick={handleAddDegree}
@@ -2913,7 +2915,7 @@ export function PortfolioEditCenterPane({
               {languages.map((entry) => (
               <div
                 key={entry.id}
-                className="ml-8 rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-3"
+                className="ml-0 rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-3 md:ml-8"
               >
 
                   <div className="flex items-center justify-between gap-4">
@@ -2921,7 +2923,7 @@ export function PortfolioEditCenterPane({
                     <div className="flex items-center gap-6">
                       {/* Title */}
                       <input
-                        className={`${inputClass} w-[360px]`}
+                        className={`${inputClass} w-full md:w-[360px]`}
                         placeholder="عنوان"
                         value={entry.label}
                         onChange={(event) =>
@@ -2973,7 +2975,7 @@ export function PortfolioEditCenterPane({
               type="button"
               onClick={handleAddLanguage}
               disabled={isBusy}
-              className="flex h-[34px] w-[600px] items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
+              className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5] md:w-[600px]"
             >
               +
             </button>
@@ -2985,11 +2987,11 @@ export function PortfolioEditCenterPane({
               {accents.map((entry) => (
                 <div
                   key={entry.id}
-                  className="ml-8 rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-3"
+                  className="ml-0 rounded-[16px] border border-[#E3E3E3] bg-white px-4 py-3 md:ml-8"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <input
-                      className={`${inputClass} w-[360px]`}
+                      className={`${inputClass} w-full md:w-[360px]`}
                       placeholder="عنوان"
                       value={entry.title}
                       onChange={(event) =>
@@ -3027,7 +3029,7 @@ export function PortfolioEditCenterPane({
               type="button"
               onClick={handleAddAccent}
               disabled={isBusy}
-              className="flex h-[34px] w-[600px] items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
+              className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5] md:w-[600px]"
             >
               +
             </button>
@@ -3048,7 +3050,7 @@ export function PortfolioEditCenterPane({
             <label className={sectionTitleClass}>رزومه</label>
             <div className="space-y-4 rounded-[18px] border border-[#E3E3E3] bg-white p-4">
               {resumeEntries.map((entry) => (
-                <div key={entry.id} className="grid grid-cols-2 gap-3">
+                <div key={entry.id} className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <input
                     className={inputClass}
                     placeholder="نوع اثر نمایشی"
@@ -3115,7 +3117,7 @@ export function PortfolioEditCenterPane({
             <label className={sectionTitleClass}>دوره‌های گذرانده شده</label>
             <div className="space-y-4">
               {courseEntries.map((entry) => (
-                <div key={entry.id} className="grid grid-cols-2 gap-3">
+                <div key={entry.id} className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <input
                     className={inputClass}
                     placeholder="عنوان دوره"
@@ -3161,19 +3163,19 @@ export function PortfolioEditCenterPane({
             </div>
           ) : null}
 
-          <div className="flex items-center justify-center gap-4 pt-2">
+          <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={onCancel}
               disabled={isBusy}
-              className="h-[38px] w-[140px] rounded-full border border-[#C9C9C9] text-[12px] text-[#6B6B6B]"
+              className="h-[38px] w-full max-w-[200px] rounded-full border border-[#C9C9C9] text-[12px] text-[#6B6B6B] sm:w-[140px]"
             >
               انصراف
             </button>
             <button
               type="submit"
               disabled={isBusy}
-              className="h-[38px] w-[180px] rounded-full bg-[#F58A1F] text-[12px] font-semibold text-white"
+              className="h-[38px] w-full max-w-[240px] rounded-full bg-[#F58A1F] text-[12px] font-semibold text-white sm:w-[180px]"
             >
               {isBusy ? "در حال ذخیره..." : "ذخیره اطلاعات"}
             </button>
@@ -3201,8 +3203,8 @@ export function PortfolioEditCenterPane({
         ) : null}
 
         {activeTab === "videos" ? (
-          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
-            <div className="mx-auto w-[568px] space-y-4">
+          <div className="px-4 pb-10 pt-4 text-[12px] text-[#5C5A5A] md:px-[82px] md:pt-6">
+            <div className="mx-auto w-full max-w-[568px] space-y-4 md:w-[568px]">
               {videos.length === 0 ? (
                 <AddVideoBar onClick={handleAddVideo} disabled={isBusy} />
               ) : (
@@ -3244,7 +3246,7 @@ export function PortfolioEditCenterPane({
                 type="button"
                 onClick={handleVideosSave}
                 disabled={isBusy}
-                className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+                className="flex h-[44px] w-full max-w-[220px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white md:w-[177px]"
               >
                 <span>ذخیره و صفحه بعد</span>
                 <img
@@ -3259,8 +3261,8 @@ export function PortfolioEditCenterPane({
         ) : null}
 
         {activeTab === "audio" ? (
-          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
-            <div className="mx-auto w-[568px] space-y-4">
+          <div className="px-4 pb-10 pt-4 text-[12px] text-[#5C5A5A] md:px-[82px] md:pt-6">
+            <div className="mx-auto w-full max-w-[568px] space-y-4 md:w-[568px]">
               {!hasAudioRows && voiceUploadEntries.length === 0 ? (
                 <AddAudioBar onClick={handleAddVoice} disabled={!canAddVoice} />
               ) : (
@@ -3313,7 +3315,7 @@ export function PortfolioEditCenterPane({
                 type="button"
                 onClick={handleVoicesSave}
                 disabled={isBusy}
-                className="flex h-[44px] w-[177px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+                className="flex h-[44px] w-full max-w-[220px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white md:w-[177px]"
               >
                 <span>ذخیره و صفحه بعد</span>
                 <img
@@ -3328,8 +3330,8 @@ export function PortfolioEditCenterPane({
         ) : null}
 
         {activeTab === "awards" ? (
-          <div className="px-[82px] pb-10 pt-6 text-[12px] text-[#5C5A5A]">
-            <div className="mx-auto w-[568px] space-y-4">
+          <div className="px-4 pb-10 pt-4 text-[12px] text-[#5C5A5A] md:px-[82px] md:pt-6">
+            <div className="mx-auto w-full max-w-[568px] space-y-4 md:w-[568px]">
               {!hasAwards ? (
                 <AddAwardBar onClick={handleAddAward} disabled={isBusy} />
               ) : (
@@ -3349,7 +3351,7 @@ export function PortfolioEditCenterPane({
                           حذف
                         </button>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 gap-4">
+                      <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <input
                           className={inputClass}
                           placeholder="عنوان جایزه"
@@ -3412,7 +3414,7 @@ export function PortfolioEditCenterPane({
                 type="button"
                 onClick={handleAwardsSave}
                 disabled={isBusy}
-                className="flex h-[44px] w-[200px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white"
+                className="flex h-[44px] w-full max-w-[240px] flex-row-reverse items-center justify-center gap-2 rounded-full bg-[#FF7F19] text-[15px] font-bold text-white md:w-[200px]"
               >
                 <span>ذخیره نهایی اطلاعات</span>
               </button>
