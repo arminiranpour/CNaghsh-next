@@ -48,7 +48,7 @@ export function MoviesGrid({
   return (
     <section className={cn("flex flex-col gap-5", className)} dir="rtl" aria-label="لیست فیلم‌ها">
       <div className="p-1">
-        <div className="grid gap-7 sm:grid-cols-4 xl:grid-cols-3 place-items-center">
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 place-items-center">
           {movies.map((item) => (
             <MovieCard key={item.id} movie={item} />
           ))}

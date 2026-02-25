@@ -132,100 +132,104 @@ export default async function MovieDetailsPage({
   const titleLineHeight = Math.round(titleFontSize * 1.73);
 
   return (
-    <div className="w-full bg-black" dir="rtl">
-      <div className="relative mx-auto h-[849px] w-[1440px] overflow-hidden bg-black text-white">
-        <Header variant="overlay" />
+    <div className="w-full min-h-[100dvh] bg-black" dir="rtl">
+      <div className="relative w-full min-h-[100dvh] overflow-hidden bg-black text-white">
         {posterUrl ? (
           <img
             src={posterUrl}
             alt={movie.titleFa}
-            className="absolute left-0 top-0 z-0 h-[810px] w-full object-cover"
+            className="absolute inset-0 z-0 h-full w-full object-cover"
             style={{ transform: "scaleX(-1)" }}
           />
         ) : null}
 
-        <div className="absolute left-0 top-0 z-10 h-[810px] w-full bg-[linear-gradient(180deg,rgba(217,217,217,0)_0%,#000000_100%)]" />
-        <div className="absolute left-0 top-[810px] z-10 h-[39px] w-full bg-black" />
+        <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(217,217,217,0)_0%,#000000_100%)]" />
 
-        <Link
-          href="/movies"
-          className="absolute left-[1266px] top-[120px] z-20 flex h-[46px] w-[50px] items-center justify-center rounded-[7px] bg-white/90 mix-blend-soft-light"
-          aria-label="بازگشت"
-        >
-          <ArrowLeft className="h-[20px] w-[20px] rotate-180 text-black/80" />
-        </Link>
+        <div className="relative z-20 mx-auto min-h-[100dvh] w-full max-w-[1440px]">
+          <Header variant="overlay" />
 
-        <div
-          className={`${iransansBold.className} absolute left-[736px] top-[473px] z-20 w-[564px] text-right text-white`}
-        >
-          <div className="flex flex-col items-start gap-[12px]">
-            {genreText ? (
-              <div className="text-[20px] font-bold leading-[32px]">{genreText}</div>
-            ) : null}
+          <Link
+            href="/movies"
+            className="absolute left-4 top-4 z-20 flex h-[46px] w-[50px] items-center justify-center rounded-[7px] bg-white/90 mix-blend-soft-light min-[1440px]:left-[1266px] min-[1440px]:top-[120px]"
+            aria-label="بازگشت"
+          >
+            <ArrowLeft className="h-[20px] w-[20px] rotate-180 text-black/80" />
+          </Link>
 
-            <div className="flex w-full items-center justify-between gap-[12px]" dir="rtl">
-              <div
-                className="flex min-w-0 flex-1 items-baseline gap-[5px] whitespace-nowrap text-white"
-                style={{ maxWidth: `${titleMaxWidth}px`, overflow: "hidden" }}
-              >
-                <span
-                  className="font-bold"
-                  style={{
-                    fontSize: `${titleFontSize}px`,
-                    lineHeight: `${titleLineHeight}px`,
-                    fontFamily: "Palanquin Dark, IRANSans, sans-serif",
-                  }}
+          <div
+            className={`${iransansBold.className} absolute inset-x-0 bottom-20 z-20 w-full px-4 text-right text-white min-[1440px]:inset-x-auto min-[1440px]:bottom-auto min-[1440px]:left-[736px] min-[1440px]:top-[473px] min-[1440px]:w-[564px] min-[1440px]:px-0`}
+          >
+            <div className="flex flex-col items-start gap-[12px]">
+              {genreText ? (
+                <div className="text-[20px] font-bold leading-[32px]">{genreText}</div>
+              ) : null}
+
+              <div className="flex w-full items-center justify-between gap-[12px]" dir="rtl">
+                <div
+                  className="flex min-w-0 flex-1 items-baseline gap-[5px] whitespace-nowrap text-white"
+                  style={{ maxWidth: `${titleMaxWidth}px`, overflow: "hidden" }}
                 >
-                  {movie.titleEn}
-                </span>
-                <span
-                  className="font-bold"
-                  style={{ fontSize: `${Math.max(16, titleFontSize - 5)}px`, lineHeight: `${titleLineHeight}px` }}
-                >
-                  /
-                </span>
-                <span
-                  className="font-bold"
-                  style={{ fontSize: `${titleFontSize}px`, lineHeight: `${titleLineHeight}px` }}
-                >
-                  {movie.titleFa}
-                </span>
+                  <span
+                    className="font-bold"
+                    style={{
+                      fontSize: `${titleFontSize}px`,
+                      lineHeight: `${titleLineHeight}px`,
+                      fontFamily: "Palanquin Dark, IRANSans, sans-serif",
+                    }}
+                  >
+                    {movie.titleEn}
+                  </span>
+                  <span
+                    className="font-bold"
+                    style={{
+                      fontSize: `${Math.max(16, titleFontSize - 5)}px`,
+                      lineHeight: `${titleLineHeight}px`,
+                    }}
+                  >
+                    /
+                  </span>
+                  <span
+                    className="font-bold"
+                    style={{ fontSize: `${titleFontSize}px`, lineHeight: `${titleLineHeight}px` }}
+                  >
+                    {movie.titleFa}
+                  </span>
+                </div>
+                <MovieHeroSaveButton
+                  className="shrink-0"
+                  movieId={movie.id}
+                  initialSaved={Boolean(isSavedByMe)}
+                />
               </div>
-              <MovieHeroSaveButton
-                className="shrink-0"
-                movieId={movie.id}
-                initialSaved={Boolean(isSavedByMe)}
-              />
 
-            </div>
+              <div className="text-[20px] leading-[32px]">
+                <span className="font-bold">{yearText}</span>
+                <span className={`${iransans.className} font-normal`}> | </span>
+                <span className="font-bold">کارگردان: </span>
+                <span className={`${iransans.className} font-normal`}>{movie.director}</span>
+                {durationText ? (
+                  <>
+                    <span className={`${iransans.className} font-normal`}> | </span>
+                    <span className="font-bold">مدت زمان: </span>
+                    <span className={`${iransans.className} font-normal`}>{durationText}</span>
+                  </>
+                ) : null}
+              </div>
 
-            <div className="text-[20px] leading-[32px]">
-              <span className="font-bold">{yearText}</span>
-              <span className={`${iransans.className} font-normal`}> | </span>
-              <span className="font-bold">کارگردان: </span>
-              <span className={`${iransans.className} font-normal`}>{movie.director}</span>
-              {durationText ? (
-                <>
-                  <span className={`${iransans.className} font-normal`}> | </span>
-                  <span className="font-bold">مدت زمان: </span>
-                  <span className={`${iransans.className} font-normal`}>{durationText}</span>
-                </>
+              {stars ? (
+                <div className="text-[20px] leading-[32px]">
+                  <span className="font-bold">ستارگان: </span>
+                  <span className={`${iransans.className} font-normal`}>{stars}</span>
+                </div>
+              ) : null}
+
+              {awards ? (
+                <div className="text-[20px] leading-[32px]">
+                  <span className="font-bold">افتخارات فیلم: </span>
+                  <span className={`${iransans.className} font-normal`}>{awards}</span>
+                </div>
               ) : null}
             </div>
-
-            {stars ? (
-              <div className="text-[20px] leading-[32px]">
-                <span className="font-bold">ستارگان: </span>
-                <span className={`${iransans.className} font-normal`}>{stars}</span>
-              </div>
-            ) : null}
-
-            {awards ? (
-              <div className="text-[20px] leading-[32px]">
-                <span className="font-bold">افتخارات فیلم: </span>
-                <span className={`${iransans.className} font-normal`}>{awards}</span>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>

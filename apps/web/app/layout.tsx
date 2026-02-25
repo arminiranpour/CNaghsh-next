@@ -73,7 +73,13 @@ export default function RootLayout({
             >
               <ConsentGate />
               {!isAuthRoute && !isOverlayHeaderRoute ? <Header variant="static" /> : null}
-              <main className="flex-1 pt-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] md:pt-0">
+              <main
+                className={
+                  isOverlayHeaderRoute
+                    ? "flex-1"
+                    : "flex-1 pt-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] md:pt-0"
+                }
+              >
                 {children}
               </main>
               <JsonLd data={organizationJsonLd} />
