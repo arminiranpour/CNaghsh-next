@@ -161,7 +161,7 @@ export function LoginForm({
           redirect: false,
           email: formData.email.toLowerCase().trim(),
           password: formData.password,
-          callbackUrl: callbackUrl ?? "/dashboard",
+          callbackUrl: callbackUrl ?? "/dashboard/profile",
         });
 
         if (signInResult?.error) {
@@ -180,7 +180,7 @@ export function LoginForm({
         });
 
         setIsSubmitting(false);
-        const destination = signInResult?.url ?? callbackUrl ?? "/dashboard";
+        const destination = signInResult?.url ?? callbackUrl ?? "/dashboard/profile";
         router.push(destination);
         router.refresh();
       } catch (err) {
@@ -201,7 +201,7 @@ export function LoginForm({
         redirect: false,
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
-        callbackUrl: callbackUrl ?? "/dashboard",
+        callbackUrl: callbackUrl ?? "/dashboard/profile",
       });
 
       setIsSubmitting(false);
@@ -215,7 +215,7 @@ export function LoginForm({
         return;
       }
 
-      const destination = result?.url ?? callbackUrl ?? "/dashboard";
+      const destination = result?.url ?? callbackUrl ?? "/dashboard/profile";
       router.push(destination);
       router.refresh();
     }
@@ -226,7 +226,7 @@ export function LoginForm({
     setError(null);
     try {
       await signIn("google", {
-        callbackUrl: callbackUrl ?? "/dashboard",
+        callbackUrl: callbackUrl ?? "/dashboard/profile",
         redirect: true,
       });
     } catch (err) {

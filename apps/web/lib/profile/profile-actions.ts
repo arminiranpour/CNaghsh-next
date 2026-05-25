@@ -1084,6 +1084,7 @@ export async function updateGallery(formData: FormData): Promise<GalleryActionRe
         .filter((entry): entry is { url: string; slot?: string } => Boolean(entry)) ?? [];
 
     const trimmed = cleaned.slice(0, 7);
+    const avatarUrl = trimmed.find((entry) => entry.slot === "headshotFront")?.url ?? null;
 
     const previousProfile = await prisma.profile.findUnique({
       where: { userId },
@@ -1094,9 +1095,11 @@ export async function updateGallery(formData: FormData): Promise<GalleryActionRe
       where: { userId },
       create: {
         userId,
+        avatarUrl,
         gallery: trimmed.length ? trimmed : Prisma.DbNull,
       },
       update: {
+        avatarUrl,
         gallery: trimmed.length ? trimmed : Prisma.DbNull,
       },
       select: MODERATION_PROFILE_SELECT,
@@ -1194,7 +1197,10 @@ export async function deleteImage(formData: FormData): Promise<GalleryActionResu
 
     const updated = await prisma.profile.update({
       where: { userId },
-      data: { gallery: nextGallery },
+      data: {
+        gallery: nextGallery,
+        ...(profile.avatarUrl === url ? { avatarUrl: null } : {}),
+      },
       select: MODERATION_PROFILE_SELECT,
     });
 

@@ -25,7 +25,7 @@ export default async function AuthPage({
   const session = await getServerSession(getAuthConfig(prisma));
 
   if (session?.user) {
-    redirect("/dashboard");
+    redirect("/dashboard/profile");
   }
 
   const tabParam = getFirstParam(searchParams?.tab);
