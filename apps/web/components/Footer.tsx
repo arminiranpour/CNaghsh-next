@@ -7,7 +7,7 @@ const RIGHT_PADDING = 6;
 export default function Footer() {
   return (
     <footer
-      className="relative z-20 w-full bg-transparent"
+      className="relative z-20 w-full bg-white"
       style={{
         direction: "ltr",
         fontFamily: "IRANSans",

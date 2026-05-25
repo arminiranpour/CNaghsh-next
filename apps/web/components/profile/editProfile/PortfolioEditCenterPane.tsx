@@ -28,6 +28,7 @@ import type {
   AccentEntry,
   CourseEntry,
   ExperienceData,
+  ExperienceEntry,
   PortfolioEditInitialValues,
   ResumeEntry,
 } from "@/lib/profile/portfolio-edit";
@@ -122,6 +123,8 @@ type DegreeEntryState = {
   degreeLevel: string;
   major: string;
 };
+type ExperienceCategoryKey = keyof ExperienceData;
+type ExperienceEntryState = ExperienceEntry & { id: string };
 
 type GalleryAsset = {
   url: string;
@@ -168,6 +171,15 @@ const EDIT_TABS = [
   { id: "audio", label: "فایل‌های صوتی" },
   { id: "awards", label: "افتخارات" },
 ] as const satisfies ReadonlyArray<{ id: ProfileTabId; label: string }>;
+const EXPERIENCE_SECTION_CONFIG: Array<{
+  key: ExperienceCategoryKey;
+  label: string;
+}> = [
+  { key: "theatre", label: "تئاتر" },
+  { key: "shortFilm", label: "فیلم کوتاه" },
+  { key: "tv", label: "تلویزیون" },
+  { key: "cinema", label: "سینمایی" },
+];
 const MAX_OTHER_IMAGES = 3;
 const NOTE_TEXT =
   "اطلاعات خواسته شده همان چیزهایی هستن که عوامل برای انتخاب بازیگر بیش‌تر توجه می‌کنند. هرچی اطلاعات کامل‌تر باشه، شانس انتخاب شدن بیشتر می‌شه. یادت باشه که داری مسیر حرفه‌ای خودت رو دقیق‌تر می‌کنی.";
@@ -1566,6 +1578,26 @@ export function PortfolioEditCenterPane({
       ...entry,
     })),
   );
+  const [experienceEntries, setExperienceEntries] = useState<
+    Record<ExperienceCategoryKey, ExperienceEntryState[]>
+  >(() => ({
+    theatre: (initialValues.experienceBase.theatre ?? []).map((entry) => ({
+      id: createId(),
+      ...entry,
+    })),
+    shortFilm: (initialValues.experienceBase.shortFilm ?? []).map((entry) => ({
+      id: createId(),
+      ...entry,
+    })),
+    tv: (initialValues.experienceBase.tv ?? []).map((entry) => ({
+      id: createId(),
+      ...entry,
+    })),
+    cinema: (initialValues.experienceBase.cinema ?? []).map((entry) => ({
+      id: createId(),
+      ...entry,
+    })),
+  }));
 
   const [degreeEntries, setDegreeEntries] = useState<DegreeEntryState[]>(() =>
     initialValues.degrees.map((entry) => ({
@@ -1688,6 +1720,13 @@ export function PortfolioEditCenterPane({
     setCourseEntries((prev) => [...prev, { id: createId(), title: "", instructor: "" }]);
   };
 
+  const handleAddExperienceEntry = (category: ExperienceCategoryKey) => {
+    setExperienceEntries((prev) => ({
+      ...prev,
+      [category]: [...prev[category], { id: createId(), role: "", work: "" }],
+    }));
+  };
+
   const handleAddDegree = () => {
     setDegreeEntries((prev) => [
       ...prev,
@@ -1748,6 +1787,19 @@ export function PortfolioEditCenterPane({
     setCourseEntries((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)),
     );
+  };
+
+  const updateExperienceEntry = (
+    category: ExperienceCategoryKey,
+    id: string,
+    patch: Partial<ExperienceEntry>,
+  ) => {
+    setExperienceEntries((prev) => ({
+      ...prev,
+      [category]: prev[category].map((entry) =>
+        entry.id === id ? { ...entry, ...patch } : entry,
+      ),
+    }));
   };
 
   const updateDegreeEntry = (id: string, patch: Partial<DegreeEntryState>) => {
@@ -2438,6 +2490,30 @@ export function PortfolioEditCenterPane({
       }))
       .filter((entry) => entry.title || entry.instructor);
 
+    const cleanedExperienceBase = EXPERIENCE_SECTION_CONFIG.reduce<ExperienceData>(
+      (accumulator, section) => {
+        accumulator[section.key] = experienceEntries[section.key]
+          .map((entry) => ({
+            role: entry.role.trim(),
+            work: entry.work.trim(),
+          }))
+          .filter((entry) => entry.role || entry.work);
+        return accumulator;
+      },
+      {},
+    );
+
+    const hasPartialExperience = EXPERIENCE_SECTION_CONFIG.some((section) =>
+      (cleanedExperienceBase[section.key] ?? []).some(
+        (entry) => !entry.role || !entry.work,
+      ),
+    );
+
+    if (hasPartialExperience) {
+      setFormError("لطفاً نقش و نام اثر را برای همه موارد وارد کنید.");
+      return;
+    }
+
     const cleanedDegrees = degreeEntries
       .map((entry) => ({
         degreeLevel: entry.degreeLevel.trim(),
@@ -2449,7 +2525,7 @@ export function PortfolioEditCenterPane({
       resume: ResumeEntry[];
       courses: CourseEntry[];
     } = {
-      ...initialValues.experienceBase,
+      ...cleanedExperienceBase,
       resume: cleanedResume,
       courses: cleanedCourses,
     };
@@ -3152,6 +3228,100 @@ export function PortfolioEditCenterPane({
               >
                 +
               </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className={sectionTitleClass}>کارهایی که انجام دادم</label>
+            <div className="grid gap-4 md:grid-cols-2">
+              {EXPERIENCE_SECTION_CONFIG.map((section) => (
+                <div
+                  key={section.key}
+                  className="space-y-4 rounded-[18px] border border-[#E3E3E3] bg-white p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[14px] font-semibold text-[#000000]">
+                      {section.label}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAddExperienceEntry(section.key)}
+                      disabled={isBusy}
+                      className="text-[12px] text-[#F58A1F]"
+                    >
+                      افزودن مورد
+                    </button>
+                  </div>
+
+                  {experienceEntries[section.key].length === 0 ? (
+                    <p className="text-[12px] text-[#A0A0A0]">
+                      هنوز موردی برای این بخش ثبت نشده است.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {experienceEntries[section.key].map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="rounded-[16px] bg-[#FAFAFA] px-3 py-3"
+                        >
+                          <div className="grid gap-3">
+                            <input
+                              className={inputClass}
+                              placeholder="نقش"
+                              value={entry.role}
+                              onChange={(event) =>
+                                updateExperienceEntry(section.key, entry.id, {
+                                  role: event.target.value,
+                                })
+                              }
+                              disabled={isBusy}
+                              maxLength={191}
+                            />
+                            <input
+                              className={inputClass}
+                              placeholder="نام اثر"
+                              value={entry.work}
+                              onChange={(event) =>
+                                updateExperienceEntry(section.key, entry.id, {
+                                  work: event.target.value,
+                                })
+                              }
+                              disabled={isBusy}
+                              maxLength={191}
+                            />
+                          </div>
+                          <div className="mt-3 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExperienceEntries((prev) => ({
+                                  ...prev,
+                                  [section.key]: prev[section.key].filter(
+                                    (item) => item.id !== entry.id,
+                                  ),
+                                }))
+                              }
+                              disabled={isBusy}
+                              className="text-[12px] text-[#D56732]"
+                            >
+                              حذف
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleAddExperienceEntry(section.key)}
+                    disabled={isBusy}
+                    className="flex h-[34px] w-full items-center justify-center rounded-full border border-dashed border-[#D1D1D1] text-[16px] text-[#B5B5B5]"
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
