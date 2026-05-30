@@ -2,10 +2,10 @@ import Image from "next/image";
 
 type FeaturedCardProps = {
   name: string;
-  age: number;
-  level: string;
-  rating: number;
-  avatarSrc: string;
+  age?: number | null;
+  level?: string | null;
+  rating?: number | null;
+  avatarSrc?: string | null;
   frameSrc?: string;
   hoverFrameSrc?: string;
   starSrc?: string;
@@ -24,6 +24,14 @@ export default function Card({
   const STAR_W = 12;
   const STAR_H = 11;
   const NUM_H = 19;
+  const resolvedAvatarSrc =
+    avatarSrc && avatarSrc.trim()
+      ? avatarSrc
+      : "/cineflash/home/Header/user.png";
+  const ageLabel =
+    typeof age === "number"
+      ? `سن: ${age} سال`
+      : "سن ثبت نشده";
 
   return (
     <div
@@ -79,7 +87,7 @@ export default function Card({
           }}
         >
           <Image
-            src={avatarSrc}
+            src={resolvedAvatarSrc}
             alt={name}
             fill
             sizes="113px"
@@ -87,65 +95,70 @@ export default function Card({
           />
         </div>
 
-        {/* Star */}
-        <div
-          className="absolute"
-          style={{
-            top: 177,
-            left: 84,
-            width: STAR_W,
-            height: STAR_H,
-          }}
-        >
-          <Image
-            src={starSrc}
-            alt="ستاره"
-            fill
-            unoptimized
-            sizes={`${STAR_W}px`}
-            style={{ objectFit: "contain" }}
-          />
-        </div>
+        {typeof rating === "number" ? (
+          <>
+            {/* Star */}
+            <div
+              className="absolute"
+              style={{
+                top: 177,
+                left: 84,
+                width: STAR_W,
+                height: STAR_H,
+              }}
+            >
+              <Image
+                src={starSrc}
+                alt="ستاره"
+                fill
+                unoptimized
+                sizes={`${STAR_W}px`}
+                style={{ objectFit: "contain" }}
+              />
+            </div>
 
-        {/* Rating */}
-        <div
-          className="absolute font-iransans"
-          style={{
-            top: 176,
-            left: 95,
-            fontSize: 12,
-            fontWeight: 600,
-            lineHeight: `${NUM_H}px`,
-            color: "#FF7F19",
-          }}
-        >
-          {rating}
-        </div>
+            {/* Rating */}
+            <div
+              className="absolute font-iransans"
+              style={{
+                top: 176,
+                left: 95,
+                fontSize: 12,
+                fontWeight: 600,
+                lineHeight: `${NUM_H}px`,
+                color: "#FF7F19",
+              }}
+            >
+              {rating}
+            </div>
+          </>
+        ) : null}
 
-        {/* Level */}
-        <div
-          className="absolute flex items-center justify-center font-iransans"
-          style={{
-            left: 163,
-            top: 177,
-            width: 47,
-            height: 14,
-            backgroundColor: "#Ff7F19",
-            borderRadius: 19,
-          }}
-        >
-          <span
+        {level ? (
+          <div
+            className="absolute flex items-center justify-center font-iransans"
             style={{
-              fontFamily: "IRANSans",
-              fontSize: 10,
-              color: "#ffffff",
-              lineHeight: "14px",
-              fontWeight: 500,
+              left: 163,
+              top: 177,
+              width: 47,
+              height: 14,
+              backgroundColor: "#Ff7F19",
+              borderRadius: 19,
             }}
           >
-            {level}
-          </span>
-        </div>
+            <span
+              style={{
+                fontFamily: "IRANSans",
+                fontSize: 10,
+                color: "#ffffff",
+                lineHeight: "14px",
+                fontWeight: 500,
+              }}
+            >
+              {level}
+            </span>
+          </div>
+        ) : null}
 
         {/* Name + Age */}
         <div
@@ -173,7 +186,7 @@ export default function Card({
               color: "#0F0F0F",
             }}
           >
-            سن: {age} سال
+            {ageLabel}
           </div>
         </div>
       </div>

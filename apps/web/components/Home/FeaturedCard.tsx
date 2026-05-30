@@ -2,48 +2,20 @@
 
 import { useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Card from "./Card";
+import {
+  DEFAULT_FEATURED_CARDS,
+  type FeaturedActorCard,
+} from "./featured-card-data";
 
-export default function FeaturedCard() {
+type FeaturedCardProps = {
+  cards?: FeaturedActorCard[];
+};
+
+export default function FeaturedCard({ cards }: FeaturedCardProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  const demoActors = [
-    {
-      name: "نام و نام خانوادگی",
-      age: 32,
-      level: "پیشرفته",
-      rating: 2539,
-      avatarSrc: "/cineflash/home/Bazigaran/ActorDemo.jpg",
-    },
-    {
-      name: "کاربر نمونه دوم",
-      age: 27,
-      level: "حرفه‌ای",
-      rating: 2711,
-      avatarSrc: "/cineflash/home/Bazigaran/ActorDemo.jpg",
-    },
-    {
-      name: "نام و نام خانوادگی",
-      age: 32,
-      level: "پیشرفته",
-      rating: 2539,
-      avatarSrc: "/cineflash/home/Bazigaran/ActorDemo.jpg",
-    },
-    {
-      name: "کاربر نمونه دوم",
-      age: 27,
-      level: "حرفه‌ای",
-      rating: 2711,
-      avatarSrc: "/cineflash/home/Bazigaran/ActorDemo.jpg",
-    },
-    {
-      name: "کاربر نمونه پنجم",
-      age: 29,
-      level: "پیشرفته",
-      rating: 2890,
-      avatarSrc: "/cineflash/home/Bazigaran/ActorDemo.jpg",
-    },
-  ];
+  const featuredCards = cards?.length ? cards : DEFAULT_FEATURED_CARDS;
 
   const CARD_WIDTH = 280; // width of each card
   const SCROLL_AMOUNT = CARD_WIDTH; // scroll by one card
@@ -127,9 +99,18 @@ export default function FeaturedCard() {
       "
       style={{ scrollbarWidth: "none" }}
     >
-      {demoActors.map((actor, i) => (
+      {featuredCards.map((actor, i) => (
         <div key={i} className="px-2 py-[40px] flex items-center justify-center">
-          <Card {...actor} />
+          {actor.href ? (
+            <Link
+              href={actor.href}
+              className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[20px]"
+            >
+              <Card {...actor} />
+            </Link>
+          ) : (
+            <Card {...actor} />
+          )}
         </div>
       ))}
     </div>
