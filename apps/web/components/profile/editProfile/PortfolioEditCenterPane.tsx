@@ -521,7 +521,8 @@ async function uploadAudioFile(file: File): Promise<AudioAttachment> {
   });
 
   if (!finalizeResponse.ok) {
-    throw new Error("تأیید نهایی آپلود ناموفق بود.");
+    const payload = (await finalizeResponse.json().catch(() => null)) as { messageFa?: string } | null;
+    throw new Error(payload?.messageFa ?? "تأیید نهایی آپلود ناموفق بود.");
   }
 
   const pollUntilReady = async () => {
@@ -648,7 +649,8 @@ async function uploadVideoFile(
   });
 
   if (!finalizeResponse.ok) {
-    throw new Error("تأیید نهایی آپلود ناموفق بود.");
+    const payload = (await finalizeResponse.json().catch(() => null)) as { messageFa?: string } | null;
+    throw new Error(payload?.messageFa ?? "تأیید نهایی آپلود ناموفق بود.");
   }
 
   const pollUntilReady = async () => {

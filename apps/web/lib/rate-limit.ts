@@ -1,4 +1,4 @@
-import { redis } from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 
 import { uploadConfig } from "./media/config";
 
@@ -37,15 +37,23 @@ return 1
 `;
 
 const consumeToken = async (key: string) => {
-  const result = await redis.eval(
-    TOKEN_BUCKET_LUA,
-    1,
-    key,
-    Date.now().toString(),
-    uploadConfig.rateLimitPerMinute.toString(),
-    uploadConfig.rateLimitBurst.toString(),
-  );
-  return Number(result) === 1;
+  const redis = getRedis();
+  if (!redis) {
+    return true;
+  }
+  try {
+    const result = await redis.eval(
+      TOKEN_BUCKET_LUA,
+      1,
+      key,
+      Date.now().toString(),
+      uploadConfig.rateLimitPerMinute.toString(),
+      uploadConfig.rateLimitBurst.toString(),
+    );
+    return Number(result) === 1;
+  } catch {
+    return true;
+  }
 };
 
 const normalizeKey = (prefix: string, value: string) => `${prefix}:${value}`;
@@ -99,21 +107,37 @@ const getMillisUntilMidnight = () => {
 const toDailyKey = (userId: string) => `${DAILY_BYTES_KEY}:${userId}`;
 
 export const trackDailyBytes = async (userId: string, sizeBytes: number): Promise<void> => {
+  const redis = getRedis();
+  if (!redis) {
+    return;
+  }
   const key = toDailyKey(userId);
   const increment = Math.max(0, Math.floor(sizeBytes));
   const expireMs = getMillisUntilMidnight();
-  await redis
-    .multi()
-    .incrby(key, increment)
-    .pexpire(key, expireMs)
-    .exec();
+  try {
+    await redis
+      .multi()
+      .incrby(key, increment)
+      .pexpire(key, expireMs)
+      .exec();
+  } catch {
+    return;
+  }
 };
 
 export const getDailyBytes = async (userId: string): Promise<number> => {
-  const value = await redis.get(toDailyKey(userId));
-  if (!value) {
+  const redis = getRedis();
+  if (!redis) {
     return 0;
   }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  try {
+    const value = await redis.get(toDailyKey(userId));
+    if (!value) {
+      return 0;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
 };

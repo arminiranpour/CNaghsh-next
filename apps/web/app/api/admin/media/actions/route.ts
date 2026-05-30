@@ -1,10 +1,11 @@
-import { MediaModerationStatus, MediaStatus, MediaVisibility, TranscodeJobStatus } from "@prisma/client";
+import { MediaModerationStatus, MediaVisibility } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdminSession } from "@/lib/auth/admin";
 import { NO_STORE_HEADERS } from "@/lib/http";
+import { MediaTranscodeDisabledError, queueMediaTranscode } from "@/lib/media/transcode";
 import { prisma } from "@/lib/prisma";
-import { enqueueTranscode } from "@/lib/queues/mediaTranscode.enqueue";
+import { isMediaTranscodeEnabled } from "@/lib/queues/mediaTranscode.queue";
 import { resolveBucketForVisibility } from "@/lib/storage/visibility";
 import { remove } from "@/lib/storage/s3";
 
@@ -32,42 +33,27 @@ const assertAdminId = (userId: string | undefined): string | null => {
 };
 
 const handleRequeue = async (mediaId: string) => {
-  const result = await prisma.$transaction(async (tx) => {
-    const media = await tx.mediaAsset.findUnique({
-      where: { id: mediaId },
-      select: { id: true },
-    });
-    if (!media) {
-      return null;
-    }
-    const lastJob = await tx.transcodeJob.findFirst({
-      where: { mediaAssetId: mediaId },
-      orderBy: { attempt: "desc" },
-      select: { attempt: true },
-    });
-    const nextAttempt = (lastJob?.attempt ?? 0) + 1;
-    await tx.transcodeJob.create({
-      data: {
-        mediaAssetId: mediaId,
-        status: TranscodeJobStatus.queued,
-        attempt: nextAttempt,
-      },
-    });
-    await tx.mediaAsset.update({
-      where: { id: mediaId },
-      data: {
-        status: MediaStatus.processing,
-        errorMessage: null,
-      },
-    });
-    return nextAttempt;
+  if (!isMediaTranscodeEnabled()) {
+    return failure(503, "صف پردازش ویدیو در نسخه دمو غیرفعال است.");
+  }
+
+  const media = await prisma.mediaAsset.findUnique({
+    where: { id: mediaId },
+    select: { id: true },
   });
 
-  if (result === null) {
+  if (!media) {
     return failure(404, "MEDIA_NOT_FOUND");
   }
 
-  await enqueueTranscode(mediaId, result);
+  try {
+    await queueMediaTranscode(mediaId);
+  } catch (error) {
+    if (error instanceof MediaTranscodeDisabledError) {
+      return failure(503, "صف پردازش ویدیو در نسخه دمو غیرفعال است.");
+    }
+    throw error;
+  }
   return success();
 };
 

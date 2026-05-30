@@ -16,6 +16,11 @@ const LOOKBACK_MINUTES = 60;
 
 const run = async () => {
   const queue = createMediaTranscodeQueue();
+  if (!queue) {
+    console.log("OK media.pipeline queue=disabled");
+    await prisma.$disconnect();
+    return;
+  }
   try {
     const counts = await queue.getJobCounts("waiting", "delayed", "failed");
     const waiting = counts.waiting ?? 0;

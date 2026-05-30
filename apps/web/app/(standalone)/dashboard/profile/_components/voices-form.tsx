@@ -204,7 +204,8 @@ export function VoicesForm({ initialVoices }: VoicesFormProps) {
         });
 
         if (!finalizeResponse.ok) {
-          throw new Error("تأیید نهایی آپلود ناموفق بود.");
+          const payload = (await finalizeResponse.json().catch(() => null)) as { messageFa?: string } | null;
+          throw new Error(payload?.messageFa ?? "تأیید نهایی آپلود ناموفق بود.");
         }
 
         const { duration } = await pollUntilReady(checkStatusUrl);

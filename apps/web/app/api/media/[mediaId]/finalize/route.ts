@@ -5,8 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { NO_STORE_HEADERS } from "@/lib/http";
 import { logError, logInfo } from "@/lib/logging";
-import { queueMediaTranscode } from "@/lib/media/transcode";
+import { MediaTranscodeDisabledError, queueMediaTranscode } from "@/lib/media/transcode";
 import { prisma } from "@/lib/prisma";
+import { isMediaTranscodeEnabled } from "@/lib/queues/mediaTranscode.queue";
 import { exists } from "@/lib/storage/s3";
 import { storageConfig } from "@/lib/storage/config";
 
@@ -142,8 +143,33 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       );
     }
 
+    if (!isMediaTranscodeEnabled()) {
+      return NextResponse.json(
+        {
+          ok: false,
+          errorCode: "DEMO_DISABLED",
+          messageFa: "پردازش ویدیو در نسخه دمو غیرفعال است.",
+        },
+        { status: 503, headers: NO_STORE_HEADERS },
+      );
+    }
+
     // ✅ مسیر قبلی برای ویدیوها
-    await queueMediaTranscode(media.id);
+    try {
+      await queueMediaTranscode(media.id);
+    } catch (error) {
+      if (error instanceof MediaTranscodeDisabledError) {
+        return NextResponse.json(
+          {
+            ok: false,
+            errorCode: "DEMO_DISABLED",
+            messageFa: "پردازش ویدیو در نسخه دمو غیرفعال است.",
+          },
+          { status: 503, headers: NO_STORE_HEADERS },
+        );
+      }
+      throw error;
+    }
 
     logInfo("media.upload.finalize.success", {
       mediaId,

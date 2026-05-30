@@ -16,6 +16,7 @@ export type UploadErrorCode =
   | "RATE_LIMITED"
   | "QUOTA_EXCEEDED"
   | "DURATION_EXCEEDED"
+  | "DEMO_DISABLED"
   | "UNKNOWN";
 
 export type UploadErrorResponse = {

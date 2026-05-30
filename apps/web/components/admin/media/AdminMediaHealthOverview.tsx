@@ -122,6 +122,13 @@ export function AdminMediaHealthOverview() {
           به‌روزرسانی
         </Button>
       </div>
+      {!health.queue.enabled && health.queue.message ? (
+        <Card className="border-border/60 bg-muted/40">
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            {health.queue.message}
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="ویدیوهای در صف"

@@ -171,7 +171,7 @@ export function VideoUploadField({
       cache: "no-store",
       credentials: "same-origin",
     });
-    let payload: { ok?: boolean; status?: string } | null = null;
+    let payload: { ok?: boolean; status?: string; messageFa?: string } | null = null;
     try {
       payload = (await response.json()) as { ok?: boolean; status?: string };
     } catch {
@@ -179,7 +179,7 @@ export function VideoUploadField({
     }
     if (!response.ok || !payload?.ok) {
       console.error(`[VideoUpload] finalize failed mediaId=${mediaId} status=${response.status}`, payload);
-      throw new Error("FINALIZE_FAILED");
+      throw new Error(payload?.messageFa ?? "تأیید نهایی آپلود ناموفق بود.");
     }
     console.info(
       `[VideoUpload] finalize completed mediaId=${mediaId} status=${payload.status ?? "unknown"}`,
@@ -254,13 +254,16 @@ export function VideoUploadField({
           }
 
           if (payload.status === "uploaded" && payload.needsFinalize) {
-            void triggerFinalize(mediaId, "status").catch(() => {
+            void triggerFinalize(mediaId, "status").catch((error) => {
               stopPolling();
               setState((prev) => ({
                 ...prev,
                 phase: "failed",
                 mediaId,
-                error: "تأیید نهایی آپلود ناموفق بود.",
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "تأیید نهایی آپلود ناموفق بود.",
               }));
             });
           }
@@ -364,7 +367,10 @@ export function VideoUploadField({
           ...prev,
           phase: "failed",
           mediaId: null,
-          error: "بارگذاری ویدیو با مشکل مواجه شد. لطفاً دوباره تلاش کنید.",
+          error:
+            error instanceof Error
+              ? error.message
+              : "بارگذاری ویدیو با مشکل مواجه شد. لطفاً دوباره تلاش کنید.",
         }));
       } finally {
         uploadRequestRef.current = null;

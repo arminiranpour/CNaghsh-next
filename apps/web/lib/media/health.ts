@@ -2,9 +2,12 @@ import { MediaModerationStatus, MediaStatus, MediaType, TranscodeJobStatus, type
 
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { createMediaTranscodeQueue } from "@/lib/queues/mediaTranscode.queue";
+import { isRedisUnavailableError } from "@/lib/redis";
 
 export type MediaHealthResponse = {
   queue: {
+    enabled: boolean;
+    message: string | null;
     waiting: number;
     active: number;
     delayed: number;
@@ -36,8 +39,8 @@ export const getMediaHealth = async (options: HealthOptions = {}): Promise<Media
   const lookbackDate = new Date(Date.now() - lookbackMinutes * 60_000);
 
   const queue = createMediaTranscodeQueue();
+  const queueEnabled = queue !== null;
   try {
-    const counts = await queue.getJobCounts("waiting", "active", "delayed", "failed");
     const completedLastHour = await prisma.transcodeJob.count({
       where: {
         status: TranscodeJobStatus.done,
@@ -77,12 +80,29 @@ export const getMediaHealth = async (options: HealthOptions = {}): Promise<Media
       }),
     ]);
 
+    let counts: Awaited<ReturnType<NonNullable<typeof queue>["getJobCounts"]>> | null = null;
+    let effectiveQueueEnabled = queueEnabled;
+    let queueMessage: string | null = queueEnabled ? null : "صف ترنسکد در این محیط دمو غیرفعال است.";
+    if (queueEnabled) {
+      try {
+        counts = await queue.getJobCounts("waiting", "active", "delayed", "failed");
+      } catch (error) {
+        if (!isRedisUnavailableError(error)) {
+          throw error;
+        }
+        effectiveQueueEnabled = false;
+        queueMessage = "صف ترنسکد در این محیط در دسترس نیست.";
+      }
+    }
+
     return {
       queue: {
-        waiting: counts.waiting ?? 0,
-        active: counts.active ?? 0,
-        delayed: counts.delayed ?? 0,
-        failed: counts.failed ?? 0,
+        enabled: effectiveQueueEnabled,
+        message: queueMessage,
+        waiting: counts?.waiting ?? 0,
+        active: counts?.active ?? 0,
+        delayed: counts?.delayed ?? 0,
+        failed: counts?.failed ?? 0,
         completedLastHour,
       },
       database: {
@@ -99,6 +119,6 @@ export const getMediaHealth = async (options: HealthOptions = {}): Promise<Media
       })),
     };
   } finally {
-    await queue.close();
+    await queue?.close();
   }
 };

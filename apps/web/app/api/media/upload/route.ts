@@ -10,7 +10,7 @@ import { NO_STORE_HEADERS, safeJson } from "@/lib/http";
 import { logError, logInfo } from "@/lib/logging";
 import { prisma } from "@/lib/prisma";
 import { uploadConfig } from "@/lib/media/config";
-import { queueMediaTranscode } from "@/lib/media/transcode";
+import { MediaTranscodeDisabledError, queueMediaTranscode } from "@/lib/media/transcode";
 import {
   canUploadVideo,
   getUserMediaEntitlements,
@@ -23,6 +23,7 @@ import {
   parseUploadRequest,
   validateDuration,
 } from "@/lib/media/validation";
+import { isMediaTranscodeEnabled } from "@/lib/queues/mediaTranscode.queue";
 import { getDailyBytes, assertWithinRateLimit, trackDailyBytes, RateLimitExceededError } from "@/lib/rate-limit";
 import { cacheOriginal } from "@/lib/storage/headers";
 import { getOriginalKey } from "@/lib/storage/keys";
@@ -43,7 +44,7 @@ type UploadMetadata = {
 
 type MultipartMetadata = UploadMetadata & { file: File };
 
-type ErrorTuple = { status: number; code: "INVALID_MIME" | "TOO_LARGE" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "DURATION_EXCEEDED" | "UNKNOWN"; message: string };
+type ErrorTuple = { status: number; code: "INVALID_MIME" | "TOO_LARGE" | "RATE_LIMITED" | "QUOTA_EXCEEDED" | "DURATION_EXCEEDED" | "DEMO_DISABLED" | "UNKNOWN"; message: string };
 
 const privateBucket = resolveBucketForVisibility("private");
 
@@ -293,6 +294,20 @@ const prepareUpload = async (
   }
 
   const mediaType = isAudio ? MediaType.audio : MediaType.video;
+  if (mediaType === MediaType.video && !isMediaTranscodeEnabled()) {
+    return respondWithError(
+      {
+        status: 503,
+        code: "DEMO_DISABLED",
+        message: "آپلود و پردازش ویدیو در نسخه دمو غیرفعال است.",
+      },
+      {
+        userId,
+        reason: "media_transcode_disabled",
+        mode,
+      },
+    );
+  }
   const media = await createMediaAssetRecord(userId, extension, metadata.sizeBytes, mediaType);
 
   if (mode === "multipart" && fileBuffer) {
@@ -310,7 +325,27 @@ const prepareUpload = async (
         contentType: normalizedMime,
       });
     } else {
-      await queueMediaTranscode(media.id);
+      try {
+        await queueMediaTranscode(media.id);
+      } catch (error) {
+        if (error instanceof MediaTranscodeDisabledError) {
+          await prisma.mediaAsset.delete({ where: { id: media.id } }).catch(() => undefined);
+          return respondWithError(
+            {
+              status: 503,
+              code: "DEMO_DISABLED",
+              message: "آپلود و پردازش ویدیو در نسخه دمو غیرفعال است.",
+            },
+            {
+              userId,
+              mediaId: media.id,
+              reason: "media_transcode_disabled",
+              mode,
+            },
+          );
+        }
+        throw error;
+      }
     }
   }
 
