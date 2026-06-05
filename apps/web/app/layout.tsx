@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     : undefined,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: {
   children: ReactNode;
@@ -58,7 +58,7 @@ export default function RootLayout({
     url: baseUrl,
     logoUrl: `${baseUrl}${SITE_LOGO_PATH}`,
   });
-  const normalizedPathname = getNormalizedPathname();
+  const normalizedPathname = await getNormalizedPathname();
   const isAuthRoute = isAuthPath(normalizedPathname);
   const isOverlayHeaderRoute = isOverlayHeaderPath(normalizedPathname);
 
@@ -108,8 +108,8 @@ function isOverlayHeaderPath(normalizedPathname: string | null) {
   return normalizedPathname.startsWith("/movies/");
 }
 
-function getNormalizedPathname() {
-  const headerList = headers();
+async function getNormalizedPathname() {
+  const headerList = await headers();
   const headerCandidates = ["x-invoke-path", "x-matched-path", "next-url"] as const;
   let pathname: string | null = null;
 

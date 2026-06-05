@@ -10,22 +10,26 @@ const MAX_ENTRIES = 5000;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getBaseUrl();
 
-  const jobs = await prisma.job.findMany({
-    where: {
-      status: "PUBLISHED",
-      moderation: "APPROVED",
-    },
-    select: {
-      id: true,
-      updatedAt: true,
-    },
-    orderBy: { updatedAt: "desc" },
-    take: MAX_ENTRIES,
-  });
+  try {
+    const jobs = await prisma.job.findMany({
+      where: {
+        status: "PUBLISHED",
+        moderation: "APPROVED",
+      },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: MAX_ENTRIES,
+    });
 
-  return jobs.map((job) => ({
-    url: `${baseUrl}/jobs/${job.id}`,
-    lastModified: job.updatedAt,
-  }));
+    return jobs.map((job) => ({
+      url: `${baseUrl}/jobs/${job.id}`,
+      lastModified: job.updatedAt,
+    }));
+  } catch (error) {
+    console.error("[jobs.sitemap] Failed to load jobs for sitemap", error);
+    return [];
+  }
 }
-

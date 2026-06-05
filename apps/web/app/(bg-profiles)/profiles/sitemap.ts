@@ -10,23 +10,27 @@ const MAX_ENTRIES = 5000;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getBaseUrl();
 
-  const profiles = await prisma.profile.findMany({
-    where: {
-      visibility: "PUBLIC",
-      moderationStatus: "APPROVED",
-      publishedAt: { not: null },
-    },
-    select: {
-      id: true,
-      updatedAt: true,
-    },
-    orderBy: { updatedAt: "desc" },
-    take: MAX_ENTRIES,
-  });
+  try {
+    const profiles = await prisma.profile.findMany({
+      where: {
+        visibility: "PUBLIC",
+        moderationStatus: "APPROVED",
+        publishedAt: { not: null },
+      },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: MAX_ENTRIES,
+    });
 
-  return profiles.map((profile) => ({
-    url: `${baseUrl}/profiles/${profile.id}`,
-    lastModified: profile.updatedAt,
-  }));
+    return profiles.map((profile) => ({
+      url: `${baseUrl}/profiles/${profile.id}`,
+      lastModified: profile.updatedAt,
+    }));
+  } catch (error) {
+    console.error("[profiles.sitemap] Failed to load profiles for sitemap", error);
+    return [];
+  }
 }
-

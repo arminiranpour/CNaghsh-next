@@ -133,7 +133,7 @@ export default async function MoviesPage({ searchParams }: { searchParams: Searc
   if (page > 1) apiParams.set("page", String(page));
 
   const baseUrl = getBaseUrl();
-  const headerList = headers();
+  const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   const protocol = headerList.get("x-forwarded-proto") ?? "http";
   const requestBaseUrl = host ? `${protocol}://${host}` : baseUrl;

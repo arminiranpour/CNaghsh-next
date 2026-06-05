@@ -14,7 +14,7 @@ export async function incrementJobViews(jobId: string): Promise<void> {
     return;
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const cookieName = buildCookieName(jobId);
   const now = Date.now();
   const existing = cookieStore.get(cookieName);

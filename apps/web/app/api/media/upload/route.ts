@@ -76,7 +76,7 @@ const getClientIp = (request: NextRequest) => {
   if (realIp) {
     return realIp.trim();
   }
-  return request.ip ?? "";
+  return "";
 };
 
 const errorResponse = ({ status, code, message }: ErrorTuple) => {

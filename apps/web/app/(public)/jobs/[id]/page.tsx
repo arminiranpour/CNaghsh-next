@@ -1,8 +1,8 @@
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
+import VideoPlayer from "@/components/media/VideoPlayer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,6 @@ import { getManifestUrlForMedia } from "@/lib/media/manifest";
 import { JobViewTracker } from "./JobViewTracker";
 
 export const revalidate = 300;
-
-const VideoPlayer = dynamic(() => import("@/components/media/VideoPlayer"), {
-  ssr: false,
-});
 
 function coerceDate(value: unknown): Date | null {
   if (value instanceof Date) {

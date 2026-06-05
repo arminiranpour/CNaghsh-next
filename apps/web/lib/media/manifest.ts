@@ -26,7 +26,7 @@ export async function getManifestUrlForMedia(mediaId: string): Promise<MediaPlay
   }
 
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const cookieHeader = cookieStore
       .getAll()
       .map((cookie) => `${cookie.name}=${cookie.value}`)
