@@ -70,16 +70,17 @@ export default async function HomePage() {
         <Banner />
 
 
+        <AgeGenderCategories />
 
         <section className="flex justify-center mt-[150px]">
           <div className="relative w-[1407px] mx-auto">
             <FeaturedHeader />
+            
             <div className="mt-8" />
             <FeaturedCard cards={featuredCards} />
           </div>
         </section>
 
-        <AgeGenderCategories />
         <CommunityBanner />
       </div>
     </main>

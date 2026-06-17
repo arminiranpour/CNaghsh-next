@@ -44,10 +44,10 @@ export default function FeaturedCard({ cards }: FeaturedCardProps) {
           type="button"
           onClick={() => scroll("right")}
           className="
-            absolute right-[-40px] top-1/2 z-10 -translate-y-1/2
+            absolute right-[-120px] top-1/2 z-10 -translate-y-1/2
             flex h-10 w-10 items-center justify-center
-            rounded-full bg-white/90 text-black shadow
-            hover:bg-white
+            rounded-full text-black shadow
+            
           "
         >
           <Image
@@ -65,10 +65,10 @@ export default function FeaturedCard({ cards }: FeaturedCardProps) {
           type="button"
           onClick={() => scroll("left")}
           className="
-            absolute left-[-40px] top-1/2 z-10 -translate-y-1/2
+            absolute left-[-120px] top-1/2 z-10 -translate-y-1/2
             flex h-10 w-10 items-center justify-center
-            rounded-full bg-white/90 text-black shadow
-            hover:bg-white
+            rounded-full  text-black shadow
+            
           "
         >
           <Image
