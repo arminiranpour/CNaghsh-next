@@ -50,19 +50,14 @@ export default function AgeGenderCategories() {
   return (
     <section
       dir="rtl"
-      className="w-full flex justify-center"
-      style={{
-        marginTop: "80px",
-      }}
+      className="w-full flex justify-center mt-12 sm:mt-16 lg:mt-20"
     >
       <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "flex-start",
-          justifyContent: "center",
-          columnGap: "160px",
-        }}
+        className="
+          grid w-full max-w-[1526px] px-4 sm:px-6
+          grid-cols-1 sm:grid-cols-2 lg:grid-cols-4
+          gap-y-10 gap-x-10 sm:gap-x-14 lg:gap-x-20
+        "
       >
         {categories.map((cat) => {
           const isHovered = hovered === cat.id;
@@ -72,7 +67,7 @@ export default function AgeGenderCategories() {
               onClick={() => router.push(cat.href)}
               onMouseEnter={() => setHovered(cat.id)}
               onMouseLeave={() => setHovered(null)}
-              className="flex flex-col items-center text-center transition-all duration-300"
+              className="flex w-full max-w-[220px] flex-col items-center justify-self-center text-center transition-all duration-300"
               style={{
                 cursor: "pointer",
                 background: "transparent",
@@ -82,12 +77,7 @@ export default function AgeGenderCategories() {
             >
               {/* آیکن */}
               <div
-                style={{
-                  width: "141px",
-                  height: "141px",
-                  position: "relative",
-                  transition: "filter 0.4s ease",
-                }}
+                className="relative h-[110px] w-[110px] transition-[filter] duration-300 sm:h-[130px] sm:w-[130px] lg:h-[141px] lg:w-[141px]"
               >
                 <Image
                   src={cat.iconSrc}
@@ -108,13 +98,9 @@ export default function AgeGenderCategories() {
 
               {/* متن زیر آیکن */}
               <div
-                className="font-iransans text-center transition-all duration-300"
+                className="font-iransans mt-4 text-center text-[14px] font-normal leading-[1.4] transition-all duration-300 sm:mt-5 sm:text-[16px] lg:text-[18px]"
                 style={{
                   fontFamily: "IRANSans",
-                  marginTop: "20px",
-                  lineHeight: 1.4,
-                  fontSize: "18px",
-                  fontWeight: 400,
                   background: isHovered
                     ? "linear-gradient(90deg, #FFC919 0%, #FF7F19 100%)"
                     : "none",

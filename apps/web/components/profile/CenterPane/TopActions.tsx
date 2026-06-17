@@ -63,18 +63,9 @@ export function TopActions({
 
   return (
     <div
+      className="relative z-10 flex w-full items-center justify-start gap-3 px-3 pt-3 md:absolute md:left-[32px] md:top-[18px] md:h-[23px] md:w-[136px] md:px-0 md:pt-0"
       style={{
-        position: "absolute",
-        left: 32, // دقیقا پوزیشن قبلی
-        top: 18,
-        width: 136,
-        height: 23,
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
         direction: "ltr",
-        zIndex: 10, // مهم: روی اسلاید قرار بگیرد تا کلیک‌ها را بگیرد
       }}
     >
       <button

@@ -51,7 +51,7 @@ export function ProfilesGrid({
   return (
     <section className={cn("flex flex-col gap-5", className)} dir="rtl" aria-label="لیست بازیگران">
       <div className="p-1">
-        <div className="grid gap-7 sm:grid-cols-4 xl:grid-cols-3 place-items-center">
+        <div className="grid gap-7 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 place-items-center">
           {profiles.map((item) => {
             const displayName = resolveDisplayName(item);
 

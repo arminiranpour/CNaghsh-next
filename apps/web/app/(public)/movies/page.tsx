@@ -5,8 +5,8 @@ import { getBaseUrl } from "@/lib/seo/baseUrl";
 import { buildMoviesHref, type MovieSearchParams } from "@/lib/url/buildMoviesHref";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { MovieFiltersResponsive } from "@/components/movies/MovieFiltersResponsive";
 
-import { MoviesFilterSidebar } from "./_components/movies-filter-sidebar";
 import { MoviesGrid } from "./_components/movies-grid";
 import { MoviesSearchBar } from "./_components/movies-search-bar";
 import styles from "./movies.module.css";
@@ -221,15 +221,15 @@ export default async function MoviesPage({ searchParams }: { searchParams: Searc
       />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
-        <div className="flex items-center justify-between mb-6 mt-[120px]" dir="rtl">
+        <div className="mb-6 mt-[120px] flex flex-col gap-4 md:flex-row md:items-center md:justify-between" dir="rtl">
           <header className="flex flex-col">
             <h1 className={styles.pageTitle}>معرفی فیلم سی‌نقش</h1>
           </header>
-          <MoviesSearchBar initialQuery={normalized.q ?? ""} className="w-[755px]" />
+          <MoviesSearchBar initialQuery={normalized.q ?? ""} className="w-full md:w-[670px] lg:w-[755px]" />
         </div>
 
         <main className="flex flex-col gap-6 xl:flex-row xl:items-start">
-          <MoviesFilterSidebar
+          <MovieFiltersResponsive
             genres={genreOptions}
             countries={countryOptions}
             ageRanges={ageRangeOptions}

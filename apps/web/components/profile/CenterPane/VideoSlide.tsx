@@ -41,60 +41,28 @@ export function VideosSlide({ videos }: VideosSlideProps) {
 
   return (
     <div
+      className="relative w-full max-w-full min-w-0 md:h-full"
       style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
         direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
       }}
     >
       <h1
-        style={{
-          position: "absolute",
-          left: 630,
-          top: 35,
-          height: 47,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: 0,
-          fontSize: 32,
-          fontWeight: 900,
-          color: "#000000",
-          whiteSpace: "nowrap",
-        }}
+        className="m-0 mt-2 flex w-full items-center justify-center text-center text-[clamp(22px,6vw,32px)] font-black text-black md:absolute md:left-[630px] md:top-[35px] md:mt-0 md:h-[47px] md:w-auto md:text-[32px] md:whitespace-nowrap"
       >
         ویدئو ها
       </h1>
 
       {normalizedVideos.length === 0 ? (
         <p
-          style={{
-            position: "absolute",
-            top: 90,
-            left: 55,
-            margin: 0,
-            fontSize: 14,
-            color: "#666666",
-          }}
+          className="mt-3 text-[14px] text-[#666666] md:absolute md:left-[55px] md:top-[90px] md:mt-0"
         >
           هنوز ویدئویی ثبت نشده است.
         </p>
       ) : null}
 
       <div
-        style={{
-          position: "absolute",
-          top: 120,
-          left: 55,
-          width: 680,
-          height: 584,
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gridTemplateRows: "repeat(2, 1fr)",
-          gap: "22px 18px",
-        }}
+        className="mt-4 grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:absolute md:left-[55px] md:top-[120px] md:mt-0 md:h-[584px] md:w-[680px] md:grid-cols-3 md:grid-rows-2 md:gap-x-[18px] md:gap-y-[22px]"
       >
         {slots.map((video, index) => {
           const title = video?.title?.trim() || "ویدئو";
@@ -103,14 +71,7 @@ export function VideosSlide({ videos }: VideosSlideProps) {
           return (
             <div
               key={`${video?.mediaId ?? "placeholder"}-${index}`}
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 12,
-                overflow: "hidden",
-                position: "relative",
-                backgroundColor: "#C89E2B",
-              }}
+              className="relative w-full min-w-0 overflow-hidden rounded-[12px] bg-[#C89E2B] aspect-video md:aspect-auto md:h-full"
             >
               {video ? (
                 <div style={{ position: "absolute", inset: 0, zIndex: 1 }}>
@@ -121,7 +82,7 @@ export function VideosSlide({ videos }: VideosSlideProps) {
                     posterUrl={video.posterUrl ?? undefined}
                     fillParent
                     autoPlayMuted
-                    className="h-full"
+                    className="h-full w-full"
                   />
                 </div>
               ) : (
@@ -192,25 +153,8 @@ export function VideosSlide({ videos }: VideosSlideProps) {
 
       <div
         onClick={totalPages > 1 ? handleNextPage : undefined}
-        style={{
-          position: "absolute",
-          left: 797 / 2 - 141 / 2,
-          top: 1038 - 290,
-          width: 141,
-          height: 44,
-          borderRadius: 38,
-          backgroundColor: "transparent",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          cursor: totalPages > 1 ? "pointer" : "default",
-          fontFamily: "IRANSans, sans-serif",
-          color: "#FF7F19",
-          fontSize: 15,
-          fontWeight: 700,
-          opacity: totalPages > 1 ? 1 : 0.5,
-        }}
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-[38px] text-[15px] font-bold text-[#FF7F19] md:absolute md:left-[328px] md:top-[748px] md:mt-0 md:h-[44px] md:w-[141px]"
+        style={{ cursor: totalPages > 1 ? "pointer" : "default", opacity: totalPages > 1 ? 1 : 0.5 }}
       >
         <span>صفحه بعد</span>
         <span style={{ fontSize: 20, marginBottom: 2 }}>←</span>

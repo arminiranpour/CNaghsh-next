@@ -26,9 +26,9 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
       <main className="container mx-auto px-4 pb-24 mt-[120px]">
         
         {/* Title */}
-        <div className="mb-20 px-20 text-right">
+        <div className="mb-20 px-8 lg:px-20 md:px-12 text-right">
           <h1
-            className="text-4xl font-bold"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold"
             style={{
               color: "#F58A1F",
               marginBottom: "2rem",
@@ -52,7 +52,7 @@ export default async function CoursesPage({ searchParams }: { searchParams?: Sea
           </div>
         ) : (
           <>
-            <div className="grid gap-8 px-20 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 px-8 lg:px-20 md:px-12 md:grid-cols-2 lg:grid-cols-3">
               {items.map((course) => {
                 const bannerUrl =
                   course.bannerMediaAsset?.outputKey &&

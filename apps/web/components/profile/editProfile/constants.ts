@@ -1,0 +1,1 @@
+export const EDIT_PROFILE_MOBILE_BOTTOM_NAV_H = 70;

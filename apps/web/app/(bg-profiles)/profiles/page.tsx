@@ -174,7 +174,7 @@ export default async function ProfilesPage({ searchParams }: { searchParams: Sea
           <h1 className="text-3xl font-semibold text-orange-500">بازیگران سی‌نقش</h1>
         </header>
 
-        <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="w-[790px]" />
+        <ProfilesSearchBar initialQuery={normalized.query ?? ""} className="w-[790px] lg:w-[790px] md:w-[670px]" />
       </div>
 
       {appliedFilters.length ? (

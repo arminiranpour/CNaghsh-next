@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
@@ -53,6 +53,29 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
 
   const [accent, setAccent] = useState<string>("");
   const [accentOpen, setAccentOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
+  const [isBelowLg, setIsBelowLg] = useState(false);
+  const filterBodyId = useId();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const applyState = (matches: boolean) => {
+      setIsBelowLg(!matches);
+      setIsOpen(matches ? true : false);
+    };
+
+    applyState(media.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => applyState(event.matches);
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", handleChange);
+      return () => media.removeEventListener("change", handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
 
   useEffect(() => {
     if (citiesProp?.length) {
@@ -108,6 +131,22 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
     const [min, max] = ageRange;
     return [Math.min(min, max), Math.max(min, max)];
   }, [ageRange]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (gender) count += 1;
+    if (city) count += 1;
+    if (education) count += 1;
+    if (language) count += 1;
+    if (accent) count += 1;
+    if (
+      sortedAgeRange[0] !== DEFAULT_MIN_SELECTED ||
+      sortedAgeRange[1] !== DEFAULT_MAX_SELECTED
+    ) {
+      count += 1;
+    }
+    return count;
+  }, [accent, city, education, gender, language, sortedAgeRange]);
 
   const minPercent =
     ((sortedAgeRange[0] - AGE_MIN_DEFAULT) / (AGE_MAX_DEFAULT - AGE_MIN_DEFAULT)) * 100;
@@ -241,15 +280,53 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
   return (
     <div
       className={cn(
-        "relative w-[371px] min-h-[800px] rounded-tl-[49px] rounded-bl-[49px] rounded-tr-none rounded-br-none bg-white px-7 py-8 shadow-[0_12px_60px_-30px_rgba(0,0,0,0.4)]",
+        "relative w-full min-h-0 rounded-2xl bg-white px-4 py-4 shadow-[0_12px_60px_-30px_rgba(0,0,0,0.4)] lg:w-full lg:min-h-[800px] lg:rounded-tl-[49px] lg:rounded-bl-[49px] lg:rounded-tr-none lg:rounded-br-none lg:px-7 lg:py-8",
         className,
       )}
       dir="rtl"
       role="search"
     >
-      <h2 className="mb-6 text-2xl font-bold text-black">فیلترها</h2>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center justify-between rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 text-right text-base font-bold text-black shadow-[0_10px_40px_-24px_rgba(0,0,0,0.35)] lg:hidden"
+        aria-expanded={isOpen}
+        aria-controls={filterBodyId}
+      >
+        <span className="flex items-center gap-2">
+          <span>فیلترها</span>
+          {activeFilterCount > 0 ? (
+            <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-black px-2 text-xs font-semibold text-white">
+              {activeFilterCount}
+            </span>
+          ) : null}
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-5 w-5 text-[#808080] transition-transform duration-300",
+            isOpen ? "rotate-180" : "",
+          )}
+        />
+      </button>
 
-      <div className="flex flex-col gap-6">
+      <div
+        id={filterBodyId}
+        className={cn(
+          "grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out lg:block lg:overflow-visible lg:transition-none",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+        aria-hidden={isBelowLg && !isOpen ? true : undefined}
+      >
+        <div
+          className={cn(
+            "min-h-0 transition-opacity duration-300 ease-out lg:opacity-100 lg:transition-none",
+            isOpen ? "opacity-100" : "opacity-0",
+            "pt-4 lg:pt-0",
+          )}
+        >
+          <h2 className="mb-6 hidden text-2xl font-bold text-black lg:block">فیلترها</h2>
+
+          <div className="flex flex-col gap-6">
         {/* جنسیت */}
         <section className="flex flex-col gap-3">
           <span className="text-sm font-normal text-[#7A7A7A]">جنسیت</span>
@@ -513,26 +590,27 @@ export function ProfilesFilterSidebar({ className, cities: citiesProp }: Profile
 
         <Divider />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button
-            type="button"
-            onClick={handleApply}
-            className="h-11 rounded-full bg-black text-sm font-bold text-white hover:bg-black/90"
-          >
-            جستجو بر اساس فیلترها
-          </Button> 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleClear}
-            className="h-11 bg-white rounded-full border border-black text-sm font-bold text-black hover:bg-white"
-          >
-            حذف فیلترها
-          </Button>
-
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              onClick={handleApply}
+              className="h-11 rounded-full bg-black text-sm font-bold text-white hover:bg-black/90"
+            >
+              جستجو بر اساس فیلترها
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClear}
+              className="h-11 bg-white rounded-full border border-black text-sm font-bold text-black hover:bg-white"
+            >
+              حذف فیلترها
+            </Button>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   );
 }
 

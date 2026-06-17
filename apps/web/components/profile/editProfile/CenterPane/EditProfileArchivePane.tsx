@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArchiveModal } from "@/components/common/ArchiveModal";
 import ProfileCard from "@/components/profiles/ProfileCard";
 import { MovieCard, type MovieCardItem } from "@/app/(public)/movies/_components/movie-card";
+import { EDIT_PROFILE_MOBILE_BOTTOM_NAV_H } from "@/components/profile/editProfile/constants";
 
 import profileIcon from "../profile_8536054.png";
 import booksIcon from "../books_2182787.png";
@@ -124,18 +125,19 @@ export function EditProfileArchivePane({ counts }: EditProfileArchivePaneProps) 
     <>
       <section
         aria-label="آرشیو"
-        className="absolute left-[273px] top-[315px] h-[595px] w-[748px] rounded-[20px] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)]"
+        className="fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40 w-screen overflow-x-hidden overflow-y-auto bg-white pb-[calc(var(--edit-profile-bottom-nav-h)+env(safe-area-inset-bottom))] shadow-[0_10px_30px_rgba(0,0,0,0.10)] md:absolute md:left-[273px] md:top-[315px] md:h-[595px] md:w-[748px] md:overflow-hidden md:rounded-[20px] md:pb-0"
+        style={{ ["--edit-profile-bottom-nav-h" as any]: `${EDIT_PROFILE_MOBILE_BOTTOM_NAV_H}px` }}
         dir="rtl"
       >
-        <div className="flex h-full flex-col px-[44px] pt-[28px]">
+        <div className="flex min-w-0 flex-col px-4 pt-4 md:h-full md:px-[44px] md:pt-[28px]">
           <h2 className="text-right text-[30px] font-bold text-black">آرشیو من</h2>
 
-          <div className="mt-12 grid grid-cols-3 gap-6">
+          <div className="mt-8 grid grid-cols-2 gap-4 md:mt-12 md:grid-cols-3 md:gap-6">
             <ArchiveTile
               label="پروفایل‌ها"
               count={counts.profiles}
               iconSrc={profileIcon}
-              className="col-start-1"
+              className="md:col-start-1"
               variant={isProfilesActive ? "active" : "inactive"}
               onClick={() => openArchive("profiles")}
             />
@@ -143,19 +145,19 @@ export function EditProfileArchivePane({ counts }: EditProfileArchivePaneProps) 
               label="کتاب‌ها"
               count={counts.books}
               iconSrc={booksIcon}
-              className="col-start-2"
+              className="md:col-start-2"
             />
             <ArchiveTile
               label="مونولوگ‌ها"
               count={counts.monologues}
               iconSrc={monologueIcon}
-              className="col-start-3"
+              className="md:col-start-3"
             />
             <ArchiveTile
               label="فیلم‌ها"
               count={counts.movies}
               iconSrc={moviesIcon}
-              className="col-start-1 row-start-2"
+              className="md:col-start-1 md:row-start-2"
               variant={isMoviesActive ? "active" : "inactive"}
               onClick={() => openArchive("movies")}
             />
@@ -176,7 +178,7 @@ export function EditProfileArchivePane({ counts }: EditProfileArchivePaneProps) 
         ) : activeItems.length === 0 ? (
           <p className="text-right text-base font-medium text-foreground">موردی ذخیره نشده است.</p>
         ) : activeType === "profiles" ? (
-          <div className="grid grid-cols-3 gap-7 place-items-center" dir="rtl">
+          <div className="grid grid-cols-1 gap-6 place-items-center sm:grid-cols-2 md:grid-cols-3" dir="rtl">
             {profiles.map((item) => {
               const displayName = resolveDisplayName(item);
 
@@ -185,7 +187,7 @@ export function EditProfileArchivePane({ counts }: EditProfileArchivePaneProps) 
                   key={item.id}
                   href={`/profiles/${item.id}`}
                   className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  style={{ width: "230px", height: "325px" }}
+                  style={{ width: "100%", maxWidth: "230px", height: "325px" }}
                 >
                   <ProfileCard
                     name={displayName}
@@ -197,7 +199,7 @@ export function EditProfileArchivePane({ counts }: EditProfileArchivePaneProps) 
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-7 place-items-center" dir="rtl">
+          <div className="grid grid-cols-1 gap-6 place-items-center sm:grid-cols-2 md:grid-cols-3" dir="rtl">
             {movies.map((item) => (
               <MovieCard key={item.id} movie={item} />
             ))}
@@ -227,7 +229,7 @@ function ArchiveTile({
 }: ArchiveTileProps) {
   const isActive = variant === "active";
 
-  const baseClassName = `group relative h-[112px] w-[186px] overflow-hidden rounded-[18px] rounded-tl-[42px] px-4 py-3 transition-colors ${
+  const baseClassName = `group relative h-[112px] w-full max-w-[186px] overflow-hidden rounded-[18px] rounded-tl-[42px] px-4 py-3 transition-colors ${
     isActive ? "bg-[#FF7F19]" : "bg-[#EAEAEA] hover:bg-[#FF7F19]"
   } ${className ?? ""}`;
 
