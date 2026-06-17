@@ -28,7 +28,7 @@ export default function CommunityBanner() {
             height: "272px",
             borderRadius: "30px",
             background:
-              "linear-gradient(90deg, #FF7F19 0%, #FFDDC4 80%)",
+              "linear-gradient(90deg, #000000 0%, #CCCCCC 80%)",
           }}
         />
 
@@ -104,7 +104,7 @@ export default function CommunityBanner() {
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          gap: "90px",
+          gap: "50px",
         }}
       >
         {/* دکمه سبز */}
@@ -131,9 +131,9 @@ export default function CommunityBanner() {
             height: "46px",
             padding: "0 24px",
             borderRadius: "90px",
-            border: "2px solid #FF7F19",
+            border: "2px solid rgb(0, 0, 0)",
             backgroundColor: "transparent",
-            color: "#FF7F19",
+            color: "#000000",
             fontSize: "20px",
             fontWeight: 'bold',
             fontFamily: "IRANSans",
