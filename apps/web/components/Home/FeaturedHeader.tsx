@@ -1,4 +1,3 @@
-import Image from "next/image";
 
 type Props = {
   title?: string;
@@ -8,8 +7,7 @@ type Props = {
 };
 
 export default function FeaturedHeader({
-  buttonImageSrc = "/cineflash/home/Bazigaran/AdvancedSearchButton.png",
-  arrowImageSrc = "/cineflash/home/Bazigaran/ArrowRight.png",
+
   titleColor = "#F58A1F",
   title = "بازیگران برتر سی‌نقش",
 }: Props) {
