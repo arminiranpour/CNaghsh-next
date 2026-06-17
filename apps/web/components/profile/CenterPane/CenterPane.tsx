@@ -29,19 +29,16 @@ export function CenterPane({
   return (
     <section
       aria-label="محتوای اصلی پروفایل"
-      className="
-        fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40
-        w-screen
-        bg-white
-        overflow-x-hidden overflow-y-auto
-        md:absolute md:z-auto
-        md:left-[273px] md:top-[315px]
-        md:w-[797px] md:h-[804px]
-        md:overflow-hidden
-        md:rounded-[20px]
-        shadow-[0_10px_30px_rgba(0,0,0,0.10)]
-      "
       style={{
+        position: "absolute",
+        left: 273, 
+        top: 315,  
+        width: 797, 
+        height: 804, 
+        borderRadius: 20,
+        backgroundColor: "#FFFFFF",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.10)",
+        overflow: "hidden",
         direction: "rtl",
         fontFamily: "IRANSans, sans-serif",
       }}

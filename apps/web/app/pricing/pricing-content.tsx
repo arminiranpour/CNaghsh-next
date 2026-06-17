@@ -151,12 +151,6 @@ export function PricingContent({
   const canCheckout = viewer.state === "signed-in" && Boolean(viewer.userId);
 
   const subscriptionPlanId = viewer.subscription?.planId ?? null;
-  const subscriptionCadenceLabel = viewer.subscription?.cycle
-    ? cadenceLabels[viewer.subscription.cycle] ?? viewer.subscription.cycle
-    : null;
-  const subscriptionGroup = viewer.subscription?.groupId
-    ? plans.find((group) => group.groupId === viewer.subscription?.groupId)
-    : null;
 
   const handleSelectPrice = (price: SelectedPrice) => {
     if (!canCheckout) {

@@ -2630,10 +2630,12 @@ export function PortfolioEditCenterPane({
   return (
     <section
       aria-label="فرم ویرایش پورتفولیو"
-      className={`fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40 w-screen overflow-x-hidden overflow-y-auto bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)] md:absolute md:left-[273px] md:top-[315px] md:h-[804px] ${
+      className={`fixed left-0 right-0 bottom-0 top-[calc(var(--mobile-header-h,72px)+env(safe-area-inset-top))] z-40 w-screen overflow-x-hidden overflow-y-auto bg-white shadow-[0_10px_30px_rgba(0,0,0,0.10)] md:absolute md:left-[273px] md:right-auto md:top-[315px] md:h-[804px] ${
         activeTab === "gallery" ? "md:w-[797px]" : "md:w-[797px]"
       } md:overflow-hidden md:rounded-[20px]`}
-      style={{ ["--edit-profile-bottom-nav-h" as any]: `${EDIT_PROFILE_MOBILE_BOTTOM_NAV_H}px` }}
+      style={{ "--edit-profile-bottom-nav-h": `${EDIT_PROFILE_MOBILE_BOTTOM_NAV_H}px` } as CSSProperties & {
+        "--edit-profile-bottom-nav-h": string;
+      }}
       dir="rtl"
     >
       <form

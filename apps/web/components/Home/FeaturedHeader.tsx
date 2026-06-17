@@ -39,7 +39,7 @@ export default function FeaturedHeader({
           className="relative shrink-0 cursor-pointer border-0 bg-transparent p-0"
         >
           <span
-            className="flex h-[32px] w-[160px] items-center justify-center rounded-full bg-[#F58A1F] text-[14px] font-semibold text-white sm:h-[36px] sm:w-[180px] sm:text-[15px] lg:h-[40px] lg:w-[221px] lg:text-[16px]"
+            className="flex h-[32px] w-[190px] items-center justify-center rounded-full bg-[#000000] text-[17px] font-semibold text-white sm:h-[36px] sm:w-[180px] sm:text-[15px] lg:h-[40px] lg:w-[221px] lg:text-[16px]"
             style={{ fontFamily: "IRANSans" }}
           >
             جست و جوی پیشرفته

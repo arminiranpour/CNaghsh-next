@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 
 type GallerySlideProps = {
@@ -17,6 +17,13 @@ const SLOTS = [
   { left: 186, top: 381, width: 310, height: 202, color: "#CF8F30" },
   { left: 509, top: 337, width: 173, height: 250, color: "#FFC51D" },
 ] as const;
+
+type GallerySlotStyle = CSSProperties & {
+  "--slot-left": string;
+  "--slot-top": string;
+  "--slot-w": string;
+  "--slot-h": string;
+};
 
 export function GallerySlide({ images }: GallerySlideProps) {
   const normalizedImages = images ?? [];
@@ -45,6 +52,15 @@ export function GallerySlide({ images }: GallerySlideProps) {
       >
         {SLOTS.map((slot, index) => {
           const image = normalizedImages[index];
+          const slotStyle: GallerySlotStyle = {
+            aspectRatio: `${slot.width} / ${slot.height}`,
+            backgroundColor: slot.color,
+            cursor: image ? "pointer" : "default",
+            "--slot-left": `${slot.left}px`,
+            "--slot-top": `${slot.top}px`,
+            "--slot-w": `${slot.width}px`,
+            "--slot-h": `${slot.height}px`,
+          };
 
           return (
             <div
@@ -53,15 +69,7 @@ export function GallerySlide({ images }: GallerySlideProps) {
                 image ? () => setActiveIndex(index) : undefined
               }
               className="relative w-full overflow-hidden rounded-[12px] md:absolute md:left-[var(--slot-left)] md:top-[var(--slot-top)] md:w-[var(--slot-w)] md:h-[var(--slot-h)]"
-              style={{
-                aspectRatio: `${slot.width} / ${slot.height}`,
-                backgroundColor: slot.color,
-                cursor: image ? "pointer" : "default",
-                ["--slot-left" as any]: `${slot.left}px`,
-                ["--slot-top" as any]: `${slot.top}px`,
-                ["--slot-w" as any]: `${slot.width}px`,
-                ["--slot-h" as any]: `${slot.height}px`,
-              }}
+              style={slotStyle}
             >
               {image && (
                 <Image

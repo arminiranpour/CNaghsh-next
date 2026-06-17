@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useMemo } from "react";
 
 const ORANGE = "#FF7F19";
-const GRAY = "#7C7C7C";
 
 type AwardEntry = {
   title: string;
@@ -29,7 +28,6 @@ function formatAwardDate(value: string | null | undefined): string {
 
 function buildSubtitle(award: AwardEntry) {
   const parts = [];
-  if (award.workTitle?.trim()) parts.push(award.workTitle.trim());
   if (award.place?.trim()) parts.push(award.place.trim());
   const formatted = formatAwardDate(award.awardDate);
   if (formatted) parts.push(formatted);
@@ -105,6 +103,18 @@ export function AwardsSlide({ awards }: AwardsSlideProps) {
                   >
                     {award.title}
                   </span>
+
+                  {award.workTitle ? (
+                    <span
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 400,
+                        color: "#7C7C7C",
+                      }}
+                    >
+                      - {award.workTitle}
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Subtitle */}
