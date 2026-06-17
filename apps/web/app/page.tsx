@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import Banner from "@/components/Home/Banner";
-import IntroHeading from "@/components/Home/IntroHeading";
 import FeaturedHeader from "@/components/Home/FeaturedHeader";
 import FeaturedCard from "@/components/Home/FeaturedCard";
 import {
@@ -70,9 +69,7 @@ export default async function HomePage() {
 
         <Banner />
 
-        <section style={{ marginTop: 120 }}>
-          <IntroHeading />
-        </section>
+
 
         <section className="flex justify-center mt-[150px]">
           <div className="relative w-[1407px] mx-auto">
