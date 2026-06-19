@@ -38,6 +38,12 @@ export default function Footer() {
             >
               درباره سی نقش
             </Link>
+            <Link
+              href="/challenges"
+              className="text-sm text-black transition-colors hover:text-foreground"
+            >
+              چالش‌ها و رویدادها
+            </Link>
           </div>
 
           {/* Column 3: Profile Links */}

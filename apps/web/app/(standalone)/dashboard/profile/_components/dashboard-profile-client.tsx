@@ -7,6 +7,7 @@ import { CenterPane } from "@/components/profile/CenterPane/CenterPane";
 import { LeftRail } from "@/components/profile/LeftRail/LeftRail";
 import { RightPane } from "@/components/profile/RightPane/RightPane";
 import { SubscriptionPane } from "@/components/profile/editProfile/CenterPane/SubscriptionPane";
+import { EditProfileChallengesPane } from "@/components/profile/editProfile/CenterPane/EditProfileChallengesPane";
 import { EditProfileCoursesPane } from "@/components/profile/editProfile/CenterPane/EditProfileCoursesPane";
 import { EditProfileArchivePane } from "@/components/profile/editProfile/CenterPane/EditProfileArchivePane";
 import {
@@ -37,6 +38,13 @@ type DashboardProfileClientProps = {
     title: string;
     imageUrl: string | null;
   }>;
+  registeredChallenges: Array<{
+    id: string;
+    title: string;
+    imageUrl: string | null;
+    statusLabel: string;
+    dateRangeLabel: string;
+  }>;
   savedSummary: {
     profiles: number;
     movies: number;
@@ -61,6 +69,7 @@ export function DashboardProfileClient({
   provinces,
   billingData,
   enrolledCourses,
+  registeredChallenges,
   savedSummary,
 }: DashboardProfileClientProps) {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("personal");
@@ -107,6 +116,8 @@ export function DashboardProfileClient({
           />
         ) : activeEditTab === "saved" ? (
           <EditProfileArchivePane counts={savedSummary} />
+        ) : activeEditTab === "challenges" ? (
+          <EditProfileChallengesPane challenges={registeredChallenges} />
         ) : activeEditTab === "courses" ? (
           <EditProfileCoursesPane courses={enrolledCourses} />
         ) : (

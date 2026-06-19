@@ -18,26 +18,22 @@ type TopActionsProps = {
 
 const ICONS: Record<ActionId, JSX.Element> = {
   share: (
-    <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <polyline
-        points="16 6 12 2 8 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        fill="none"
-      />
-      <line
-        x1="12"
-        y1="2"
-        x2="12"
-        y2="15"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
+    <svg
+      width="25"
+      height="25"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+
+      <line x1="8.7" y1="10.8" x2="15.3" y2="6.2" />
+      <line x1="8.7" y1="13.2" x2="15.3" y2="17.8" />
     </svg>
   ),
 };

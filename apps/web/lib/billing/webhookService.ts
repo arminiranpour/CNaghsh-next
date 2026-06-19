@@ -13,6 +13,7 @@ import {
   emitBillingPaymentFailed,
 } from "@/lib/notifications/events";
 import { applyCoursePaymentFromWebhook } from "@/lib/courses/payments";
+import { applyChallengePaymentFromWebhook } from "@/lib/challenges/payments";
 
 const billingDashboardUrl = buildAbsoluteUrl("/dashboard/billing");
 const supportMailto = process.env.NOTIFICATIONS_SUPPORT_EMAIL ?? "mailto:support@cnaghsh.com";
@@ -193,6 +194,15 @@ export const processWebhook = async (
       });
     } catch (error) {
       console.error("applyCoursePaymentFromWebhook", error);
+    }
+
+    try {
+      await applyChallengePaymentFromWebhook({
+        paymentId: result.payment.id,
+        status: paymentStatus,
+      });
+    } catch (error) {
+      console.error("applyChallengePaymentFromWebhook", error);
     }
   }
 

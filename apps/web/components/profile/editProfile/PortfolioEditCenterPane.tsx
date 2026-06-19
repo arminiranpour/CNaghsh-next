@@ -1508,7 +1508,7 @@ export function PortfolioEditCenterPane({
 
   const [firstName, setFirstName] = useState(initialValues.firstName);
   const [lastName, setLastName] = useState(initialValues.lastName);
-  const [phone] = useState(initialValues.phone ?? "");
+  const [phone, setPhone] = useState(initialValues.phone ?? "");
   const [bio, setBio] = useState(initialValues.bio);
 
   const [birthDate, setBirthDate] = useState(() => {
@@ -2705,10 +2705,24 @@ export function PortfolioEditCenterPane({
                 className={inputClass}
                 placeholder="شماره تماس"
                 value={phone}
-                readOnly
-                aria-readonly="true"
+                onChange={(event) => {
+                  const nextValue = normalizeDigits(event.target.value)
+                    .replace(/\D/g, "")
+                    .slice(0, 11);
+
+                  if (
+                    (nextValue.length >= 1 && nextValue[0] !== "0") ||
+                    (nextValue.length >= 2 && !nextValue.startsWith("09"))
+                  ) {
+                    return;
+                  }
+
+                  setPhone(nextValue);
+                }}
                 dir="ltr"
                 inputMode="numeric"
+                maxLength={11}
+                pattern="09[0-9]{9}"
               />
             </div>
 
@@ -3337,7 +3351,7 @@ export function PortfolioEditCenterPane({
             </div>
           ) : null}
 
-          <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row sm:gap-4">
+          <div className="flex flex-col items-center justify-between gap-3 pt-2 sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={onCancel}
@@ -3349,9 +3363,33 @@ export function PortfolioEditCenterPane({
             <button
               type="submit"
               disabled={isBusy}
-              className="h-[38px] w-full max-w-[240px] rounded-full bg-[#F58A1F] text-[12px] font-semibold text-white sm:w-[180px]"
+              className="flex h-[38px] w-full max-w-[240px] items-center justify-center gap-2 rounded-full text-[12px] font-semibold text-[#F58A1F] sm:w-[180px]"
             >
-              {isBusy ? "در حال ذخیره..." : "ذخیره اطلاعات"}
+              <span>{isBusy ? "در حال ذخیره..." : "ذخیره و صفحه بعد"}</span>
+              {!isBusy && (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="shrink-0"
+                >
+                  <path
+                    d="M19 12H5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M12 5L5 12L12 19"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+
             </button>
           </div>
         </div>

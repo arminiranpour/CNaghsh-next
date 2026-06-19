@@ -4,7 +4,7 @@ import { getBaseUrl } from "@/lib/seo/baseUrl";
 
 export const revalidate = 86400;
 
-const STATIC_PATHS = ["/", "/profiles", "/jobs", "/pricing", "/castings"] as const;
+const STATIC_PATHS = ["/", "/profiles", "/jobs", "/pricing", "/castings", "/challenges"] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = getBaseUrl();
@@ -17,4 +17,3 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "/" ? 1 : 0.7,
   }));
 }
-

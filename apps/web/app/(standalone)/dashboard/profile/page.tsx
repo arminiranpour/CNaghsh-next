@@ -5,7 +5,9 @@ import { ProfilePageLayout } from "@/components/profile/ProfilePageLayout";
 import { iransans } from "@/app/fonts";
 import { getServerAuthSession } from "@/lib/auth/session";
 import { getBillingDashboardData } from "@/lib/billing/dashboard";
+import { challengeParticipationStatusLabels } from "@/lib/challenges/constants";
 import { listUserEnrollments } from "@/lib/courses/enrollments/queries";
+import { formatJalaliDate } from "@/lib/datetime/jalali";
 import { getCities, getProvinces } from "@/lib/location/cities";
 import { getPublicMediaUrlFromKey } from "@/lib/media/urls";
 import { prisma } from "@/lib/prisma";
@@ -35,7 +37,7 @@ export default async function DashboardProfilePage() {
 
   const userId = session.user.id;
 
-  const [initialProfile, cities, entitlementActive, billingData, enrollments] = await Promise.all([
+  const [initialProfile, cities, entitlementActive, billingData, enrollments, challengeParticipations] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
       include: {
@@ -51,6 +53,22 @@ export default async function DashboardProfilePage() {
     canPublishProfile(userId),
     getBillingDashboardData(userId),
     listUserEnrollments(userId),
+    prisma.challengeParticipation.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        challenge: {
+          include: {
+            coverMediaAsset: {
+              select: {
+                outputKey: true,
+                visibility: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ]);
 
   const provinces = getProvinces().map((province) => ({
@@ -220,6 +238,22 @@ export default async function DashboardProfilePage() {
     });
   }
 
+  const registeredChallenges = challengeParticipations.map((participation) => {
+    const cover = participation.challenge.coverMediaAsset;
+    const imageUrl =
+      cover?.outputKey && cover.visibility === "public"
+        ? getPublicMediaUrlFromKey(cover.outputKey)
+        : null;
+
+    return {
+      id: participation.challenge.id,
+      title: participation.challenge.title,
+      imageUrl,
+      statusLabel: challengeParticipationStatusLabels[participation.status],
+      dateRangeLabel: `${formatJalaliDate(participation.challenge.startDate)} تا ${formatJalaliDate(participation.challenge.endDate)}`,
+    };
+  });
+
   return (
     <div className={iransans.className}>
       <ProfilePageLayout>
@@ -231,6 +265,7 @@ export default async function DashboardProfilePage() {
           provinces={provinces}
           billingData={billingData}
           enrolledCourses={enrolledCourses}
+          registeredChallenges={registeredChallenges}
           savedSummary={savedSummary}
         />
       </ProfilePageLayout>

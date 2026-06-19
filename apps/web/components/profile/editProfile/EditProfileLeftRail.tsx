@@ -48,7 +48,7 @@ const NAV_ITEMS: {
     label: "چالش و رویداد",
     iconSrcActive: `${LEFT_PANE_ICON_BASE}/challenges-white.png`,
     iconSrcInactive: `${LEFT_PANE_ICON_BASE}/challenges-gray.png`,
-    isEnabled: false,
+    isEnabled: true,
   },
   {
     id: "courses",

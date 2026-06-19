@@ -66,7 +66,7 @@ const EXPERIENCE_CARD_META: Record<
   shortFilm: {
     left: 65,
     top: 345,
-    backgroundColor: "#E8F5DD",
+    backgroundColor: "rgba(10, 63, 53, 0.1)",
     titleColor: "#0A3F35",
     iconSrc: "/cineflash/profile/jobs/short-film.png",
     iconAlt: "فیلم کوتاه",
@@ -76,7 +76,7 @@ const EXPERIENCE_CARD_META: Record<
   theatre: {
     left: 65 + CARD_WIDTH + 30,
     top: 345,
-    backgroundColor: "#FEE5D5",
+    backgroundColor: "rgba(255, 127, 25, 0.1)",
     titleColor: ORANGE,
     iconSrc: "/cineflash/profile/jobs/theatre.png",
     iconAlt: "تئاتر",
@@ -86,7 +86,7 @@ const EXPERIENCE_CARD_META: Record<
   tv: {
     left: 65,
     top: 345 + CARD_HEIGHT + 30,
-    backgroundColor: "#FEE5D5",
+    backgroundColor: "rgba(255, 127, 25, 0.1)",
     titleColor: ORANGE,
     iconSrc: "/cineflash/profile/jobs/tv.png",
     iconAlt: "تلویزیون",
@@ -96,7 +96,7 @@ const EXPERIENCE_CARD_META: Record<
   cinema: {
     left: 65 + CARD_WIDTH + 30,
     top: 345 + CARD_HEIGHT + 30,
-    backgroundColor: "#E8F5DD",
+    backgroundColor: "rgba(10, 63, 53, 0.1)",
     titleColor: "#0A3F35",
     iconSrc: "/cineflash/profile/jobs/cinema.png",
     iconAlt: "سینمایی",

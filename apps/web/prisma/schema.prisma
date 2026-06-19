@@ -39,6 +39,7 @@ model User {
   applicationViews        ApplicationView[]        @relation("ApplicationViewViewer")
   enrollments             Enrollment[]
   savedItems              SavedItem[]
+  challengeParticipations ChallengeParticipation[]
 }
 
 model SavedItem {
@@ -209,6 +210,8 @@ model CheckoutSession {
   courseId                String?
   semesterId              String?
   enrollmentId            String?
+  challengeId             String?
+  challengeParticipationId String?
   paymentMode             PaymentMode?
   installmentIndex        Int?
   idempotencyKey          String?        @unique
@@ -223,6 +226,8 @@ model CheckoutSession {
   course                  Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
   semester                Semester?      @relation(fields: [semesterId], references: [id], onDelete: SetNull)
   enrollment              Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  challenge               Challenge?     @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  challengeParticipation  ChallengeParticipation? @relation(fields: [challengeParticipationId], references: [id], onDelete: SetNull)
   user                    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments                Payment[]
 
@@ -230,6 +235,8 @@ model CheckoutSession {
   @@index([courseId])
   @@index([semesterId])
   @@index([enrollmentId])
+  @@index([challengeId])
+  @@index([challengeParticipationId])
   @@index([purchaseType])
 }
 
@@ -557,6 +564,9 @@ model MediaAsset {
   transcodeJobs           TranscodeJob[]
   courseBannerUsages      Course[]              @relation("CourseBannerMedia")
   courseIntroVideoUsages  Course[]              @relation("CourseIntroVideo")
+  challengeCoverUsages    Challenge[]           @relation("ChallengeCoverMedia")
+  challengeInstructionVideoUsages Challenge[]   @relation("ChallengeInstructionVideo")
+  challengeSubmissionUsages ChallengeParticipation[] @relation("ChallengeSubmissionMedia")
   profileIntroVideoUsages Profile[]             @relation("ProfileIntroVideo")
   jobIntroVideoUsages     Job[]                 @relation("JobIntroVideo")
   moviePosterBigUsages    Movie[]               @relation("MoviePosterBig")
@@ -651,6 +661,53 @@ model Course {
 
   @@index([status])
   @@index([createdAt])
+}
+
+model Challenge {
+  id                          String                   @id @default(cuid())
+  title                       String
+  location                    String
+  summary                     String
+  startDate                   DateTime
+  endDate                     DateTime
+  conditions                  String
+  mediaLengthLimitSec         Int?
+  instructions                String
+  priceIrr                    Int                      @default(0)
+  prerequisite                String
+  howHeld                     String
+  sideNote                    String?
+  coverMediaAssetId           String?
+  instructionVideoMediaAssetId String?
+  status                      ChallengeStatus          @default(draft)
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+  coverMediaAsset             MediaAsset?              @relation("ChallengeCoverMedia", fields: [coverMediaAssetId], references: [id], onDelete: SetNull)
+  instructionVideoMediaAsset  MediaAsset?              @relation("ChallengeInstructionVideo", fields: [instructionVideoMediaAssetId], references: [id], onDelete: SetNull)
+  participations              ChallengeParticipation[]
+  checkoutSessions            CheckoutSession[]
+
+  @@index([status, startDate, endDate])
+  @@index([createdAt])
+}
+
+model ChallengeParticipation {
+  id                    String                       @id @default(cuid())
+  challengeId           String
+  userId                String
+  status                ChallengeParticipationStatus @default(payment_pending)
+  submissionMediaAssetId String?
+  description           String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  challenge             Challenge                    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionMediaAsset  MediaAsset?                 @relation("ChallengeSubmissionMedia", fields: [submissionMediaAssetId], references: [id], onDelete: SetNull)
+  checkoutSessions      CheckoutSession[]
+
+  @@unique([challengeId, userId])
+  @@index([userId, status])
+  @@index([submissionMediaAssetId])
 }
 
 model Genre {
@@ -831,6 +888,22 @@ enum CourseDurationUnit {
 
 enum PurchaseType {
   course_semester
+  challenge_participation
+}
+
+enum ChallengeStatus {
+  draft
+  published
+  archived
+}
+
+enum ChallengeParticipationStatus {
+  registered
+  payment_pending
+  submitted
+  reviewed
+  accepted
+  rejected
 }
 
 enum ProductType {

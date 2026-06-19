@@ -118,22 +118,22 @@ export function ConsentGate() {
       ) : null}
 
       {shouldRenderBanner ? (
-        <div className="bg-card border-b border-border px-4 py-3 text-sm text-foreground">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm">
+        <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pb-3 sm:px-4 sm:pb-4">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 rounded-t-2xl border border-white/15 bg-black px-4 py-4 text-sm text-white shadow-2xl sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:px-5">
+            <p className="text-sm leading-6 text-white/90">
               برای بهبود تجربه شما، اجازه تحلیل رفتار ناشناس را می‌خواهیم. داده‌های شخصی ذخیره نمی‌شوند.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                className="rounded-md border border-input px-3 py-1 text-sm"
+                className="rounded-md border border-white/70 bg-transparent px-3 py-2 text-sm text-white transition-colors hover:border-white hover:bg-white/10"
                 onClick={handleDecline}
               >
                 رد کردن
               </button>
               <button
                 type="button"
-                className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground shadow"
+                className="rounded-md bg-orange-500 px-3 py-2 text-sm font-medium text-black shadow-lg shadow-orange-950/40 transition-colors hover:bg-orange-400"
                 onClick={handleAllow}
               >
                 اجازه می‌دهم
