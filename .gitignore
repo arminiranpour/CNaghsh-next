@@ -21,3 +21,5 @@ apps/web/.next/
 apps/web/dist/
 apps/web/build/
 .turbo/
+deploy-cpanel/
+cnaghsh-cpanel.zip
